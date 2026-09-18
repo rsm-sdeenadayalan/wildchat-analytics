@@ -8,6 +8,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import random
 import statistics
 import sys
 import time
@@ -27,6 +28,7 @@ PRICES: dict[str, tuple[float, float]] = {
 }
 DEFAULT_MODEL = "claude-opus-5"
 PROBE_N = 50
+PROBE_SEED = 11
 MAX_TOKENS = 64
 
 
@@ -96,8 +98,9 @@ def check_budget(estimated_usd: float, budget_usd: float) -> None:
 
 
 def _probe_avg_input_tokens(client, model: str, requests: list[dict]) -> float:
+    sample = random.Random(PROBE_SEED).sample(requests, min(PROBE_N, len(requests)))
     counts = []
-    for r in requests[:PROBE_N]:
+    for r in sample:
         p = r["params"]
         resp = client.messages.count_tokens(model=model, system=p["system"], messages=p["messages"])
         counts.append(resp.input_tokens)
@@ -105,16 +108,17 @@ def _probe_avg_input_tokens(client, model: str, requests: list[dict]) -> float:
 
 
 def run(sample_path: Path = Path("samples/intent_sample.parquet"), out_path: Path = Path("samples/intent_labels.parquet"),
-        model: str | None = None, budget_usd: float | None = None, poll_seconds: int = 60, dry_run: bool = False) -> dict:
-    import anthropic
-
+        model: str | None = None, budget_usd: float | None = None, poll_seconds: int = 60, dry_run: bool = False,
+        client=None, run_log_path: Path = Path("data/label_run.json")) -> dict:
     model = model or os.environ.get("LOUPE_LABEL_MODEL", DEFAULT_MODEL)
     budget_usd = budget_usd if budget_usd is not None else float(os.environ.get("LOUPE_LABEL_BUDGET_USD", "60"))
     rows = duckdb.sql(f"SELECT conv_id, intent_text FROM read_parquet('{sample_path}')").fetchall()
     system = system_blocks()
     requests = [build_request(cid, txt, model, system) for cid, txt in rows]
 
-    client = anthropic.Anthropic()
+    if client is None:
+        import anthropic
+        client = anthropic.Anthropic()
     avg_in = _probe_avg_input_tokens(client, model, requests)
     est = estimate_cost_usd(model, len(requests), avg_in)
     print(f"{len(requests)} requests, avg input {avg_in:.0f} tokens, estimated ${est:.2f} (cap ${budget_usd:.2f})", file=sys.stderr)
@@ -146,19 +150,19 @@ def run(sample_path: Path = Path("samples/intent_sample.parquet"), out_path: Pat
         text = next((b.text for b in msg.content if b.type == "text"), "")
         try:
             data = json.loads(text)
-        except json.JSONDecodeError:
+            row = {"conv_id": int(res.custom_id), "intent": data["intent"], "confidence": data["confidence"]}
+        except (json.JSONDecodeError, KeyError, TypeError):
             errors += 1
             continue
-        out_rows.append({"conv_id": int(res.custom_id), "intent": data["intent"], "confidence": data["confidence"]})
+        out_rows.append(row)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(pa.Table.from_pylist(out_rows, schema=pa.schema([
         ("conv_id", pa.int64()), ("intent", pa.string()), ("confidence", pa.string())])), out_path)
-    p_in, p_out = PRICES[model]
     run_log.update({"labeled": len(out_rows), "errors": errors, "input_tokens": in_tok, "output_tokens": out_tok,
-                    "actual_usd": 0.5 * (in_tok * p_in / 1e6 + out_tok * p_out / 1e6),
+                    "actual_usd": estimate_cost_usd(model, 1, in_tok, out_tok),
                     "finished_at": dt.datetime.now(dt.UTC).isoformat()})
-    Path("data").mkdir(exist_ok=True)
-    Path("data/label_run.json").write_text(json.dumps(run_log, indent=2))
+    run_log_path.parent.mkdir(parents=True, exist_ok=True)
+    run_log_path.write_text(json.dumps(run_log, indent=2))
     print(json.dumps(run_log, indent=2), file=sys.stderr)
     return run_log
