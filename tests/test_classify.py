@@ -1,3 +1,4 @@
+import json
 import random
 
 import pyarrow as pa
@@ -46,3 +47,50 @@ def test_run_writes_intent_per_shard_and_nulls_empty(tmp_path, mini_shard_path):
     assert by_id[3001]["intent"] is None                # empty user input
     assert by_id[1001]["intent"] == "coding"
     assert by_id[4001]["intent"] == "translation"
+
+
+def test_train_per_class_uses_f1_key():
+    texts, labels = _synthetic()
+    _, report = classify.train(texts, labels)
+    assert set(report["per_class"]["coding"]) == {"precision", "recall", "f1", "support"}
+
+
+def test_run_refuses_below_threshold_and_writes_complete_report(tmp_path, mini_shard_path):
+    flat = tmp_path / "flat"
+    flatten.run(local_paths=[mini_shard_path], out_dir=flat)
+    texts, labels = _synthetic()
+    rows = [{"conv_id": 1001, "intent": "coding", "confidence": "high"},
+            {"conv_id": 4001, "intent": "translation", "confidence": "high"}]
+    labels_path = tmp_path / "labels.parquet"
+    pq.write_table(pa.Table.from_pylist(rows), labels_path)
+    report = classify.run(labels_path=labels_path, flat_dir=flat, out_dir=tmp_path / "intent",
+                          model_path=tmp_path / "m.joblib", report_path=tmp_path / "r.json",
+                          threshold=1.01, extra_training=(texts, labels))
+    assert report["predicted"] is False
+    assert report["forced"] is False
+    on_disk = json.loads((tmp_path / "r.json").read_text())
+    assert on_disk["predicted"] is False
+    assert on_disk["forced"] is False
+    assert on_disk["threshold"] == 1.01
+    intent_dir = tmp_path / "intent"
+    assert not intent_dir.exists() or not list(intent_dir.glob("*.parquet"))
+    assert (tmp_path / "m.joblib").exists()
+
+
+def test_run_force_marks_forced(tmp_path, mini_shard_path):
+    flat = tmp_path / "flat"
+    flatten.run(local_paths=[mini_shard_path], out_dir=flat)
+    texts, labels = _synthetic()
+    rows = [{"conv_id": 1001, "intent": "coding", "confidence": "high"},
+            {"conv_id": 4001, "intent": "translation", "confidence": "high"}]
+    labels_path = tmp_path / "labels.parquet"
+    pq.write_table(pa.Table.from_pylist(rows), labels_path)
+    report = classify.run(labels_path=labels_path, flat_dir=flat, out_dir=tmp_path / "intent",
+                          model_path=tmp_path / "m.joblib", report_path=tmp_path / "r.json",
+                          threshold=1.01, force=True, extra_training=(texts, labels))
+    assert report["predicted"] is True
+    assert report["forced"] is True
+    on_disk = json.loads((tmp_path / "r.json").read_text())
+    assert on_disk["predicted"] is True
+    assert on_disk["forced"] is True
+    assert (tmp_path / "intent" / "mini_wildchat.parquet").exists()
