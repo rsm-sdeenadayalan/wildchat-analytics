@@ -37,10 +37,16 @@ def train(texts: list[str], labels: list[str], seed: int = 7) -> tuple[Pipeline,
         "accuracy": float(accuracy_score(y_te, pred)),
         "macro_f1": float(f1_score(y_te, pred, average="macro", labels=classes, zero_division=0)),
         "classes": classes,
-        "per_class": {c: {k: float(v) if k != "support" else int(v) for k, v in rep[c].items()} for c in classes},
+        "per_class": {c: {"precision": float(rep[c]["precision"]), "recall": float(rep[c]["recall"]),
+                          "f1": float(rep[c]["f1-score"]), "support": int(rep[c]["support"])} for c in classes},
         "confusion": confusion_matrix(y_te, pred, labels=classes).tolist(),
     }
     return model, report
+
+
+def _write_report(report_path: Path, report: dict) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(report, indent=2))
 
 
 def run(labels_path: Path = Path("samples/intent_labels.parquet"), flat_dir: Path = Path("data/flat"),
@@ -59,15 +65,16 @@ def run(labels_path: Path = Path("samples/intent_labels.parquet"), flat_dir: Pat
         labels += extra_training[1]
     model, report = train(texts, labels)
     report["threshold"] = threshold
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(report, indent=2))
+    report["predicted"] = False
+    report["forced"] = False
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, model_path)
     print(f"held-out accuracy {report['accuracy']:.3f}, macro F1 {report['macro_f1']:.3f} (threshold {threshold})", file=sys.stderr)
 
     if report["accuracy"] < threshold and not force:
-        report["predicted"] = False
         print("below threshold; not predicting. Use --force to override (marks coverage as sample_only).", file=sys.stderr)
+        _write_report(report_path, report)
+        con.close()
         return report
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -92,6 +99,6 @@ def run(labels_path: Path = Path("samples/intent_labels.parquet"), flat_dir: Pat
         pq.write_table(table, out_dir / f"{shard}.parquet", compression="zstd")
     report["predicted"] = True
     report["forced"] = bool(force and report["accuracy"] < threshold)
-    report_path.write_text(json.dumps(report, indent=2))
+    _write_report(report_path, report)
     con.close()
     return report
