@@ -1,10 +1,12 @@
 """Stage 1: shards -> data/flat/{conversations,turns}/<label>.parquet"""
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from loupe import hf
@@ -15,13 +17,19 @@ def _outputs(out_dir: Path, lab: str) -> tuple[Path, Path]:
     return out_dir / "conversations" / f"{lab}.parquet", out_dir / "turns" / f"{lab}.parquet"
 
 
+def _write_atomic(table: pa.Table, path: Path) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    pq.write_table(table, tmp, compression="zstd")
+    os.replace(tmp, path)
+
+
 def _process(path: Path, lab: str, out_dir: Path) -> None:
     c_path, t_path = _outputs(out_dir, lab)
     c_path.parent.mkdir(parents=True, exist_ok=True)
     t_path.parent.mkdir(parents=True, exist_ok=True)
     convs, turns = flatten_shard(path, lab)
-    pq.write_table(convs, c_path, compression="zstd")
-    pq.write_table(turns, t_path, compression="zstd")
+    _write_atomic(convs, c_path)
+    _write_atomic(turns, t_path)
 
 
 def run(shards: str = "all", raw_dir: Path = Path("data/raw"), out_dir: Path = Path("data/flat"),
