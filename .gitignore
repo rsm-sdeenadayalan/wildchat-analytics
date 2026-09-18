@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# Data: raw shards and content-bearing samples never get committed
+data/
+samples/
+*.parquet
+!aggregates/**/*.parquet
+# Secrets
+.env
+# OS
+.DS_Store
