@@ -40,7 +40,17 @@ Incumbent tools (DeepEval, Braintrust, LangSmith, promptfoo, Confident AI) are d
 
 **Secondary audience (portfolio):** recruiters and hiring managers for PM roles who need to judge product thinking in under ten minutes.
 
-## 4. Goals and non-goals
+## 4. User scenario
+
+Priya is the product manager for the AI assistant inside a customer-support tool. About 40,000 conversations a week flow through it. Her VP asks three questions on a Monday: Is usage growing, or is it the same power users every week? What are people using it for? Support tickets say the assistant "doesn't get it," so where is it failing?
+
+**Today.** Priya asks a data engineer for a SQL pull. It takes three days. She gets a spreadsheet of 2,000 conversations and reads a few hundred by hand over a weekend. She forms a gut impression and brings it to the next meeting. Nobody can check her numbers. A month later the same questions come back and she repeats the cycle. This matches the market evidence in Section 2: most teams measure their AI features with one-off scripts and manual transcript reading, and every question needs an engineer.
+
+**With Loupe.** Her team maps their logs onto Loupe's schema once. From then on she opens a dashboard and gets volume and intensity (weekly conversations, distinct pseudo-users, week-over-week return, share of traffic from the top 10%), intent (every conversation in a category), and friction (repeated requests, corrections, one-reply abandonment), each sliceable by the others. Her answer becomes: "Usage is up 20% but return fell after the March model swap. Error-message questions are 12% of traffic and fail three times as often as the rest. Fix that path first." Every number has a definition and a query behind it. The engineer was never pulled in.
+
+The same scenario applies to a founder running a tutoring chatbot, an analyst on an internal IT-help bot, or a product lead at a university with a student advising assistant. WildChat stands in for Priya's logs because we do not have them; it is the closest public dataset of real conversations with a general-purpose assistant.
+
+## 5. Goals and non-goals
 
 **Goals**
 
@@ -49,6 +59,7 @@ Incumbent tools (DeepEval, Braintrust, LangSmith, promptfoo, Confident AI) are d
 - G3. Publish a trends report with at least five findings a product owner would act on, each traceable to a metric definition and a query.
 - G4. Complete six or more user interviews and a synthesis document; ship with whatever count lands, plus a plan for the rest.
 - G5. Handle the sensitive-data dimension explicitly and well, because the target roles ask for it.
+- G6. Meet the v1 launch criteria in Section 6.3, including a five-participant usability test and validation of every friction proxy against hand labels.
 
 **Non-goals**
 
@@ -58,16 +69,58 @@ Incumbent tools (DeepEval, Braintrust, LangSmith, promptfoo, Confident AI) are d
 - Not toxicity or safety analytics in v1. The public dataset has toxic conversations removed, so safety rates cannot be computed honestly from it. See Roadmap → Later.
 - No re-hosting of the raw dataset. Hugging Face remains the source of truth.
 
-## 5. The PM artifact set
+## 6. Success metrics for Loupe
 
-Each artifact is a Markdown file under `docs/pm/`, numbered in the order a senior PM would produce them. Each has a one-line "what this is for" header, a date, and a status. They are rendered to plain HTML for the case-study pages on shankard.com (Section 9).
+These are the metrics for Loupe itself, distinct from the analysis metrics Loupe computes about an assistant (Section 9). They appear in the PRD as written here.
+
+**North star: weekly answered questions.** A session in which a user reaches a view and exports, shares, or copies a number with its caveat attached. Usage alone does not count; the user has to take something away.
+
+### 6.1 Metrics tree, for Loupe in market
+
+| Layer | Metric | Why it is here | Target at 90 days |
+|---|---|---|---|
+| Adoption | Teams with logs mapped to the Loupe schema | The product only works once a team's data is in | 5 teams |
+| Adoption | Weekly active users per team | One analyst, or the whole product team | 3 or more |
+| Engagement | Time from log connection to first exported answer | The onboarding promise | Under 1 day |
+| Engagement | Answered questions per active user per week | Habit, not a one-time report | 3 or more |
+| Trust | Share of exported answers that keep the caveat line | Interpretability, measured in behavior | 90% or higher |
+| Trust | Disputed numbers per 100 exports | Do people argue with Loupe's math | Under 2 |
+| Outcome | Product decisions citing Loupe, self-reported quarterly | The lagging proof of value | 1 per team per month |
+| Retention | Teams active 4 weeks after onboarding | Does it stick | 80% or higher |
+
+### 6.2 Guardrails
+
+Any of these blocks a release regardless of the metrics above.
+
+- Zero row-level transcript content reachable from the dashboard.
+- Minimum-cell suppression applied on every geography and language slice.
+- Intent classifier agreement with LLM labels at 85% or higher on the held-out sample.
+- Friction proxy precision at 70% or higher against 300 hand-labeled conversations (Section 13).
+- Pipeline cost per million conversations under the cap set in the PRD before the classifier stage runs.
+- Aggregates never older than one week from the latest log.
+
+### 6.3 What we can measure at v1 launch
+
+Loupe has one "team" (the WildChat demonstration) and no in-market users at launch. The in-market metrics above are therefore unmeasured at launch, and the PRD says so. The launch criteria below are proxies, each mapped to the metric it predicts. Instrumenting the real metrics is a roadmap item.
+
+| Launch check | Method | Target | Proxy for |
+|---|---|---|---|
+| Time to answer | Moderated test: 5 participants from the interview pool, 5 canned questions each, one per job in Section 3 | Under 2 minutes per question | Time to first exported answer |
+| Task success | Same test | 80% of questions answered correctly | Answered questions per user |
+| Caveat retention | Participants asked to explain a result after the test; count who state the population or pseudo-user caveat unprompted | 80% | Share of exports keeping the caveat |
+| Actionability | Interviewees rate each trends-report finding "would act on" or not | 3 of 5 findings rated actionable by a majority | Decisions citing Loupe |
+| Reproducibility | Automated check that every report number regenerates from committed aggregates via the included query | 100% | Disputed numbers |
+
+## 7. The PM artifact set
+
+Each artifact is a Markdown file under `docs/pm/`, numbered in the order a senior PM would produce them. Each has a one-line "what this is for" header, a date, and a status. They are rendered to plain HTML for the case-study pages on shankard.com (Section 11).
 
 | # | Artifact | File | Done when |
 |---|---|---|---|
 | 01 | Opportunity brief | `01-opportunity-brief.md` | Two pages: problem, who has it, evidence, why now, why this wedge, what we will not do. |
 | 02 | User research plan and synthesis | `02-user-research.md` | Interview guide, participant sourcing, N completed, verbatim quotes, ranked pain points, what changed in the PRD because of it. |
 | 03 | Metrics framework | `03-metrics-framework.md` | North star, input metrics, guardrails, exact definitions, known biases of each, and the query that computes each. Written before pipeline code. |
-| 04 | PRD | `04-prd.md` | Problem, goals, non-goals, personas, user stories, prioritized requirements (P0/P1/P2), success metrics, launch criteria, privacy and sensitive-data section, open questions, decision log. |
+| 04 | PRD | `04-prd.md` | Problem, goals, non-goals, personas, user stories, prioritized requirements (P0/P1/P2), success metrics and launch criteria exactly as in Section 6, privacy and sensitive-data section, open questions, decision log. |
 | 05 | Roadmap | `05-roadmap.md` | Now / Next / Later with the explicit cut list and the reason for every cut. |
 | 06 | Dashboard design | `06-dashboard-design.md` | One page: information hierarchy, the five views, wireframe sketches, interaction rules, what is deliberately absent. |
 | 07 | Trends report | `07-trends-report.md` | Public-facing. At least five findings, each with a chart, a plain-English implication for a product owner, and a link to the metric definition. |
@@ -76,7 +129,7 @@ Each artifact is a Markdown file under `docs/pm/`, numbered in the order a senio
 
 A tenth page, `docs/pm/README.md`, is the guided tour: it tells a recruiter what to read in what order and how long each takes.
 
-## 6. Data
+## 8. Data
 
 **Source:** `allenai/WildChat-4.8M` on Hugging Face. 3,199,860 conversations, 86 parquet shards, about 15 GB. Ungated. License: ODC-By (attribution required; attribution text goes in the repo README, the dashboard footer, and the trends report).
 
@@ -106,9 +159,9 @@ A tenth page, `docs/pm/README.md`, is the guided tour: it tells a recruiter what
 
 **Population caveat, stated everywhere the data is shown:** these conversations came from a free public chatbot the researchers hosted, not from ChatGPT's own product. The population skews toward people seeking free GPT-4-class access. Findings describe this population. They are suggestive, not representative, of AI assistant users in general.
 
-## 7. Metrics framework (summary; the full document is artifact 03)
+## 9. Analysis metrics framework (summary; the full document is artifact 03)
 
-**North star (for the product being analyzed):** weekly returning pseudo-users. It captures both reach and stickiness, and it is the one number that moves only when the assistant is actually useful.
+**North star for the assistant being analyzed (not for Loupe; see Section 6):** weekly returning pseudo-users. It captures both reach and stickiness, and it is the one number that moves only when the assistant is actually useful.
 
 **Metric families and definitions**
 
@@ -120,27 +173,27 @@ A tenth page, `docs/pm/README.md`, is the guided tour: it tells a recruiter what
 
 **Pseudo-user bias, stated in the framework:** hashed IP plus header is the only user key available. It merges people behind shared networks and splits one person across devices and networks. Intensity metrics are therefore bounded estimates, and the framework says which direction each bias pushes each metric.
 
-## 8. Architecture
+## 10. Architecture
 
 Three layers, each with one job.
 
-**8.1 Pipeline (`loupe/pipeline/`)** — Python 3.12, DuckDB, `uv`-managed.
+**10.1 Pipeline (`loupe/pipeline/`)** — Python 3.12, DuckDB, `uv`-managed.
 
 - Reads parquet shards directly from Hugging Face over HTTPS using DuckDB's `httpfs`, one shard at a time. Nothing beyond the current shard and the aggregate outputs is kept on disk. A `--local` flag reads pre-downloaded shards for repeat runs.
 - Stage 1 `flatten`: writes a conversation-level table and a turn-level table (without content) per shard to local parquet.
 - Stage 2 `sample`: draws the stratified sample for intent classification and writes it with content.
 - Stage 3 `classify`: calls the Anthropic API on the sample with a fixed prompt and the taxonomy, writes labels, then trains and applies the lightweight classifier to all conversations. Cost is capped and logged; the cap and the actual spend appear in the PRD's decision log.
 - Stage 4 `metrics`: computes every metric in artifact 03 as SQL over the flattened tables and writes small aggregate parquet files to `aggregates/`, one file per metric family. Target total size under 25 MB.
-- Stage 5 `publish`: copies the built dashboard and the aggregates into the portfolio repo folder (Section 9).
+- Stage 5 `publish`: copies the built dashboard and the aggregates into the portfolio repo folder (Section 11).
 - One command, `make all`, runs stages 1 through 4. `make publish` runs stage 5.
 
-**8.2 Aggregates (`aggregates/`)** — committed to the repo, versioned, the only thing the dashboard reads. Every number in the trends report is a query against these files, and the query is included in the report.
+**10.2 Aggregates (`aggregates/`)** — committed to the repo, versioned, the only thing the dashboard reads. Every number in the trends report is a query against these files, and the query is included in the report.
 
-**8.3 Dashboard (`dashboard/`)** — static HTML, CSS, and JavaScript. No framework, no build step beyond copying files. DuckDB-WASM loads the aggregate parquet files and runs SQL in the browser. Charts follow the `dataviz` skill's guidance for one coherent visual system that works in light and dark. Five views, matching the metric families: Overview, Intensity, Intent, Friction, Data Quality. A "Query" panel lets a visitor run their own SQL against the aggregates. The population caveat and the ODC-By attribution are always visible in the footer.
+**10.3 Dashboard (`dashboard/`)** — static HTML, CSS, and JavaScript. No framework, no build step beyond copying files. DuckDB-WASM loads the aggregate parquet files and runs SQL in the browser. Charts follow the `dataviz` skill's guidance for one coherent visual system that works in light and dark. Five views, matching the metric families: Overview, Intensity, Intent, Friction, Data Quality. A "Query" panel lets a visitor run their own SQL against the aggregates. The population caveat and the ODC-By attribution are always visible in the footer.
 
 **Dependencies:** duckdb, pyarrow, anthropic, scikit-learn (for the lightweight classifier), pytest. Dashboard: duckdb-wasm from a CDN, a single charting library.
 
-## 9. Hosting on shankard.com
+## 11. Hosting on shankard.com
 
 shankard.com is served by GitHub Pages from the `main` branch root of the private `rsm-sdeenadayalan/portfolio` repo, a single static page styled as a Windows XP desktop, with no build step.
 
@@ -150,7 +203,7 @@ shankard.com is served by GitHub Pages from the `main` branch root of the privat
 - The case-study pages use plain styling, not the XP chrome. A recruiter reading a PRD should not fight a theme.
 - Committing to the portfolio repo is done by Shankar (or with explicit go-ahead), because it deploys immediately to a public site.
 
-## 10. Privacy and sensitive data
+## 12. Privacy and sensitive data
 
 This is a first-class section of the PRD and a stated theme of the project, because the target roles ask for it.
 
@@ -159,15 +212,17 @@ This is a first-class section of the PRD and a stated theme of the project, beca
 - Hashed IP is treated as a pseudonymous key and is never shown or exported at row level. Geography is reported at country and US-state grain only, and cells below a minimum count are suppressed in the dashboard.
 - The repo README documents how to honor a data-removal request that the dataset authors forward, by re-running the pipeline against the updated dataset.
 
-## 11. Testing
+## 13. Testing and validation
 
 - Every metric definition in artifact 03 has a unit test against a tiny hand-built fixture where the correct answer is known by inspection. The test name matches the metric name.
 - The pipeline runs end to end on one shard in CI (GitHub Actions) on every push. The full run is manual.
-- The classifier stage reports agreement between the LLM labels and the lightweight classifier on a held-out slice of the sample. The threshold for shipping is stated in the PRD.
+- The classifier stage reports agreement between the LLM labels and the lightweight classifier on a held-out slice of the sample. Shipping threshold: 85% (Section 6.2).
+- Friction proxy validation: 300 conversations are hand-labeled for "did the user get what they came for" and for each friction signal. Each proxy's precision against those labels is reported in artifact 03. Shipping threshold: 70%. A proxy below threshold is dropped from the dashboard, not softened.
+- Usability test: five participants, five canned questions, moderated, timed. Script, raw timings, and results are committed under `docs/pm/research/`.
 - The dashboard has a smoke check: every aggregate file loads, every view renders with no console errors, in one browser.
 - The trends report has a reproducibility check: each finding's query, run against the committed aggregates, yields the number printed in the report.
 
-## 12. Sequencing
+## 14. Sequencing
 
 Aimed at five working days. Interviews run in parallel because scheduling is outside our control.
 
@@ -175,11 +230,11 @@ Aimed at five working days. Interviews run in parallel because scheduling is out
 |---|---|
 | 1 | Repo scaffold. Artifact 01 opportunity brief. Artifact 03 metrics framework. Interview outreach sent to at least fifteen people. Pipeline stage 1 running on one shard. |
 | 2 | Artifact 04 PRD. Artifact 05 roadmap. Stages 1 and 4 running over the 1M subset. Metric unit tests. First interviews. |
-| 3 | Artifact 06 dashboard design. Dashboard views built against 1M aggregates. Stage 3 classifier on the sample. Full 3.2M run started. |
-| 4 | Artifact 07 trends report from full aggregates. Artifact 02 research synthesis with interviews so far. Publish to shankard.com behind the XP icon. |
-| 5 | Artifact 08 strategy memo. Artifact 09 retro. `docs/pm/README.md` guided tour. Review pass on every document. Public repo. |
+| 3 | Artifact 06 dashboard design. Dashboard views built against 1M aggregates. Stage 3 classifier on the sample. Hand-label 300 conversations for friction validation. Full 3.2M run started. |
+| 4 | Artifact 07 trends report from full aggregates. Artifact 02 research synthesis with interviews so far. Usability test sessions scheduled with 5 participants from the interview pool. Publish to shankard.com behind the XP icon. |
+| 5 | Usability test run and scored against Section 6.3. Artifact 08 strategy memo. Artifact 09 retro, including launch-check results. `docs/pm/README.md` guided tour. Review pass on every document. |
 
-## 13. Risks and mitigations
+## 15. Risks and mitigations
 
 | Risk | Mitigation |
 |---|---|
@@ -189,14 +244,15 @@ Aimed at five working days. Interviews run in parallel because scheduling is out
 | Intent classifier disagrees with LLM labels | Report the agreement number. If below threshold, ship intent metrics over the labeled sample only and say so. |
 | The population caveat undermines the findings | Lead with it. The project's claim is "here is how a real product team would analyze real logs," not "here is what ChatGPT users do." |
 | Scope creep toward a full eval product | The non-goals list and the roadmap cut list are the contract. Friction stays one metric family. |
+| Usability test cannot be scheduled in time | Run it asynchronously: participants get the dashboard link and the five questions, self-time, and record a short voice note explaining one result. Weaker, and labeled as such in the retro. |
 
-## 14. Open questions
+## 16. Open questions
 
 - Which single charting library for the dashboard. Decided in artifact 06 after reading the `dataviz` skill.
 - Exact intent taxonomy. Drafted in artifact 03, finalized after reading 200 sampled conversations by hand.
 - Whether to add a MotherDuck-hosted copy of the conversation-level table for a shareable SQL endpoint. Roadmap → Later.
 - Whether the shankard.com headline should change from "AI Engineer & Data Scientist" once Loupe is live. Separate decision, out of scope here.
 
-## 15. Attribution
+## 17. Attribution
 
 Data: Zhao et al., "WildChat: 1M ChatGPT Interaction Logs in the Wild," ICLR 2024, and Deng et al., "WildVis," EMNLP 2024 Demos. Dataset licensed under ODC-By 1.0.
