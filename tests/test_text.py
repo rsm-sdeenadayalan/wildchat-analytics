@@ -46,8 +46,12 @@ def test_pseudo_user_is_deterministic_16_hex_and_handles_none():
 
 
 def test_curly_apostrophe_handling():
-    # Curly/smart apostrophe in refusal
-    assert text.is_refusal("I'm sorry, but I can't help with that.") is True
+    # Curly/smart apostrophe (U+2019) in refusal
+    assert text.is_refusal("I’m sorry, but I can’t help with that.") is True
+    # Curly apostrophe in correction
+    assert text.is_correction("That’s not what I asked") is True
+    # Verify _AP contains the curly apostrophe character
+    assert "’" in text._AP
 
 
 def test_correction_false_positives_fixed():
