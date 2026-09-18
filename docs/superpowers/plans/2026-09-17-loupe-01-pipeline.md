@@ -691,7 +691,7 @@ def test_turn_rows(mini_shard_path):
     assert [t["role"] for t in c1] == ["user", "assistant", "user", "assistant"]
     assert c1[2]["repeats_prev_user"] is True and c1[2]["is_correction"] is True
     assert c1[3]["is_refusal"] is True and c1[1]["is_refusal"] is False
-    assert c1[0]["content_len"] == 45
+    assert c1[0]["content_len"] == len("Write a python function that reverses a list")
     c3 = [t for t in turns if t["conv_id"] == 3001 and t["role"] == "user"][0]
     assert c3["is_empty"] is True
 ```
@@ -722,14 +722,19 @@ import pyarrow as pa
 from loupe import schema, text
 
 
+def _q(path: str) -> str:
+    """Quote a local path as a SQL string literal (DESCRIBE cannot take bound parameters)."""
+    return "'" + path.replace("'", "''") + "'"
+
+
 def _has_usage(con: duckdb.DuckDBPyConnection, path: str) -> bool:
     row = con.execute(
-        "DESCRIBE SELECT unnest(conversation) AS m FROM read_parquet(?) LIMIT 1", [path]
+        f"DESCRIBE SELECT unnest(conversation) AS m FROM read_parquet({_q(path)}) LIMIT 1"
     ).fetchone()
     return row is not None and "usage" in str(row[1])
 
 
-def _unnest_sql(has_usage: bool) -> str:
+def _unnest_sql(path: str, has_usage: bool) -> str:
     usage_cols = (
         "struct_extract(m.usage, 'prompt_tokens') AS prompt_tokens, "
         "struct_extract(m.usage, 'completion_tokens') AS completion_tokens"
@@ -738,13 +743,13 @@ def _unnest_sql(has_usage: bool) -> str:
     )
     return f"""
     WITH c AS (
-      SELECT row_number() OVER () AS rn, * FROM read_parquet(?)
+      SELECT row_number() OVER () AS rn, * FROM read_parquet({_q(path)})
     ), u AS (
       SELECT rn, model, timestamp AS ts, turn, language, country, state, hashed_ip, redacted,
              struct_extract(header, 'user-agent') AS ua,
              struct_extract(header, 'accept-language') AS al,
              unnest(conversation) AS m,
-             generate_subscripts(conversation, 1) AS idx
+             unnest(generate_series(1, len(conversation))) AS idx
       FROM c
     )
     SELECT rn, model, ts, turn, language, country, state, hashed_ip, redacted, ua, al, idx,
@@ -769,7 +774,7 @@ def flatten_shard(path: str | Path, shard: str, con: duckdb.DuckDBPyConnection |
     own = con is None
     con = con or duckdb.connect()
     try:
-        rows = con.execute(_unnest_sql(_has_usage(con, path)), [path]).fetchall()
+        rows = con.execute(_unnest_sql(path, _has_usage(con, path))).fetchall()
     finally:
         if own:
             con.close()
@@ -1847,8 +1852,8 @@ def _with_intent(con, tmp_path, mini_shard_path):
         {"conv_id": 5001, "intent": "writing_editing", "proba_max": 0.8, "shard": "mini"},
         {"conv_id": 6001, "intent": "homework_study", "proba_max": 0.7, "shard": "mini"},
     ], schema=schema.INTENT)
-    con.execute("DROP VIEW IF EXISTS intent")
-    con.register("intent", intent)
+    con.register("intent_src", intent)
+    con.execute("CREATE OR REPLACE VIEW intent AS SELECT * FROM intent_src")
 
 
 def test_depth_by_model(con, tmp_path, mini_shard_path):
@@ -1891,8 +1896,8 @@ def _setup(con, tmp_path, mini_shard_path):
         {"conv_id": 2001, "intent": "coding", "proba_max": 0.5, "shard": "mini"},
         {"conv_id": 6001, "intent": "coding", "proba_max": 0.7, "shard": "mini"},
     ], schema=schema.INTENT)
-    con.execute("DROP VIEW IF EXISTS intent")
-    con.register("intent", intent)
+    con.register("intent_src", intent)
+    con.execute("CREATE OR REPLACE VIEW intent AS SELECT * FROM intent_src")
 
 
 def test_friction_by_intent_model(con, tmp_path, mini_shard_path):
@@ -1984,8 +1989,8 @@ def register(con: duckdb.DuckDBPyConnection, flat_dir: Path) -> str:
     if intent_dir.exists() and any(intent_dir.glob("*.parquet")):
         con.execute(f"CREATE OR REPLACE VIEW intent AS SELECT * FROM read_parquet('{intent_dir}/*.parquet')")
         return "full"
-    empty = pa.Table.from_pylist([], schema=schema.INTENT)
-    con.register("intent", empty)
+    con.execute("CREATE OR REPLACE VIEW intent AS SELECT NULL::BIGINT AS conv_id, NULL::VARCHAR AS intent, "
+                "NULL::FLOAT AS proba_max, NULL::VARCHAR AS shard WHERE false")
     return "none"
 
 
