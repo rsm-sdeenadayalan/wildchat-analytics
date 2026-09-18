@@ -9,7 +9,7 @@
 
 Loupe is a user analytics product for teams that ship a GenAI assistant. It turns raw conversation logs into the answers a product manager needs: who uses the assistant, how intensely, for what, and where it fails them.
 
-Loupe is built and demonstrated against WildChat-4.8M, a public dataset of 3.2 million real human–ChatGPT conversations, standing in for "our production logs." The demonstration ships two things: the product (a metrics pipeline and a dashboard) and the findings (a public trends report on how people actually use a general-purpose AI assistant).
+Loupe is built and demonstrated against WildChat-4.8M, a public dataset of 3.2 million real human–ChatGPT conversations, standing in for "our production logs." The demonstration ships two things: the product (a metrics pipeline and a dashboard) and the findings (a public trends report on how people actually use a general-purpose AI assistant). Loupe is standalone: it publishes its own static site, and any placement on shankard.com is a separate step outside this spec.
 
 Loupe is also a portfolio project. Its purpose is to show the full pre-build and post-launch work of a senior product manager, end to end, in public: opportunity brief, user research, metrics framework, PRD, roadmap, design, launch, findings, strategy memo, retrospective. The software is real but deliberately modest. The PM artifacts are the headline.
 
@@ -55,7 +55,7 @@ The same scenario applies to a founder running a tutoring chatbot, an analyst on
 **Goals**
 
 - G1. Ship a complete, public, ordered set of senior-PM artifacts for one product, each dated and versioned in the repo.
-- G2. Ship a working dashboard on shankard.com backed by metrics computed over all 3.2M conversations, reproducible from one command.
+- G2. Ship a working, publicly hosted dashboard backed by metrics computed over all 3.2M conversations, reproducible from one command.
 - G3. Publish a trends report with at least five findings a product owner would act on, each traceable to a metric definition and a query.
 - G4. Complete six or more user interviews and a synthesis document; ship with whatever count lands, plus a plan for the rest.
 - G5. Handle the sensitive-data dimension explicitly and well, because the target roles ask for it.
@@ -68,6 +68,7 @@ The same scenario applies to a founder running a tutoring chatbot, an analyst on
 - Not a research paper. No claims about ChatGPT's user base at large; claims are about this dataset's population, stated as such.
 - Not toxicity or safety analytics in v1. The public dataset has toxic conversations removed, so safety rates cannot be computed honestly from it. See Roadmap → Later.
 - No re-hosting of the raw dataset. Hugging Face remains the source of truth.
+- No changes to shankard.com. Loupe ships its own site; embedding or linking it from the personal site is outside this project.
 
 ## 6. Success metrics for Loupe
 
@@ -113,7 +114,7 @@ Loupe has one "team" (the WildChat demonstration) and no in-market users at laun
 
 ## 7. The PM artifact set
 
-Each artifact is a Markdown file under `docs/pm/`, numbered in the order a senior PM would produce them. Each has a one-line "what this is for" header, a date, and a status. They are rendered to plain HTML for the case-study pages on shankard.com (Section 11).
+Each artifact is a Markdown file under `docs/pm/`, numbered in the order a senior PM would produce them. Each has a one-line "what this is for" header, a date, and a status. They are rendered to plain HTML case-study pages in the published site (Section 11).
 
 | # | Artifact | File | Done when |
 |---|---|---|---|
@@ -179,13 +180,13 @@ Three layers, each with one job.
 
 **10.1 Pipeline (`loupe/pipeline/`)** — Python 3.12, DuckDB, `uv`-managed.
 
-- Reads parquet shards directly from Hugging Face over HTTPS using DuckDB's `httpfs`, one shard at a time. Nothing beyond the current shard and the aggregate outputs is kept on disk. A `--local` flag reads pre-downloaded shards for repeat runs.
+- Downloads one parquet shard at a time with `huggingface_hub` and reads it with DuckDB. Nothing beyond the current shard, the flattened tables, and the aggregate outputs is kept on disk. A `--local` flag reads pre-downloaded shards for repeat runs. The `datasets` library is deliberately not used: it would materialize the full 15 GB download plus a 42 GB Arrow cache before the first query.
 - Stage 1 `flatten`: writes a conversation-level table and a turn-level table (without content) per shard to local parquet.
 - Stage 2 `sample`: draws the stratified sample for intent classification and writes it with content.
 - Stage 3 `classify`: calls the Anthropic API on the sample with a fixed prompt and the taxonomy, writes labels, then trains and applies the lightweight classifier to all conversations. Cost is capped and logged; the cap and the actual spend appear in the PRD's decision log.
 - Stage 4 `metrics`: computes every metric in artifact 03 as SQL over the flattened tables and writes small aggregate parquet files to `aggregates/`, one file per metric family. Target total size under 25 MB.
-- Stage 5 `publish`: copies the built dashboard and the aggregates into the portfolio repo folder (Section 11).
-- One command, `make all`, runs stages 1 through 4. `make publish` runs stage 5.
+- Stage 5 `site`: builds the self-contained static site into `dist/` (Section 11).
+- One command, `make all`, runs stages 1 through 4. `make site` runs stage 5.
 
 **10.2 Aggregates (`aggregates/`)** — committed to the repo, versioned, the only thing the dashboard reads. Every number in the trends report is a query against these files, and the query is included in the report.
 
@@ -193,15 +194,14 @@ Three layers, each with one job.
 
 **Dependencies:** duckdb, pyarrow, anthropic, scikit-learn (for the lightweight classifier), pytest. Dashboard: duckdb-wasm from a CDN, a single charting library.
 
-## 11. Hosting on shankard.com
+## 11. Publishing
 
-shankard.com is served by GitHub Pages from the `main` branch root of the private `rsm-sdeenadayalan/portfolio` repo, a single static page styled as a Windows XP desktop, with no build step.
+Loupe is a standalone project. Its deliverable is a self-contained static site that can be hosted anywhere.
 
-- Loupe's code, docs, and aggregates live in the **public** repo `rsm-sdeenadayalan/wildchat-analytics`, cloned at `/Users/shankar/Documents/wildchat-analytics`. Everything is pushed there; nothing lives only on the laptop.
-- `make publish` copies `dashboard/` and `aggregates/` into `portfolio/loupe/`, and renders each `docs/pm/*.md` to a plain, readable HTML page under `portfolio/loupe/docs/`. The result is `shankard.com/loupe/` (dashboard) and `shankard.com/loupe/docs/` (case study). The rendering step is a small Python script with no framework.
-- The XP desktop gets one new icon, "Loupe," which opens a window in the existing window system with a short description, the dashboard in an iframe, and buttons to open the dashboard full screen and to read the case study. The window follows the markup pattern of the existing "My Projects" window and reuses `openWin`.
-- The case-study pages use plain styling, not the XP chrome. A recruiter reading a PRD should not fight a theme.
-- Committing to the portfolio repo is done by Shankar (or with explicit go-ahead), because it deploys immediately to a public site.
+- `make site` builds `dist/`: the dashboard (`dist/index.html` and assets), the aggregate parquet files it reads, and each `docs/pm/*.md` rendered to a plain, readable HTML page under `dist/docs/`. The renderer is a small Python script with no framework. Nothing in `dist/` depends on a server.
+- This repo's own GitHub Pages serves `dist/` at `https://rsm-sdeenadayalan.github.io/wildchat-analytics/`, deployed by a GitHub Actions workflow on every push to `main`. That URL is the canonical public home of the product and the case study.
+- Surfacing Loupe on shankard.com (a link, an embed, a desktop icon) is Shankar's separate decision and is out of scope for this spec and its plans. The site is built with relative paths so it can be copied or embedded under any base path.
+- The case-study pages use plain styling, so a recruiter reading a PRD is not fighting a theme.
 
 ## 12. Privacy and sensitive data
 
@@ -231,7 +231,7 @@ Aimed at five working days. Interviews run in parallel because scheduling is out
 | 1 | Repo scaffold. Artifact 01 opportunity brief. Artifact 03 metrics framework. Interview outreach sent to at least fifteen people. Pipeline stage 1 running on one shard. |
 | 2 | Artifact 04 PRD. Artifact 05 roadmap. Stages 1 and 4 running over the 1M subset. Metric unit tests. First interviews. |
 | 3 | Artifact 06 dashboard design. Dashboard views built against 1M aggregates. Stage 3 classifier on the sample. Hand-label 300 conversations for friction validation. Full 3.2M run started. |
-| 4 | Artifact 07 trends report from full aggregates. Artifact 02 research synthesis with interviews so far. Usability test sessions scheduled with 5 participants from the interview pool. Publish to shankard.com behind the XP icon. |
+| 4 | Artifact 07 trends report from full aggregates. Artifact 02 research synthesis with interviews so far. Usability test sessions scheduled with 5 participants from the interview pool. Site live on GitHub Pages. |
 | 5 | Usability test run and scored against Section 6.3. Artifact 08 strategy memo. Artifact 09 retro, including launch-check results. `docs/pm/README.md` guided tour. Review pass on every document. |
 
 ## 15. Risks and mitigations
