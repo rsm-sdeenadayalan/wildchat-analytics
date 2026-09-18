@@ -6,9 +6,9 @@
 
 **Architecture:** Five CLI stages (`flatten`, `sample`, `label`, `classify`, `metrics`) share one DuckDB-centric data model. `flatten` downloads one shard at a time, unnests it in DuckDB, computes content-derived flags in Python, and writes content-free conversation and turn tables (plus a 2000-character local-only `intent_text` per conversation). `metrics` is pure SQL: one `.sql` file per aggregate, executed against the flattened tables, written to `aggregates/`. Every metric has a unit test on a hand-built fixture.
 
-**Tech Stack:** Python 3.12 via `uv`, DuckDB, PyArrow, `anthropic` SDK (Message Batches + structured outputs), scikit-learn, pytest, Make.
+**Tech Stack:** Python 3.12 via `uv`, DuckDB, PyArrow, `huggingface_hub` (shard download), `anthropic` SDK (Message Batches + structured outputs), scikit-learn, pytest, Make.
 
-**Spec:** `docs/superpowers/specs/2026-09-17-loupe-design.md` (Sections 8, 9, 10.1, 10.2, 12, 13, and 6.2 guardrails). Sibling plans: `2026-09-17-loupe-02-dashboard-publish.md`, `2026-09-17-loupe-03-pm-artifacts.md`.
+**Spec:** `docs/superpowers/specs/2026-09-17-loupe-design.md` (Sections 8, 9, 10.1, 10.2, 12, 13, and 6.2 guardrails). Sibling plans: `2026-09-17-loupe-02-site.md` (dashboard + static site + GitHub Pages), `2026-09-17-loupe-03-pm-artifacts.md` (documents, research, validation). Loupe is standalone; nothing here touches shankard.com.
 
 ## Global Constraints
 
@@ -38,7 +38,7 @@ wildchat-analytics/
   loupe/schema.py                DDL + Arrow schemas for the conversations and turns tables
   loupe/text.py                  pure functions: tokenization, jaccard, correction/refusal regexes, pseudo_user
   loupe/taxonomy.json            intent classes with one-line definitions (v1)
-  loupe/hf.py                    list shard files, download one shard to data/raw/
+  loupe/hf.py                    list shard files and download one shard to data/raw/ via huggingface_hub
   loupe/adapters/__init__.py
   loupe/adapters/wildchat.py     one shard -> (conversations Arrow table, turns Arrow table)
   loupe/stages/__init__.py
@@ -92,6 +92,7 @@ dependencies = [
   "scikit-learn>=1.5",
   "joblib>=1.4",
   "numpy>=1.26",
+  "huggingface_hub>=0.25",
 ]
 
 [project.optional-dependencies]
@@ -870,7 +871,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Produces:
   - `loupe.hf.DATASET = "allenai/WildChat-4.8M"`
   - `loupe.hf.list_shards() -> list[str]` shard file names sorted, e.g. `["train-00000-of-00086.parquet", ...]`.
-  - `loupe.hf.download_shard(name: str, dest_dir: Path) -> Path` downloads `https://huggingface.co/datasets/allenai/WildChat-4.8M/resolve/main/data/{name}` to `dest_dir/name` if not present; returns path.
+  - `loupe.hf.download_shard(name: str, dest_dir: Path) -> Path` downloads `data/{name}` from the dataset repo with `huggingface_hub.hf_hub_download` into `dest_dir` (resumable, cached, retried by the library) and returns the local path.
   - `loupe.stages.flatten.run(shards: str = "all", raw_dir=Path("data/raw"), out_dir=Path("data/flat"), keep_raw=False, local_paths: list[Path] | None = None) -> list[str]` returns processed shard labels. Writes `out_dir/conversations/{label}.parquet` and `out_dir/turns/{label}.parquet`. Skips a shard whose two outputs already exist (idempotent, resumable). `shards` accepts `all`, `0-3`, or `0,5,7`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -917,24 +918,19 @@ Expected: FAIL with `ModuleNotFoundError`.
 
 `loupe/hf.py`:
 ```python
-"""Minimal Hugging Face dataset access with urllib. No extra dependency."""
+"""Hugging Face dataset access via huggingface_hub (listing, resumable download)."""
 from __future__ import annotations
 
-import json
-import shutil
-import urllib.request
 from pathlib import Path
 
+from huggingface_hub import HfApi, hf_hub_download
+
 DATASET = "allenai/WildChat-4.8M"
-_TREE = f"https://huggingface.co/api/datasets/{DATASET}/tree/main/data"
-_RESOLVE = f"https://huggingface.co/datasets/{DATASET}/resolve/main/data/"
 
 
 def list_shards() -> list[str]:
-    with urllib.request.urlopen(_TREE, timeout=60) as r:
-        entries = json.load(r)
-    names = [e["path"].rsplit("/", 1)[-1] for e in entries if e["path"].endswith(".parquet")]
-    return sorted(names)
+    files = HfApi().list_repo_files(DATASET, repo_type="dataset")
+    return sorted(f.rsplit("/", 1)[-1] for f in files if f.startswith("data/") and f.endswith(".parquet"))
 
 
 def select(names: list[str], spec: str) -> list[str]:
@@ -957,14 +953,9 @@ def label(name: str) -> str:
 
 def download_shard(name: str, dest_dir: Path) -> Path:
     dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / name
-    if dest.exists():
-        return dest
-    tmp = dest.with_suffix(".part")
-    with urllib.request.urlopen(_RESOLVE + name, timeout=120) as r, open(tmp, "wb") as f:
-        shutil.copyfileobj(r, f, length=8 << 20)
-    tmp.rename(dest)
-    return dest
+    # hf_hub_download preserves the repo path, so the file lands at dest_dir/data/<name>
+    path = hf_hub_download(repo_id=DATASET, repo_type="dataset", filename=f"data/{name}", local_dir=str(dest_dir))
+    return Path(path)
 ```
 
 `loupe/stages/flatten.py`:
@@ -1030,7 +1021,7 @@ Expected: `3 passed`.
 
 - [ ] **Step 5: Live check on one real shard (network)**
 
-Run: `uv run python -c "from pathlib import Path; from loupe.stages import flatten; print(flatten.run('0', keep_raw=True))"`
+Run: `uv run python -c "from pathlib import Path; from loupe.stages import flatten; print(flatten.run('0', keep_raw=True))"` (first call may print a one-time huggingface_hub notice about symlinks; it is harmless)
 Expected: prints `['train-00000-of-00086']` within a few minutes; `data/flat/conversations/train-00000-of-00086.parquet` exists. Then:
 `uv run python -c "import duckdb; print(duckdb.sql(\"SELECT count(*), min(date), max(date), count(DISTINCT pseudo_user) FROM 'data/flat/conversations/*.parquet'\"))"`
 Expected: a count around 37,000 and a date range inside 2023-04 to 2025-07. Record the wall-clock time in the commit message body; it sizes the full run.
