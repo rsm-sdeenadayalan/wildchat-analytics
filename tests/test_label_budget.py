@@ -28,7 +28,7 @@ def test_build_request_shape():
     assert req["custom_id"] == "1001"
     params = req["params"]
     assert params["model"] == "claude-opus-5"
-    assert params["max_tokens"] == 64
+    assert params["max_tokens"] == 256 and label.MAX_TOKENS == 256
     schema = params["output_config"]["format"]["schema"]
     assert schema["properties"]["intent"]["enum"] == label.class_names()
     assert params["messages"][0]["content"].endswith("Write a python function")
@@ -38,3 +38,20 @@ def test_budget_guard_blocks_over_cap(monkeypatch):
     with pytest.raises(label.BudgetExceeded):
         label.check_budget(estimated_usd=61.0, budget_usd=60.0)
     label.check_budget(estimated_usd=59.0, budget_usd=60.0)
+
+
+def test_thinking_is_disabled_on_thinking_capable_models():
+    system = label.system_blocks()
+    for model in ("claude-opus-5", "claude-sonnet-5"):
+        params = label.build_request(1, "x", model, system)["params"]
+        # adaptive thinking is on by default on these models and its tokens count
+        # against max_tokens, which would truncate the JSON answer
+        assert params["thinking"] == {"type": "disabled"}
+        assert params["max_tokens"] == 256
+    haiku = label.build_request(1, "x", "claude-haiku-4-5", system)["params"]
+    assert "thinking" not in haiku
+    assert label.THINKING_CAPABLE == {"claude-opus-5", "claude-sonnet-5"}
+
+
+def test_estimate_output_token_default_matches_max_tokens_budget():
+    assert label.estimate_cost_usd("claude-opus-5", 1, 0.0) == label.estimate_cost_usd("claude-opus-5", 1, 0.0, 40.0)

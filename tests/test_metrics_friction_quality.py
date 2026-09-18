@@ -39,6 +39,7 @@ def test_data_quality_weekly(con, tmp_path, mini_shard_path):
     _setup(con, tmp_path, mini_shard_path)
     rows = {r["week"]: r for r in metrics.run_sql(con, "data_quality_weekly").to_pylist()}
     w1, w2 = rows[dt.date(2024, 3, 4)], rows[dt.date(2024, 3, 11)]
-    assert abs(w1["empty_input_rate"] - 1 / 3) < 1e-9 and w1["redacted_rate"] == 0.0
-    assert abs(w2["redacted_rate"] - 1 / 3) < 1e-9
-    assert w1["token_usage_coverage"] == 1.0 and abs(w2["token_usage_coverage"] - 2 / 3) < 1e-9
+    # rates are rounded to 6 decimals (to keep an all-zero week from printing as -0.0)
+    assert abs(w1["empty_input_rate"] - 1 / 3) < 1e-6 and w1["redacted_rate"] == 0.0
+    assert abs(w2["redacted_rate"] - 1 / 3) < 1e-6
+    assert w1["token_usage_coverage"] == 1.0 and abs(w2["token_usage_coverage"] - 2 / 3) < 1e-6

@@ -18,6 +18,7 @@ def build_parser() -> argparse.ArgumentParser:
     l.add_argument("--dry-run", action="store_true")
     l.add_argument("--model", default=None)
     l.add_argument("--budget", type=float, default=None)
+    l.add_argument("--resume-batch", default=None, help="poll an existing batch id instead of submitting")
 
     c = sub.add_parser("classify", help="train classifier and predict all conversations")
     c.add_argument("--threshold", type=float, default=0.85)
@@ -45,11 +46,15 @@ def main(argv=None) -> int:
     if args.stage == "label":
         from loupe.stages import label
         try:
-            label.run(model=args.model, budget_usd=args.budget, dry_run=args.dry_run)
+            run_log = label.run(model=args.model, budget_usd=args.budget, dry_run=args.dry_run,
+                                resume_batch_id=args.resume_batch)
+        except label.CanaryFailed as e:
+            print(e)
+            return 5
         except label.BudgetExceeded as e:
             print(e)
             return 3
-        return 0
+        return 0 if run_log.get("ok", True) else 4
     if args.stage == "classify":
         from loupe.stages import classify
         rep = classify.run(threshold=args.threshold, force=args.force)
