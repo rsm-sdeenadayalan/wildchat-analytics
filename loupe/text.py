@@ -10,22 +10,22 @@ _WORD = re.compile(r"\w+", re.UNICODE)
 
 # Start-of-turn correction patterns. Keep anchored (^) so "Nobody" does not match "No".
 _CORRECTION = re.compile(
-    r"^\s*(?:"
-    r"no[,.!\s]|not (?:what|that)|wrong\b|that'?s (?:not|wrong)|i said\b|i meant\b|incorrect\b|"
-    r"you didn'?t\b|you did not\b|try again\b|again[,.!\s]|"
-    r"不对|不是|错了|不要|"
+    r"^\s*(?!no (?:problem|worries|thanks|need))(?:"
+    r"no[,.!]|not (?:what|that)|wrong\b|that['']?s (?:not|wrong)|i said\b|i meant\b|incorrect\b|"
+    r"you didn['']?t\b|you did not\b|try again\b|"
+    r"不对|不是这|不是我(?:要|说)的|错了|"
     r"нет[,.\s]|неправильно|не то\b|не так\b|я сказал|я просил|"
     r"incorrecto\b|no es eso|eso no\b|mal[,.!\s]|"
-    r"non[,.!\s]|ce n'?est pas|c'?est faux|faux\b"
+    r"non[,.!\s]|ce n['']?est pas|c['']?est faux|faux\b"
     r")",
     re.IGNORECASE,
 )
 
 _REFUSAL = re.compile(
     r"^\s*(?:"
-    r"i'?m sorry|i am sorry|sorry,? (?:but )?i\b|i cannot\b|i can'?t\b|i can not\b|"
-    r"i'?m unable|i am unable|as an ai\b|i'?m not able|i am not able|"
-    r"unfortunately,? i (?:cannot|can'?t)|"
+    r"i['']?m sorry|i am sorry|sorry,? (?:but )?i\b|i (?:cannot|can['']?t|can not) (?:help|assist|provide|do|comply|fulfill|fulfil|generate|create|write|continue|share|give)\b|"
+    r"i['']?m unable|i am unable|as an ai\b|i['']?m not able|i am not able|"
+    r"unfortunately,? i (?:cannot|can['']?t)|"
     r"很抱歉|对不起|抱歉|"
     r"извините|к сожалению,? я не могу"
     r")",
