@@ -1,0 +1,16 @@
+{
+  "product": "Loupe",
+  "dataset": "allenai/WildChat-4.8M",
+  "license": "ODC-By 1.0",
+  "generated_at": "2026-09-18T04:55:19+00:00",
+  "conversations": 3199860,
+  "shards": 86,
+  "date_min": "2023-04-09",
+  "date_max": "2025-07-31",
+  "min_cell": 20,
+  "intent_coverage": "none",
+  "taxonomy_version": "v1",
+  "aggregate_bytes": 80517,
+  "population_caveat": "Conversations come from a free public chatbot hosted by the WildChat researchers, not from ChatGPT's own product. Findings describe this population only.",
+  "pseudo_user_caveat": "Pseudo-users are a hash of IP, user agent, and accept-language. They merge people behind shared networks and split one person across devices."
+}
