@@ -1,4 +1,4 @@
-.PHONY: setup test flatten sample label classify metrics all clean-raw
+.PHONY: setup test flatten sample label classify metrics all clean-raw site serve
 
 SHARDS ?= all
 MIN_CELL ?= 20
@@ -29,3 +29,10 @@ all: flatten sample label classify metrics
 
 clean-raw:
 	rm -rf data/raw
+
+site:
+	uv run python scripts/build_site.py
+	uv run python scripts/check_site.py
+
+serve: site
+	python3 -m http.server -d dist 8000
