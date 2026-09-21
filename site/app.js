@@ -125,9 +125,9 @@ export async function renderIntensity(conn) {
   const depth = await q(conn, `SELECT model, depth_bucket, conversations FROM depth_by_model`);
   const order = ["1", "2", "3-5", "6-10", "11+"];
   view.append(card("Session depth by model", "Distribution of turns per conversation. A turn is one user message and one reply.",
-    Plot.plot({ width: w, height: 280, marginLeft: 60, color: { legend: true, range: palette() },
-      x: { domain: order, label: "turns per conversation" }, y: { label: "share of model's conversations", grid: true, percent: true },
-      marks: [Plot.barY(depth, Plot.normalizeY("sum", { x: "depth_bucket", y: "conversations", fill: "model", z: "model", tip: true, dx: 0 }))] })));
+    Plot.plot({ width: w, height: 240, marginLeft: 60,
+      x: { domain: order, label: null }, y: { label: "share of model's conversations", grid: true, percent: true }, fx: { label: null },
+      marks: [Plot.barY(depth, Plot.normalizeY("sum", { x: "depth_bucket", y: "conversations", fill: css("--c1"), fx: "model", tip: true }))] })));
 }
 registerRenderer("intensity", renderIntensity);
 
@@ -192,5 +192,65 @@ async function main() {
     console.error(err);
   }
 }
+
+function noIntent(view) {
+  view.innerHTML = `<div class="card"><h2>Intent not available</h2><p class="note">The classify stage has not produced intent labels for this build. See Data quality → coverage.</p></div>`;
+}
+
+export async function renderIntent(conn, meta) {
+  const view = $("#view-intent");
+  if (meta.intent_coverage === "none") return noIntent(view);
+  view.innerHTML = "";
+  const w = Math.min(1060, view.clientWidth);
+  const weekly = await q(conn, `SELECT week, intent, conversations FROM intent_weekly ORDER BY week`);
+  view.append(card("What people ask for, over time", "Share of each week's classified conversations by intent. Classes are defined in the metrics framework.",
+    Plot.plot({ width: w, height: 340, marginLeft: 50, color: { legend: true, range: palette().concat(palette()) },
+      y: { label: "share of week", grid: true, percent: true }, x: { label: null },
+      marks: [Plot.areaY(weekly, Plot.stackY(Plot.normalizeY("sum", { x: "week", y: "conversations", fill: "intent", z: "intent", tip: true })))] })));
+  const byModel = await q(conn, `SELECT model, intent, conversations FROM intent_by_model`);
+  view.append(card("Intent mix by model", "Which models people reached for, by what they were trying to do.",
+    Plot.plot({ width: w, height: 320, marginLeft: 100, color: { legend: true, range: palette().concat(palette()) },
+      x: { label: "share of model's conversations", grid: true, percent: true }, y: { label: null },
+      marks: [Plot.barX(byModel, Plot.stackX(Plot.normalizeX("sum", { y: "model", x: "conversations", fill: "intent", z: "intent", tip: true })))] })));
+  const byLang = await q(conn, `SELECT language, intent, conversations FROM intent_by_language`);
+  view.append(card("Intent mix by language (top 10 languages)", `Cells under ${meta.min_cell} conversations are suppressed.`,
+    Plot.plot({ width: w, height: 360, marginLeft: 100, color: { legend: true, range: palette().concat(palette()) },
+      x: { label: "share of language's conversations", grid: true, percent: true }, y: { label: null },
+      marks: [Plot.barX(byLang, Plot.stackX(Plot.normalizeX("sum", { y: "language", x: "conversations", fill: "intent", z: "intent", tip: true })))] })));
+}
+registerRenderer("intent", renderIntent);
+
+export async function renderFriction(conn, meta) {
+  const view = $("#view-friction");
+  view.innerHTML = "";
+  const w = Math.min(1060, view.clientWidth);
+  const weekly = await q(conn, `SELECT * FROM friction_weekly ORDER BY week`);
+  const series = ["repeat_rate", "one_and_done_rate", "correction_rate", "refusal_rate"];
+  const labels = { repeat_rate: "repeated request", one_and_done_rate: "one-and-done", correction_rate: "correction follow-up", refusal_rate: "assistant refusal" };
+  const long = weekly.flatMap((r) => series.map((s) => ({ week: r.week, signal: labels[s], rate: r[s] })));
+  view.append(card("Friction signals over time", "Each is a proxy computed from transcript structure, not a judgment of the reply. Definitions and validated precision are in the metrics framework.",
+    Plot.plot({ width: w, height: 300, marginLeft: 50, color: { legend: true, range: palette() },
+      y: { label: "share of conversations", grid: true, percent: true }, x: { label: null },
+      marks: [Plot.lineY(long, { x: "week", y: "rate", stroke: "signal", tip: true })] })));
+  if (meta.intent_coverage === "none") {
+    view.append(card("Friction by intent", "Needs intent labels; not available in this build.", document.createElement("div")));
+    return;
+  }
+  const byIntent = await q(conn, `SELECT intent, model, conversations, repeat_rate, one_and_done_rate, correction_rate, refusal_rate FROM friction_by_intent_model`);
+  const heat = byIntent.flatMap((r) => series.map((s) => ({ intent: r.intent, model: r.model, signal: labels[s], rate: r[s] })));
+  view.append(card("Friction by intent and model", "Darker is worse. Use this to find where the assistant fails people most.",
+    Plot.plot({ width: w, height: 60 + 26 * new Set(heat.map((d) => d.intent + d.model)).size, marginLeft: 200, padding: 0,
+      color: { scheme: "blues", legend: true, label: "rate", range: [css("--seq-1"), css("--seq-5")] },
+      x: { label: null, axis: "top" }, y: { label: null },
+      marks: [Plot.cell(heat, { x: "signal", y: (d) => `${d.intent} · ${d.model}`, fill: "rate", tip: true, inset: 0.5 })] })));
+  const agg = await q(conn, `SELECT intent, sum(conversations) AS n,
+      sum(conversations*repeat_rate)/sum(conversations) AS repeat_rate,
+      sum(conversations*one_and_done_rate)/sum(conversations) AS one_and_done_rate,
+      sum(conversations*correction_rate)/sum(conversations) AS correction_rate,
+      sum(conversations*refusal_rate)/sum(conversations) AS refusal_rate
+    FROM friction_by_intent_model GROUP BY intent ORDER BY n DESC`);
+  view.append(card("Friction by intent, all models", "Conversation-weighted rates.", tableEl(agg)));
+}
+registerRenderer("friction", renderFriction);
 
 main();
