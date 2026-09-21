@@ -1,6 +1,6 @@
 # Dashboard design
 
-**What this is for:** Fix what the dashboard shows, in what order, and how a reader interacts with it before the build is judged.
+**What this is for:** Fix what the dashboard shows and how a reader interacts with it before the build is judged.
 **Date:** 2026-09-20
 **Status:** Draft
 
@@ -17,49 +17,49 @@ Priya, the PM persona from the PRD, opens the dashboard on a Monday morning with
 
 ## Views
 
-**Overview.** "How much is happening, and is anyone coming back." Six tiles: conversations, turns, weeks covered, peak weekly pseudo-users, return rate for the latest complete week, intent coverage. Below, one line chart of weekly conversations by model, colored in a fixed order kept consistent everywhere model appears. Hover gives a crosshair and tooltip; the legend is always shown.
+**Overview.** "How much is happening, and is anyone coming back." Six tiles: conversations, turns, weeks covered, peak weekly pseudo-users, return rate for the latest complete week, intent coverage. Below, one line chart of weekly conversations by model, with a legend. Hover gives a tooltip on every point.
 
-**Intensity.** "Is growth broad or concentrated, and did people come back." The return-rate line draws `NULL` weeks (no following week to measure against) as gaps, not interpolated, and calls out the 2024 Q3 to Q4 persistence break rather than smoothing over it. A weekly pseudo-users line is colored along its length by top-10% share, one sequential ramp on a single axis. Conversations per pseudo-user shows p50 and p90 as two direct-labeled lines. A bar chart shows the share of pseudo-users active in more than one week, by quarter, surfacing the same break as a visible drop. Session depth is faceted by model family as small multiples. Tooltips on every mark; gaps never filled in.
+**Intensity.** "Is growth broad or concentrated, and did people come back." The return-rate line draws `NULL` weeks (no following week to measure) as gaps, not interpolated, and calls out the 2024 Q3 to Q4 persistence break rather than smoothing over it. A weekly pseudo-users line is colored along its length by top-10% share, one sequential ramp on a single axis. Conversations per pseudo-user shows p50 (solid) and p90 (dashed) in one color, named in the card note rather than a legend. A bar chart shows the share of pseudo-users active in more than one week, by quarter, surfacing the same break. Session depth is faceted by model family as small multiples. Tooltips on every mark; gaps never filled in.
 
-**Intent.** "What are people trying to do." A 100% stacked area shows intent share by week; two more 100% stacked bar sets repeat the same ten classes by model family and by the top ten languages, all sharing one fixed color-to-class mapping so a class's color never changes meaning. Ten classes exceed the direct-label limit, so identity rests on an always-visible legend, not crowded labels. Labeling has not run on this build, so the view shows a "not available" card instead of fabricated shares.
+**Intent.** "What are people trying to do." A 100% stacked area shows intent share by week; two more 100% stacked bar sets repeat the same ten classes by model family and by the top ten languages, each with a legend. Colors follow data order per chart in v1, so a class is not guaranteed the same color across charts; a fixed taxonomy-order color domain is planned polish. Labeling has not run on this build, so the view shows a "not available" card instead.
 
-**Friction.** "Where is the assistant failing people." Four proxy rates over time (repeated request, correction follow-up, refusal, one-and-done) run as four direct-labeled lines on a fixed 0 to 100% axis. A heatmap crosses intent by model family with one sequential hue for the rate, never doubling as identity. A conversation-weighted table below gives raw counts beside each rate, so a striking percentage over a small denominator cannot be over-read. A proxy failing its 70% precision gate is dropped outright, not softened; with intent unlabeled, the heatmap and the table's intent slice show "not available" while the weekly lines, which need no intent, still render.
+**Friction.** "Where is the assistant failing people." Four proxy rates over time (repeated request, correction follow-up, refusal, one-and-done) run as four lines with a legend, on a percent-formatted axis that autoscales to the data. A heatmap has the four signals on one axis and intent-and-model rows on the other, one sequential hue for the rate, never doubling as identity. A table below gives each intent's count and the same four rates with all models combined, so a striking percentage over a small denominator cannot be over-read. A proxy failing its 70% precision gate is dropped outright, not softened; with intent unlabeled, the heatmap and table fall back to "not available" while the weekly lines, which need no intent, still render.
 
-**Data quality.** "How much to trust everything else." Tiles: minimum cell size (20), shards processed (86 of 86), taxonomy version, aggregate set size. Below: redaction rate and empty-input rate as two direct-labeled lines on a percent axis; token-usage coverage over time, labeled with the window it covers from 2024-09-09; top-countries and top-languages bars, each including an explicit `suppressed_or_unknown` bar in a muted status tone rather than a categorical hue, so it reads as "not a place," not one more country.
+**Data quality.** "How much to trust everything else." Tiles: minimum cell size (20), shards processed (86 of 86), taxonomy version, aggregate set size. Below: redaction and empty-input rate as two lines with a legend, on a percent-formatted axis; token-usage coverage over time, labeled with the window it covers from 2024-09-09; top-countries and top-languages bars, each with an explicit `suppressed_or_unknown` bar drawn like the others and named in the card note; a distinct muted tone for that row is planned polish.
 
-**Query.** Whatever the other five views did not anticipate. A SQL textarea runs against the twelve committed aggregate views, capped at 200 rows, with a visible error line for a bad query. No chart here; it is the escape valve, not a seventh visualization.
+**Query.** Whatever the other five views did not anticipate. A SQL textarea runs against the twelve committed aggregate views, capped at 200 rows, with a visible error line for a bad query. No chart here; it is the escape valve.
 
 ## Wireframes
+
+At 400 px, tab pills wrap onto two or three rows, not a menu; tables scroll inside their card; charts scale to the card width.
 
 **Overview, desktop.**
 ```
 +---------------------------------------------+
-| Loupe  tabs: Overview Intensity ... Query    |
-| coverage banner                              |
+| Loupe   [Overview][Intensity]...[Query]      |
+| banner                                       |
 +---------------------------------------------+
 | [Convs][Turns][Weeks][Peak][Return][Intent]  |
 +---------------------------------------------+
-| weekly convs by model, line, legend          |
+| weekly-convs-by-model line, legend           |
 +---------------------------------------------+
-| caveats | ODC-By                             |
+| caveats, ODC-By                              |
 +---------------------------------------------+
 ```
 
 **Overview, 400 px.**
 ```
 +----------------+
-| Loupe    menu  |
-| Overview  v    |
+| Loupe          |
+| [Ov][Int][Fr]  |
+| [DQ][In][Qry]  |
 | banner         |
 +----------------+
-| [Convs]        |
-| [Turns]        |
-| [Weeks]        |
-| [Peak]         |
-| [Return]       |
-| [Intent]       |
+| [Convs][Turns] |
+| [Weeks][Peak]  |
+| [Return][Int]  |
 +----------------+
-| chart, legend  |
+| chart, scaled  |
 +----------------+
 | caveats        |
 +----------------+
@@ -68,32 +68,32 @@ Priya, the PM persona from the PRD, opens the dashboard on a Monday morning with
 **Friction, desktop.**
 ```
 +---------------------------------------------+
-| Loupe  tabs: Overview ... Friction ... Query |
-| coverage banner                              |
+| Loupe   [Overview]...[Friction]...[Query]    |
+| banner                                       |
 +---------------------------------------------+
-| proxy rates, 4 lines, legend, percent axis   |
+| proxy-rates-over-time lines, legend          |
 +---------------------------------------------+
-| heatmap: intent rows x model cols, ramp key  |
+| heatmap: x=4-signals, y=intent-model, ramp   |
 +---------------------------------------------+
-| weighted table: intent, model, N, 4 rates    |
+| table: intent, n, 4-rates (models-combined)  |
 +---------------------------------------------+
-| caveats | ODC-By                             |
+| caveats, ODC-By                              |
 +---------------------------------------------+
 ```
 
 **Friction, 400 px.**
 ```
 +----------------+
-| Loupe    menu  |
-| Friction  v    |
+| Loupe          |
+| [Ov][Int][Fr]  |
+| [DQ][In][Qry]  |
 | banner         |
 +----------------+
 | rates, legend  |
 +----------------+
-| heatmap        |
-| (scrolls)      |
+| heatmap scroll |
 +----------------+
-| table (stacked)|
+| table scroll   |
 +----------------+
 | caveats        |
 +----------------+
@@ -101,7 +101,7 @@ Priya, the PM persona from the PRD, opens the dashboard on a Monday morning with
 
 ## Interaction rules
 
-Tooltips appear on every mark, on hover and on tap. A legend is always shown for two or more series; a single-series chart names itself in the title instead. Nothing animates: a static build regenerated by one batch command, at most weekly, so motion would imply a cadence the pipeline does not have. Color comes from the palette tokens: categorical hues in a fixed order per entity, held constant across every view; one sequential ramp for magnitude; a muted status tone reserved for `suppressed_or_unknown`, never reused as a category. Every rate uses a percent axis, fixed 0 to 100%. Suppression is noted in the chart subtitle wherever `min_cell` applies, plus the residual bar in the country and language charts.
+Tooltips appear on every mark, on hover and on tap. Two or more series get a legend; the p50/p90 pair is distinguished by dash pattern and named in the card note (a legend is planned polish). Nothing animates: a static build regenerated by one batch command, at most weekly, so motion would imply a cadence the pipeline does not have. Color comes from the palette tokens. Rates use percent-formatted axes that autoscale to the data. Suppression is noted in the card note wherever `min_cell` applies. The suppressed_or_unknown row is drawn as an ordinary bar and named in the card note; a distinct muted tone is planned polish. Intent colors follow data order per chart in v1; a fixed taxonomy-order color domain is planned polish.
 
 ## Deliberately absent
 
