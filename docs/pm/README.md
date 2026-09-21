@@ -16,7 +16,7 @@ Loupe is a user analytics product for teams that ship a GenAI assistant. This fo
 
 4. [Metrics framework](03-metrics-framework.md). Definitions, biases, and how the friction proxies were validated.
 5. [PRD](04-prd.md). Requirements, success metrics, privacy, and the decision log.
-6. [User research](02-user-research.md). Who we talked to and what changed because of it.
+6. [User research](02-user-research.md). Public evidence on the problem and the assumptions register that would be tested first; no interviews were possible in the v1 window.
 
 ## The rest
 

@@ -53,7 +53,7 @@ This recreates a pattern documented across the industry: most teams shipping an 
 
 | ID | Requirement | Priority | Acceptance check |
 |---|---|---|---|
-| R1 | Dashboard ships five views: volume, intensity, intent, friction, data quality. | P0 | Each view renders with real aggregate data and no console errors, in one browser. |
+| R1 | Dashboard ships five views: Overview, intensity, intent, friction, data quality. | P0 | Each view renders with real aggregate data and no console errors, in one browser. |
 | R2 | Minimum-cell suppression (`min_cell = 20`) applied on every geography and language slice; suppressed or unknown rows appear as an explicit residual row rather than vanishing. | P0 | `loupe/metrics/volume_weekly_country.sql` and `volume_weekly_language.sql` output a `suppressed_or_unknown` row per week; no cell under 20 conversations appears broken out. |
 | R3 | Every view carries the applicable caveats (population, pseudo-user, coverage) visibly, not in a footnote link. | P0 | Manual review of each view confirms the caveat text from `aggregates/meta.json` is rendered, not just linked. |
 | R4 | The full aggregate set regenerates from one committed command run against the cached flat tables. | P0 | `make all` (flatten, sample, label, classify, metrics) followed by `uv run python scripts/check_report.py` once the report exists; `aggregates/meta.json` records the run. |

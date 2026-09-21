@@ -8,7 +8,7 @@
 
 This document defines the analysis metrics: the numbers Loupe computes about the assistant it is pointed at (volume, intensity, intent, friction, data quality). It is distinct from Loupe's own product success metrics (weekly answered questions, adoption, retention, and the rest of Loupe-as-a-product's metrics tree), which live in the PRD (`04-prd.md`) under "Success metrics." Nothing in this document measures whether Loupe itself is succeeding; it only measures the thing Loupe points at.
 
-Every definition here is written before the pipeline stage that computes it, per the spec's sequencing (design spec Section 14, day 1). The SQL in `loupe/metrics/*.sql` is the executable form of this document, not the other way around: if the two disagree, this document is wrong and the query gets fixed to match it, or vice versa with a note in the decision log.
+Definitions are the contract the SQL implements; the SQL files are named per row so a reader can check each one. The SQL in `loupe/metrics/*.sql` is the executable form of this document, not the other way around: if the two disagree, this document is wrong and the query gets fixed to match it, or vice versa with a note in the decision log.
 
 ## North star
 

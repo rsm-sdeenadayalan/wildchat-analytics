@@ -8,7 +8,7 @@
 
 Everything P0 and P1 from the PRD ships, over the full 3.2M-conversation corpus:
 
-- Six views: Overview, Intensity, Intent, Friction, Data quality, and Query (R1, R6).
+- Five views (Overview, Intensity, Intent, Friction, Data quality) plus a Query panel (R1, R6).
 - Minimum-cell suppression (min_cell = 20) on every geography and language slice, with a `suppressed_or_unknown` row instead of a silent drop (R2).
 - Population, pseudo-user, and coverage caveats visible on every view, not linked in a footnote (R3).
 - The full aggregate set regenerates from one committed command against cached flat tables (R4).

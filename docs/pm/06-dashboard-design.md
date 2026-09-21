@@ -13,7 +13,7 @@ Priya, the PM persona from the PRD, opens the dashboard on a Monday morning with
 - Tiles answer "how much" in three seconds. A headline number needing no comparison is a stat tile, not a chart; a chart earns its place only for change, distribution, or composition.
 - One chart per question. No chart carries two unrelated questions or uses two y-axes to fake that it does; two measures of different scale become two charts instead.
 - Caveats are always visible, rendered as on-page text, never behind a link.
-- Query is where everything else lives: any question the six fixed views did not anticipate, against the same aggregates.
+- Query is where everything else lives: any question the five fixed views did not anticipate, against the same aggregates.
 
 ## Views
 
