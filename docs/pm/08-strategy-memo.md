@@ -6,7 +6,7 @@
 
 ## Situation
 
-A free public GPT-style assistant logged 3.2 million conversations from 2023-04 to 2025-07, across five model-family eras from gpt-3.5-turbo through gpt-4.1-mini. That corpus is not this company's product; it came from people seeking free access to GPT-4-class capability, so usage concentrates wherever that population's needs concentrate, not necessarily where a paid product's usage would. Read every number below as a hypothesis worth testing against this company's own logs, not a forecast of them.
+A free public GPT-style assistant logged 3.2 million conversations from 2023-04 to 2025-07, across several overlapping model-family periods (F3), from gpt-3.5-turbo through gpt-4.1-mini. That corpus is not this company's product; it came from people seeking free access to GPT-4-class capability, so usage concentrates wherever that population's needs concentrate, not necessarily where a paid product's usage would. Read every number below as a hypothesis worth testing against this company's own logs, not a forecast of them.
 
 ## What the data says
 
