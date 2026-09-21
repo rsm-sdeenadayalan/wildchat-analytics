@@ -2,6 +2,8 @@
 
 Loupe turns raw conversation logs into the answers a product manager needs: who uses the assistant, how intensely, for what, and where it fails them.
 
+**Live:** https://rsm-sdeenadayalan.github.io/wildchat-analytics/ (dashboard) · https://rsm-sdeenadayalan.github.io/wildchat-analytics/docs/ (case study)
+
 It is built and demonstrated on [WildChat-4.8M](https://huggingface.co/datasets/allenai/WildChat-4.8M), 3.2 million real human–ChatGPT conversations, and it ships as both a product (pipeline + dashboard published from this repo via GitHub Pages) and a set of findings (a public trends report).
 
 This repo is also an end-to-end record of the product management work behind it: opportunity brief, user research, metrics framework, PRD, roadmap, design, launch, findings, strategy memo, and retrospective. Start with the design spec:
