@@ -12,7 +12,7 @@ const $ = (sel) => document.querySelector(sel);
 const fmtInt = new Intl.NumberFormat("en-US");
 const fmtPct = (x) => (x == null ? "–" : (100 * x).toFixed(1) + "%");
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-const palette = () => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => css(`--c${i}`));
+const palette = () => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => css(`--c${i}`));
 
 export async function boot() {
   const bundles = duckdb.getJsDelivrBundles();
@@ -37,7 +37,11 @@ export async function q(conn, sql) {
   const table = await conn.query(sql);
   return table.toArray().map((row) => {
     const o = row.toJSON();
-    for (const k in o) if (typeof o[k] === "bigint") o[k] = Number(o[k]);
+    for (const k in o) {
+      const v = o[k];
+      if (typeof v === "bigint") o[k] = Number(v);
+      else if (v && typeof v === "object" && !(v instanceof Date) && typeof v.toString === "function" && /^-?\d+$/.test(v.toString())) o[k] = Number(v.toString());
+    }
     return o;
   });
 }
@@ -67,7 +71,7 @@ function tableEl(rows, limit = 200) {
 
 export async function renderOverview(conn, meta) {
   const view = $("#view-overview");
-  const [tot] = await q(conn, `SELECT sum(conversations) AS convs, sum(turns) AS turns, min(date) AS d0, max(date) AS d1 FROM volume_daily_model`);
+  const [tot] = await q(conn, `SELECT sum(conversations)::BIGINT AS convs, sum(turns)::BIGINT AS turns, min(date) AS d0, max(date) AS d1 FROM volume_daily_model`);
   const [users] = await q(conn, `SELECT max(pseudo_users) AS peak_users FROM intensity_weekly`);
   const [latest] = await q(conn, `SELECT return_rate FROM intensity_weekly WHERE return_rate IS NOT NULL ORDER BY week DESC LIMIT 1`);
   view.innerHTML = `<div class="tiles">
@@ -78,7 +82,7 @@ export async function renderOverview(conn, meta) {
     ${tile("return rate, latest complete week", fmtPct(latest?.return_rate))}
     ${tile("intent coverage", meta.intent_coverage)}
   </div>`;
-  const weekly = await q(conn, `SELECT date_trunc('week', date)::DATE AS week, model, sum(conversations) AS conversations FROM volume_daily_model GROUP BY ALL ORDER BY week`);
+  const weekly = await q(conn, `SELECT date_trunc('week', date)::DATE AS week, model, sum(conversations)::BIGINT AS conversations FROM volume_daily_model GROUP BY ALL ORDER BY week`);
   view.append(card("Weekly conversations by model", "Volume. Each line is one model family as recorded in the logs.",
     Plot.plot({
       width: Math.min(1060, view.clientWidth), height: 320, marginLeft: 60,
@@ -148,12 +152,12 @@ export async function renderQuality(conn, meta) {
   view.append(card("Token usage field coverage", "Share of conversations whose logs include token counts. Coverage is 0 before 2024-09-09 (the field did not exist yet) and spotty afterwards; token metrics are only valid where this is high.",
     Plot.plot({ width: w, height: 200, marginLeft: 50, y: { label: "coverage", grid: true, percent: true }, x: { label: null },
       marks: [Plot.areaY(dq, { x: "week", y: "token_usage_coverage", fill: css("--seq-2") }), Plot.lineY(dq, { x: "week", y: "token_usage_coverage", stroke: css("--c1"), tip: true })] })));
-  const countries = await q(conn, `SELECT country, sum(conversations) AS conversations FROM volume_weekly_country GROUP BY country ORDER BY 2 DESC LIMIT 15`);
+  const countries = await q(conn, `SELECT country, sum(conversations)::BIGINT AS conversations FROM volume_weekly_country GROUP BY country ORDER BY 2 DESC LIMIT 15`);
   view.append(card("Top countries", `Any week × country cell with fewer than ${meta.min_cell} conversations, together with conversations that have no country, is rolled into a \`suppressed_or_unknown\` row per week; that row is kept as its own bar here (not dropped) and is large — about 8% of all conversations — because country is frequently missing, not because any one country is being hidden.`,
     Plot.plot({ width: w, height: 360, marginLeft: 130, x: { label: "conversations", grid: true }, y: { label: null },
       marks: [Plot.barX(countries, { y: "country", x: "conversations", fill: css("--c1"), sort: { y: "-x" }, tip: true })] })));
-  const langs = await q(conn, `SELECT language, sum(conversations) AS conversations FROM volume_weekly_language GROUP BY language ORDER BY 2 DESC LIMIT 12`);
-  view.append(card("Top languages", `Most frequently detected language per conversation. The \`suppressed_or_unknown\` row (missing or below the ${meta.min_cell}-conversation floor) is kept as its own bar, well under 1% of conversations here since language is rarely missing.`,
+  const langs = await q(conn, `SELECT language, sum(conversations)::BIGINT AS conversations FROM volume_weekly_language GROUP BY language ORDER BY 2 DESC LIMIT 12`);
+  view.append(card("Top languages", `Most frequently detected language per conversation. The \`suppressed_or_unknown\` row (missing or below the ${meta.min_cell}-conversation floor) is kept as its own bar, under 1% of conversations here since language is rarely missing.`,
     Plot.plot({ width: w, height: 320, marginLeft: 110, x: { label: "conversations", grid: true }, y: { label: null },
       marks: [Plot.barX(langs, { y: "language", x: "conversations", fill: css("--c3"), sort: { y: "-x" }, tip: true })] })));
 }
@@ -204,17 +208,17 @@ export async function renderIntent(conn, meta) {
   const w = Math.min(1060, view.clientWidth);
   const weekly = await q(conn, `SELECT week, intent, conversations FROM intent_weekly ORDER BY week`);
   view.append(card("What people ask for, over time", "Share of each week's classified conversations by intent. Classes are defined in the metrics framework.",
-    Plot.plot({ width: w, height: 340, marginLeft: 50, color: { legend: true, range: palette().concat(palette()) },
+    Plot.plot({ width: w, height: 340, marginLeft: 50, color: { legend: true, range: palette() },
       y: { label: "share of week", grid: true, percent: true }, x: { label: null },
       marks: [Plot.areaY(weekly, Plot.stackY({ offset: "normalize" }, { x: "week", y: "conversations", fill: "intent", tip: true }))] })));
   const byModel = await q(conn, `SELECT model, intent, conversations FROM intent_by_model`);
   view.append(card("Intent mix by model", "Which models people reached for, by what they were trying to do.",
-    Plot.plot({ width: w, height: 320, marginLeft: 100, color: { legend: true, range: palette().concat(palette()) },
+    Plot.plot({ width: w, height: 320, marginLeft: 100, color: { legend: true, range: palette() },
       x: { label: "share of model's conversations", grid: true, percent: true }, y: { label: null },
       marks: [Plot.barX(byModel, Plot.stackX({ offset: "normalize" }, { y: "model", x: "conversations", fill: "intent", tip: true }))] })));
   const byLang = await q(conn, `SELECT language, intent, conversations FROM intent_by_language`);
   view.append(card("Intent mix by language (top 10 languages)", `Cells under ${meta.min_cell} conversations are suppressed.`,
-    Plot.plot({ width: w, height: 360, marginLeft: 100, color: { legend: true, range: palette().concat(palette()) },
+    Plot.plot({ width: w, height: 360, marginLeft: 100, color: { legend: true, range: palette() },
       x: { label: "share of language's conversations", grid: true, percent: true }, y: { label: null },
       marks: [Plot.barX(byLang, Plot.stackX({ offset: "normalize" }, { y: "language", x: "conversations", fill: "intent", tip: true }))] })));
 }
@@ -247,7 +251,7 @@ export async function renderFriction(conn, meta) {
       color: { legend: true, label: "rate", range: [css("--seq-1"), css("--seq-5")], percent: true },
       x: { label: null, axis: "top" }, y: { label: null },
       marks: [Plot.cell(heat, { x: "signal", y: (d) => `${d.intent} · ${d.model}`, fill: "rate", tip: true, inset: 0.5 })] })));
-  const agg = await q(conn, `SELECT intent, sum(conversations) AS n,
+  const agg = await q(conn, `SELECT intent, sum(conversations)::BIGINT AS n,
       sum(conversations*repeat_rate)/sum(conversations) AS repeat_rate,
       sum(conversations*one_and_done_rate)/sum(conversations) AS one_and_done_rate,
       sum(conversations*correction_rate)/sum(conversations) AS correction_rate,
