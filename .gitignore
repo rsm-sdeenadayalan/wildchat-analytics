@@ -13,3 +13,4 @@ tests/fixtures/*.parquet
 .env
 # OS
 .DS_Store
+.worktrees/
