@@ -206,17 +206,17 @@ export async function renderIntent(conn, meta) {
   view.append(card("What people ask for, over time", "Share of each week's classified conversations by intent. Classes are defined in the metrics framework.",
     Plot.plot({ width: w, height: 340, marginLeft: 50, color: { legend: true, range: palette().concat(palette()) },
       y: { label: "share of week", grid: true, percent: true }, x: { label: null },
-      marks: [Plot.areaY(weekly, Plot.stackY(Plot.normalizeY("sum", { x: "week", y: "conversations", fill: "intent", z: "intent", tip: true })))] })));
+      marks: [Plot.areaY(weekly, Plot.stackY({ offset: "normalize" }, { x: "week", y: "conversations", fill: "intent", tip: true }))] })));
   const byModel = await q(conn, `SELECT model, intent, conversations FROM intent_by_model`);
   view.append(card("Intent mix by model", "Which models people reached for, by what they were trying to do.",
     Plot.plot({ width: w, height: 320, marginLeft: 100, color: { legend: true, range: palette().concat(palette()) },
       x: { label: "share of model's conversations", grid: true, percent: true }, y: { label: null },
-      marks: [Plot.barX(byModel, Plot.stackX(Plot.normalizeX("sum", { y: "model", x: "conversations", fill: "intent", z: "intent", tip: true })))] })));
+      marks: [Plot.barX(byModel, Plot.stackX({ offset: "normalize" }, { y: "model", x: "conversations", fill: "intent", tip: true }))] })));
   const byLang = await q(conn, `SELECT language, intent, conversations FROM intent_by_language`);
   view.append(card("Intent mix by language (top 10 languages)", `Cells under ${meta.min_cell} conversations are suppressed.`,
     Plot.plot({ width: w, height: 360, marginLeft: 100, color: { legend: true, range: palette().concat(palette()) },
       x: { label: "share of language's conversations", grid: true, percent: true }, y: { label: null },
-      marks: [Plot.barX(byLang, Plot.stackX(Plot.normalizeX("sum", { y: "language", x: "conversations", fill: "intent", z: "intent", tip: true })))] })));
+      marks: [Plot.barX(byLang, Plot.stackX({ offset: "normalize" }, { y: "language", x: "conversations", fill: "intent", tip: true }))] })));
 }
 registerRenderer("intent", renderIntent);
 
@@ -237,10 +237,14 @@ export async function renderFriction(conn, meta) {
     return;
   }
   const byIntent = await q(conn, `SELECT intent, model, conversations, repeat_rate, one_and_done_rate, correction_rate, refusal_rate FROM friction_by_intent_model`);
+  if (byIntent.length === 0) {
+    view.append(card("Friction by intent", "No rows in this build.", document.createElement("div")));
+    return;
+  }
   const heat = byIntent.flatMap((r) => series.map((s) => ({ intent: r.intent, model: r.model, signal: labels[s], rate: r[s] })));
   view.append(card("Friction by intent and model", "Darker is worse. Use this to find where the assistant fails people most.",
     Plot.plot({ width: w, height: 60 + 26 * new Set(heat.map((d) => d.intent + d.model)).size, marginLeft: 200, padding: 0,
-      color: { scheme: "blues", legend: true, label: "rate", range: [css("--seq-1"), css("--seq-5")] },
+      color: { legend: true, label: "rate", range: [css("--seq-1"), css("--seq-5")], percent: true },
       x: { label: null, axis: "top" }, y: { label: null },
       marks: [Plot.cell(heat, { x: "signal", y: (d) => `${d.intent} · ${d.model}`, fill: "rate", tip: true, inset: 0.5 })] })));
   const agg = await q(conn, `SELECT intent, sum(conversations) AS n,
@@ -249,7 +253,12 @@ export async function renderFriction(conn, meta) {
       sum(conversations*correction_rate)/sum(conversations) AS correction_rate,
       sum(conversations*refusal_rate)/sum(conversations) AS refusal_rate
     FROM friction_by_intent_model GROUP BY intent ORDER BY n DESC`);
-  view.append(card("Friction by intent, all models", "Conversation-weighted rates.", tableEl(agg)));
+  const aggFmt = agg.map((r) => ({
+    intent: r.intent, n: r.n,
+    repeat_rate: fmtPct(r.repeat_rate), one_and_done_rate: fmtPct(r.one_and_done_rate),
+    correction_rate: fmtPct(r.correction_rate), refusal_rate: fmtPct(r.refusal_rate),
+  }));
+  view.append(card("Friction by intent, all models", "Conversation-weighted rates.", tableEl(aggFmt)));
 }
 registerRenderer("friction", renderFriction);
 
