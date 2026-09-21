@@ -1,5 +1,5 @@
 :root {
-  --bg: #fafaf8; --fg: #1a1a1a; --muted: #5c5c5c; --line: #e3e3de; --card: #ffffff; --accent: #2b5cd9;
+  --bg: #fafaf8; --fg: #1a1a1a; --muted: #5c5c5c; --line: #e3e3de; --card: #ffffff; --accent: #2b5cd9; --on-accent: #ffffff;
   --warn-bg: #fff4d6; --warn-fg: #6b4e00;
   --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7; --c8: #e34948;
   --seq-1: #cde2fb; --seq-2: #86b6ef; --seq-3: #3987e5; --seq-4: #1c5cab; --seq-5: #0d366b;
@@ -7,7 +7,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111214; --fg: #e8e8e6; --muted: #a0a0a0; --line: #2a2b2f; --card: #1a1b1e; --accent: #7fa3ec;
+    --bg: #111214; --fg: #e8e8e6; --muted: #a0a0a0; --line: #2a2b2f; --card: #1a1b1e; --accent: #7fa3ec; --on-accent: #0b1020;
     --warn-bg: #3a2e05; --warn-fg: #ffe08a;
     --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767;
     --seq-1: #0d366b; --seq-2: #1c5cab; --seq-3: #3987e5; --seq-4: #86b6ef; --seq-5: #cde2fb;
@@ -23,7 +23,7 @@ html, body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 
 .docs-link { margin-left: auto; color: var(--accent); text-decoration: none; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; padding-block: 12px; }
 .tabs button { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
-.tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tabs button.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .status { color: var(--muted); }
 .banner { background: var(--warn-bg); color: var(--warn-fg); border-radius: var(--radius); padding: 10px 14px; margin-block: 8px; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--gap); margin-block: var(--gap); }
@@ -41,6 +41,6 @@ textarea { width: 100%; min-height: 120px; font-family: ui-monospace, SFMono-Reg
 table.grid { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.grid th, table.grid td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; white-space: nowrap; }
 .tablewrap { overflow-x: auto; }
-button.run { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+button.run { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
 .foot { border-top: 1px solid var(--line); margin-top: 32px; padding-block: 16px; color: var(--muted); font-size: 13px; }
 .foot a { color: var(--accent); }

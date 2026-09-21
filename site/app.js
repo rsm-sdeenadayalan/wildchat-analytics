@@ -68,13 +68,14 @@ function tableEl(rows, limit = 200) {
 export async function renderOverview(conn, meta) {
   const view = $("#view-overview");
   const [tot] = await q(conn, `SELECT sum(conversations) AS convs, sum(turns) AS turns, min(date) AS d0, max(date) AS d1 FROM volume_daily_model`);
-  const [users] = await q(conn, `SELECT max(pseudo_users) AS peak_users, avg(return_rate) AS avg_return FROM intensity_weekly`);
+  const [users] = await q(conn, `SELECT max(pseudo_users) AS peak_users FROM intensity_weekly`);
+  const [latest] = await q(conn, `SELECT return_rate FROM intensity_weekly WHERE return_rate IS NOT NULL ORDER BY week DESC LIMIT 1`);
   view.innerHTML = `<div class="tiles">
     ${tile("conversations", fmtInt.format(tot.convs))}
     ${tile("turns", fmtInt.format(tot.turns))}
     ${tile("weeks covered", fmtInt.format(Math.round((tot.d1 - tot.d0) / 86400000 / 7)))}
     ${tile("peak weekly pseudo-users", fmtInt.format(users.peak_users))}
-    ${tile("avg week-over-week return", fmtPct(users.avg_return))}
+    ${tile("return rate, latest complete week", fmtPct(latest?.return_rate))}
     ${tile("intent coverage", meta.intent_coverage)}
   </div>`;
   const weekly = await q(conn, `SELECT date_trunc('week', date)::DATE AS week, model, sum(conversations) AS conversations FROM volume_daily_model GROUP BY ALL ORDER BY week`);
@@ -86,6 +87,77 @@ export async function renderOverview(conn, meta) {
       marks: [Plot.lineY(weekly, { x: "week", y: "conversations", stroke: "model", tip: true })],
     })));
 }
+
+function quarterLabel(d) {
+  const dt = new Date(d);
+  const quarter = Math.floor(dt.getUTCMonth() / 3) + 1;
+  return `${dt.getUTCFullYear()} Q${quarter}`;
+}
+
+export async function renderIntensity(conn) {
+  const view = $("#view-intensity");
+  view.innerHTML = "";
+  const w = Math.min(1060, view.clientWidth);
+  const weekly = await q(conn, `SELECT * FROM intensity_weekly ORDER BY week`);
+  const last = weekly.at(-1) || {};
+  view.innerHTML = `<div class="tiles">
+    ${tile("latest weekly pseudo-users", fmtInt.format(last.pseudo_users ?? 0))}
+    ${tile("latest week-over-week return", fmtPct(last.return_rate))}
+    ${tile("latest top-10% share of conversations", fmtPct(last.top10_share))}
+    ${tile("latest conversations / pseudo-user (p50)", (last.convs_per_user_p50 ?? 0).toFixed(1))}
+  </div>`;
+  view.append(card("Week-over-week return rate", "Share of pseudo-users active in a week who are active again the following week. Weeks with a NULL return_rate — no following week present in the data, including the most recent week — are drawn as gaps, not zeros; hover a point near a gap to see next_week_present.",
+    Plot.plot({ width: w, height: 260, marginLeft: 50, y: { label: "return rate", grid: true, percent: true }, x: { label: null },
+      marks: [Plot.lineY(weekly, { x: "week", y: "return_rate", stroke: css("--c1"), tip: true, channels: { "next week present": "next_week_present" } })] })));
+  view.append(card("Weekly pseudo-users and concentration", "Left axis: pseudo-users active. Line color: share of conversations from the top 10% of pseudo-users.",
+    Plot.plot({ width: w, height: 260, marginLeft: 60, color: { legend: true, label: "top-10% share", range: [css("--seq-2"), css("--seq-5")] },
+      y: { label: "pseudo-users", grid: true }, x: { label: null },
+      marks: [Plot.lineY(weekly, { x: "week", y: "pseudo_users", stroke: "top10_share", tip: true })] })));
+  view.append(card("Conversations per pseudo-user per week", "Median (solid) and 90th percentile (dashed).",
+    Plot.plot({ width: w, height: 240, marginLeft: 50, y: { label: "conversations", grid: true }, x: { label: null },
+      marks: [Plot.lineY(weekly, { x: "week", y: "convs_per_user_p50", stroke: css("--c1"), tip: true }),
+              Plot.lineY(weekly, { x: "week", y: "convs_per_user_p90", stroke: css("--c1"), strokeDasharray: "4 3", tip: true })] })));
+  const persistence = await q(conn, `SELECT * FROM pseudo_user_persistence_quarterly ORDER BY quarter`);
+  persistence.forEach((r) => (r.quarter_label = quarterLabel(r.quarter)));
+  view.append(card("How long pseudo-users persist", "Share of a quarter's pseudo-users active in more than one week. The sharp drop after 2024-10 is a property of the collection (pseudo-user keys stopped persisting), not of user behavior; return rates are not comparable across that boundary.",
+    Plot.plot({ width: w, height: 240, marginLeft: 50, y: { label: "share active in >1 week", grid: true, percent: true }, x: { label: null },
+      marks: [Plot.barY(persistence, { x: "quarter_label", y: "share_multi_week", fill: css("--c1"), tip: true })] })));
+  const depth = await q(conn, `SELECT model, depth_bucket, conversations FROM depth_by_model`);
+  const order = ["1", "2", "3-5", "6-10", "11+"];
+  view.append(card("Session depth by model", "Distribution of turns per conversation. A turn is one user message and one reply.",
+    Plot.plot({ width: w, height: 280, marginLeft: 60, color: { legend: true, range: palette() },
+      x: { domain: order, label: "turns per conversation" }, y: { label: "share of model's conversations", grid: true, percent: true },
+      marks: [Plot.barY(depth, Plot.normalizeY("sum", { x: "depth_bucket", y: "conversations", fill: "model", z: "model", tip: true, dx: 0 }))] })));
+}
+registerRenderer("intensity", renderIntensity);
+
+export async function renderQuality(conn, meta) {
+  const view = $("#view-quality");
+  view.innerHTML = `<div class="tiles">
+    ${tile("minimum cell size", meta.min_cell)}
+    ${tile("shards processed", `${meta.shards} / 86`)}
+    ${tile("taxonomy", meta.taxonomy_version)}
+    ${tile("aggregates size", (meta.aggregate_bytes / 1e6).toFixed(1) + " MB")}
+  </div>`;
+  const w = Math.min(1060, view.clientWidth);
+  const dq = await q(conn, `SELECT * FROM data_quality_weekly ORDER BY week`);
+  view.append(card("PII redaction and empty inputs", "Share of conversations the dataset authors redacted for PII, and share with an empty user message (a quirk of the collection chatbot).",
+    Plot.plot({ width: w, height: 240, marginLeft: 50, y: { label: "share", grid: true, percent: true }, x: { label: null }, color: { legend: true, range: [css("--c1"), css("--c2")] },
+      marks: [Plot.lineY(dq, { x: "week", y: "redacted_rate", stroke: () => "redacted", tip: true }),
+              Plot.lineY(dq, { x: "week", y: "empty_input_rate", stroke: () => "empty input", tip: true })] })));
+  view.append(card("Token usage field coverage", "Share of conversations whose logs include token counts. Coverage is 0 before 2024-09-09 (the field did not exist yet) and spotty afterwards; token metrics are only valid where this is high.",
+    Plot.plot({ width: w, height: 200, marginLeft: 50, y: { label: "coverage", grid: true, percent: true }, x: { label: null },
+      marks: [Plot.areaY(dq, { x: "week", y: "token_usage_coverage", fill: css("--seq-2") }), Plot.lineY(dq, { x: "week", y: "token_usage_coverage", stroke: css("--c1"), tip: true })] })));
+  const countries = await q(conn, `SELECT country, sum(conversations) AS conversations FROM volume_weekly_country GROUP BY country ORDER BY 2 DESC LIMIT 15`);
+  view.append(card("Top countries", `Any week × country cell with fewer than ${meta.min_cell} conversations, together with conversations that have no country, is rolled into a \`suppressed_or_unknown\` row per week; that row is kept as its own bar here (not dropped) and is large — about 8% of all conversations — because country is frequently missing, not because any one country is being hidden.`,
+    Plot.plot({ width: w, height: 360, marginLeft: 130, x: { label: "conversations", grid: true }, y: { label: null },
+      marks: [Plot.barX(countries, { y: "country", x: "conversations", fill: css("--c1"), sort: { y: "-x" }, tip: true })] })));
+  const langs = await q(conn, `SELECT language, sum(conversations) AS conversations FROM volume_weekly_language GROUP BY language ORDER BY 2 DESC LIMIT 12`);
+  view.append(card("Top languages", `Most frequently detected language per conversation. The \`suppressed_or_unknown\` row (missing or below the ${meta.min_cell}-conversation floor) is kept as its own bar, well under 1% of conversations here since language is rarely missing.`,
+    Plot.plot({ width: w, height: 320, marginLeft: 110, x: { label: "conversations", grid: true }, y: { label: null },
+      marks: [Plot.barX(langs, { y: "language", x: "conversations", fill: css("--c3"), sort: { y: "-x" }, tip: true })] })));
+}
+registerRenderer("quality", renderQuality);
 
 function showView(name) {
   document.querySelectorAll("main section").forEach((s) => (s.hidden = s.id !== `view-${name}`));
