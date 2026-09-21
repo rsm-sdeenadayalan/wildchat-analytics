@@ -23,7 +23,6 @@
 - Guardrails from spec 6.2: intent classifier held-out accuracy at least 0.85; friction proxies are validated in Plan 3 against 300 hand labels (precision at least 0.70).
 - Labeling model: `claude-opus-5` by default via env `LOUPE_LABEL_MODEL`; the Message Batches API (50% price) is mandatory for the labeling run. Budget cap via env `LOUPE_LABEL_BUDGET_USD`, default `60`. The stage refuses to submit if the estimate exceeds the cap.
 - Python 3.12 pinned in `.python-version`. All commands run through `uv run`.
-- Commit after every task with the message shown. Every commit message ends with the line `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 
 ---
 
@@ -209,8 +208,6 @@ Expected: usage text listing `{flatten,sample,label,classify,metrics}`.
 ```bash
 git add pyproject.toml .python-version Makefile loupe tests aggregates/.gitkeep uv.lock
 git commit -m "Scaffold Loupe package, uv project, Makefile, and pytest
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -365,8 +362,6 @@ Expected: `6 passed`.
 ```bash
 git add loupe/text.py tests/test_text.py
 git commit -m "Add pure text helpers: tokens, jaccard, correction/refusal patterns, pseudo-user hash
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -606,8 +601,6 @@ Expected: `2 passed`.
 ```bash
 git add loupe/schema.py tests/conftest.py tests/test_schema.py .gitignore
 git commit -m "Define Loupe Arrow schemas and a WildChat-shaped test fixture
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -861,8 +854,6 @@ Expected: `6 passed`. If DuckDB reports a binder error on `struct_extract(m, 'us
 ```bash
 git add loupe/adapters/wildchat.py tests/test_wildchat_adapter.py
 git commit -m "Add WildChat adapter: unnest one shard into Loupe conversation and turn tables
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1038,8 +1029,6 @@ git add loupe/hf.py loupe/stages/flatten.py tests/test_hf.py tests/test_flatten_
 git commit -m "Add HF shard download and flatten stage (resumable, one shard on disk at a time)
 
 Shard 0 flattened in <N>s on the laptop.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1175,8 +1164,6 @@ Expected: `2 passed`.
 ```bash
 git add loupe/stages/sample.py tests/test_sample.py
 git commit -m "Add sample stage: stratified intent sample by model family, language, quarter
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1452,8 +1439,6 @@ Expected: prints a JSON with `estimated_usd` and no `batch_id`. Note the `avg_in
 ```bash
 git add loupe/taxonomy.json loupe/stages/label.py tests/test_label_budget.py
 git commit -m "Add label stage: batch intent labeling with structured output and a budget cap
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1642,8 +1627,6 @@ Expected: `2 passed`.
 ```bash
 git add loupe/stages/classify.py tests/test_classify.py
 git commit -m "Add classify stage: char n-gram intent model with held-out report and threshold gate
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -2045,8 +2028,6 @@ Expected: `11 passed`. If `quantile_cont` values differ, check the fixture: week
 ```bash
 git add loupe/metrics loupe/stages/metrics.py tests/test_metrics_*.py
 git commit -m "Add metric SQL definitions and metrics stage writing aggregates and meta.json
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -2181,8 +2162,6 @@ Expected: all tests pass (around 35).
 ```bash
 git add loupe/cli.py tests/test_cli.py .github/workflows/ci.yml
 git commit -m "Wire the loupe CLI for all five stages and add GitHub Actions test workflow
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 git push
 gh run watch --exit-status
 ```
@@ -2244,8 +2223,6 @@ git add aggregates README.md
 git commit -m "Add aggregates from the full WildChat-4.8M run
 
 <paste the conversations, shards, date range, intent coverage, classifier accuracy, and label cost from meta.json and data/label_run.json>
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 git push
 ```
 

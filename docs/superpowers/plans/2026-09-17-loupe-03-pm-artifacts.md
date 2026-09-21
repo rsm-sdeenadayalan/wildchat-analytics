@@ -25,7 +25,6 @@
 - Every number in `07-trends-report.md` is inside a `loupe-check` block (Task 8 format) and `scripts/check_report.py` passes before the report is marked Final.
 - Public copy never calls a pseudo-user a "user". The population caveat appears in the first screen of the trends report and the strategy memo.
 - Shankar writes or rewrites the final pass of every document. Drafts by an agent are marked `Status: Draft`; only Shankar changes a status to `Final`.
-- Commit after every task. Every commit message ends with `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 
 ---
 
@@ -235,8 +234,6 @@ Expected: `3 passed`; `docs check: OK` (README is not in `REQUIRED`, so nothing 
 ```bash
 git add scripts/check_docs.py tests/test_check_docs.py docs/pm/README.md
 git commit -m "Add PM docs checker and the case-study guided tour
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -257,8 +254,6 @@ Write the brief with the header block and these sections. Content to include und
 - `## Decision requested`: build v1 as specified in the PRD, demonstrated on WildChat, time-boxed to eight working days.
 
 - [ ] **Step 1: Write the document.** - [ ] **Step 2:** `uv run python scripts/check_docs.py` → OK. - [ ] **Step 3: Commit** `git add docs/pm/01-opportunity-brief.md && git commit -m "Add opportunity brief (artifact 01)
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"`
 
 ---
 
@@ -332,8 +327,6 @@ Run: `uv run python scripts/check_docs.py` → OK.
 ```bash
 git add docs/pm/research docs/pm/02-user-research.md
 git commit -m "Add interview guide, outreach message, participant log, and research doc skeleton (artifact 02)
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 **Owner action (Shankar, today):** send the outreach to at least 15 people and log them in `participants.csv`.
@@ -526,8 +519,6 @@ Run: `uv run python scripts/check_docs.py` → OK.
 ```bash
 git add docs/pm/03-metrics-framework.md docs/pm/research scripts/export_friction_sample.py scripts/friction_precision.py tests/test_friction_precision.py
 git commit -m "Add metrics framework (artifact 03), friction labeling kit, and precision script
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 **Owner action (Shankar):** label the 300 conversations (about 2 hours), commit `friction_labels.csv`, run the precision script, paste the table.
@@ -556,8 +547,6 @@ After interviews complete, bump to `**Version:** 1.0`, add a row per PRD change 
 
 - [ ] **Step 1: Write the document.** - [ ] **Step 2:** `uv run python scripts/check_docs.py` → OK. - [ ] **Step 3: Commit** `git add docs/pm/04-prd.md && git commit -m "Add PRD v0.1 (artifact 04) with success metrics, launch criteria, and decision log
 
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"`
-
 ---
 
 ### Task 6: Artifacts 05 and 06, roadmap and dashboard design
@@ -575,8 +564,6 @@ Run: `uv run python scripts/check_docs.py` → OK.
 ```bash
 git add docs/pm/05-roadmap.md docs/pm/06-dashboard-design.md
 git commit -m "Add roadmap with cut list (artifact 05) and dashboard design (artifact 06)
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -725,8 +712,6 @@ if __name__ == "__main__":
 ```bash
 git add scripts/check_report.py tests/test_check_report.py
 git commit -m "Add report checker that re-runs every cited number against the aggregates
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -751,8 +736,6 @@ Run: `uv run python scripts/check_report.py` → `report check: N/N passed`. Run
 ```bash
 git add docs/pm/07-trends-report.md docs/pm/figures
 git commit -m "Add trends report (artifact 07) with machine-checked numbers
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 ---
@@ -887,8 +870,6 @@ Run: `uv run pytest tests/test_score_usability.py -q` → `1 passed`.
 ```bash
 git add docs/pm/research/usability-test-script.md docs/pm/research/usability_results.csv docs/pm/research/actionability_survey.csv scripts/score_usability.py tests/test_score_usability.py
 git commit -m "Add usability test kit and launch-check scoring script
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
 **Owner action (Shankar):** run five sessions, fill both CSVs, run `uv run python scripts/score_usability.py`, paste results into `09-retro.md`.
@@ -911,8 +892,6 @@ Expected: all OK.
 ```bash
 git add docs/pm/08-strategy-memo.md docs/pm/09-retro.md
 git commit -m "Add strategy memo (artifact 08) and retrospective (artifact 09)
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 git push
 ```
 
