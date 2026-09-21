@@ -27,7 +27,7 @@ PRICES: dict[str, tuple[float, float]] = {
     "claude-sonnet-5": (2.0, 10.0),
     "claude-haiku-4-5": (1.0, 5.0),
 }
-DEFAULT_MODEL = "claude-opus-5"
+DEFAULT_MODEL = "claude-haiku-4-5"  # Shankar chose the cheapest model on 2026-09-20; override with LOUPE_LABEL_MODEL
 PROBE_N = 50
 PROBE_SEED = 11
 MAX_TOKENS = 256
@@ -191,7 +191,7 @@ def run(sample_path: Path = Path("samples/intent_sample.parquet"), out_path: Pat
         client=None, run_log_path: Path = Path("data/label_run.json"), resume_batch_id: str | None = None,
         canary_n: int = CANARY_N) -> dict:
     model = model or os.environ.get("LOUPE_LABEL_MODEL", DEFAULT_MODEL)
-    budget_usd = budget_usd if budget_usd is not None else float(os.environ.get("LOUPE_LABEL_BUDGET_USD", "60"))
+    budget_usd = budget_usd if budget_usd is not None else float(os.environ.get("LOUPE_LABEL_BUDGET_USD", "15"))
     rows = duckdb.sql(f"SELECT conv_id, intent_text FROM read_parquet('{sample_path}')").fetchall()
     system = system_blocks()
     requests = [build_request(cid, txt, model, system) for cid, txt in rows]
