@@ -262,4 +262,28 @@ export async function renderFriction(conn, meta) {
 }
 registerRenderer("friction", renderFriction);
 
+export async function renderQuery(conn) {
+  const view = $("#view-query");
+  const cols = await q(conn, `SELECT table_name, string_agg(column_name || ' ' || data_type, ', ' ORDER BY ordinal_position) AS columns FROM information_schema.columns WHERE table_schema = 'main' GROUP BY table_name ORDER BY table_name`);
+  view.innerHTML = `<div class="card"><h2>Run your own SQL over the aggregates</h2>
+    <p class="note">Everything runs in your browser with DuckDB-WASM. Only pre-computed aggregates are available; no transcript content exists here.</p>
+    <textarea id="sql">SELECT week, pseudo_users, round(return_rate, 3) AS return_rate
+FROM intensity_weekly ORDER BY week DESC LIMIT 12</textarea>
+    <div class="controls"><button class="run" id="run">Run</button><span id="qerr" class="status"></span></div>
+    <div id="qout"></div></div>
+    <div class="card"><h2>Available views</h2>${tableEl(cols, 50).outerHTML}</div>`;
+  const run = async () => {
+    $("#qerr").textContent = "";
+    try {
+      const rows = await q(conn, $("#sql").value);
+      $("#qout").replaceChildren(tableEl(rows));
+      $("#qerr").textContent = `${rows.length} rows${rows.length > 200 ? " (showing 200)" : ""}`;
+    } catch (e) { $("#qerr").textContent = e.message; }
+  };
+  $("#run").addEventListener("click", run);
+  $("#sql").addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run(); });
+  await run();
+}
+registerRenderer("query", renderQuery);
+
 main();
