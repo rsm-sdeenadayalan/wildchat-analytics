@@ -1,0 +1,28 @@
+{
+  "product": "Loupe",
+  "dataset": "allenai/WildChat-4.8M",
+  "license": "ODC-By 1.0",
+  "generated_at": "2026-09-18T05:12:59+00:00",
+  "conversations": 3199860,
+  "shards": 86,
+  "date_min": "2023-04-09",
+  "date_max": "2025-07-31",
+  "complete_weeks_from": "2023-04-10",
+  "complete_weeks_through": "2025-07-21",
+  "min_cell": 20,
+  "intent_coverage": "none",
+  "intent_labeled_conversations": 0,
+  "intent_share": 0.0,
+  "token_coverage_first_week": "2024-09-09",
+  "token_coverage_note": "Token usage fields are present for a minority of conversations from that week onward; use conversations_with_tokens to normalize.",
+  "taxonomy_version": "v1",
+  "aggregate_bytes": 82378,
+  "population_caveat": "Conversations come from a free public chatbot hosted by the WildChat researchers, not from ChatGPT's own product. Findings describe this population only.",
+  "pseudo_user_caveat": "Pseudo-users are a hash of IP, user agent, and accept-language. They merge people behind shared networks and split one person across devices.",
+  "caveats": [
+    "Conversations come from a free public chatbot hosted by the WildChat researchers, not from ChatGPT's own product. Findings describe this population only.",
+    "Pseudo-users are a hash of IP, user agent, and accept-language. They merge people behind shared networks and split one person across devices.",
+    "return_rate is NULL for weeks whose following week is absent from the data, including the final week.",
+    "Pseudo-user persistence across weeks changes sharply around 2024-10 (see pseudo_user_persistence_quarterly); return rates are not comparable across that boundary."
+  ]
+}

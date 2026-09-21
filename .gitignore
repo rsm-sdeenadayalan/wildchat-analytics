@@ -8,6 +8,7 @@ data/
 samples/
 *.parquet
 !aggregates/**/*.parquet
+tests/fixtures/*.parquet
 # Secrets
 .env
 # OS
