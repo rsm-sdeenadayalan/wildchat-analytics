@@ -97,6 +97,10 @@ gpt-4-turbo bridges the two eras briefly (22,392 conversations total) before a f
 sql: SELECT sum(conversations) FROM 'aggregates/volume_daily_model.parquet' WHERE model='gpt-4-turbo'
 expect: 22392
 -->
+<!-- loupe-check id=F3-gpt4o-first
+sql: SELECT min(date)::VARCHAR FROM 'aggregates/volume_daily_model.parquet' WHERE model = 'gpt-4o'
+expect: "2024-05-13"
+-->
 <!-- loupe-check id=F3-gpt4o-mini-first
 sql: SELECT min(date)::VARCHAR FROM 'aggregates/volume_daily_model.parquet' WHERE model = 'gpt-4o-mini'
 expect: "2024-08-07"
@@ -220,8 +224,6 @@ Token-usage fields exist only for conversations between 2024-09-09 and 2024-12-3
 sql: SELECT count(DISTINCT week) FROM 'aggregates/data_quality_weekly.parquet' WHERE week BETWEEN DATE '2024-09-09' AND DATE '2024-12-30'
 expect: 17
 -->
-
-
 <!-- loupe-check id=F7-first-week
 sql: SELECT min(week) FROM 'aggregates/data_quality_weekly.parquet' WHERE token_usage_coverage > 0
 expect: "2024-09-09"
