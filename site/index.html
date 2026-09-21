@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loupe — user analytics for GenAI assistants</title>
+  <meta name="description" content="Who uses an AI assistant, how intensely, for what, and where it fails them. Demonstrated on 3.2M real conversations from WildChat." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="./">Loupe</a>
+      <span class="tag">user analytics for GenAI assistants</span>
+      <a class="docs-link" href="docs/">Case study →</a>
+    </div>
+  </header>
+
+  <nav class="tabs wrap" aria-label="Views">
+    <button data-view="overview" class="active">Overview</button>
+    <button data-view="intensity">Intensity</button>
+    <button data-view="intent">Intent</button>
+    <button data-view="friction">Friction</button>
+    <button data-view="quality">Data quality</button>
+    <button data-view="query">Query</button>
+  </nav>
+
+  <main class="wrap">
+    <p id="status" class="status">Loading DuckDB and aggregates…</p>
+    <div id="coverage-banner" class="banner" hidden></div>
+    <section id="view-overview"></section>
+    <section id="view-intensity" hidden></section>
+    <section id="view-intent" hidden></section>
+    <section id="view-friction" hidden></section>
+    <section id="view-quality" hidden></section>
+    <section id="view-query" hidden></section>
+  </main>
+
+  <footer class="wrap foot">
+    <p id="caveat-population"></p>
+    <p id="caveat-users"></p>
+    <p class="attrib">Data: <a href="https://huggingface.co/datasets/allenai/WildChat-4.8M">WildChat-4.8M</a> (Zhao et al., ICLR 2024; Deng et al., EMNLP 2024 Demos), licensed <a href="https://opendatacommons.org/licenses/by/1-0/">ODC-By 1.0</a>. Aggregates only; no transcript content is served. <span id="generated"></span></p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
