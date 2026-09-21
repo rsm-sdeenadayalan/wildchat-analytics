@@ -12,25 +12,25 @@ A person who owns an AI assistant feature cannot answer who uses it, how intense
 
 - **PMs and analysts who own an assistant feature.** Today they file a data request and wait on an engineer's SQL pull, then read a transcript sample by hand.
 - **Founders running a chatbot** (support, tutoring, or similar). Today they eyeball a handful of transcripts and rely on gut feel because there is no analyst on staff.
-- **Internal-tool owners** (an IT-help bot, an internal copilot). Today they get usage counts from a BI dashboard built for infrastructure, not for conversation content, and have no visibility into intent or failure.
-- **University product leads** running a student-advising or tutoring assistant. Today they hear anecdotes from support staff and have no systematic read on volume, intent, or where the assistant is failing students.
+- **Internal-tool owners** (an IT-help bot, an internal copilot). Today they get usage counts from an infrastructure dashboard, with no visibility into intent or failure.
+- **University product leads** running a student-advising assistant. Today they hear anecdotes from support staff, with no systematic read on volume, intent, or failure.
 
 ## Evidence
 
-- Roughly 35% of teams shipping AI run no evaluation at all; most of the rest use ad-hoc scripts and manual transcript reading. ([daily.dev, AI in engineering: Q2 2026 benchmarks & research readout](https://daily.dev/posts/ai-in-engineering-q2-2026-benchmarks-research-readout-a5bsn2lal))
-- The hardest part of measuring an AI product is deciding what to measure, not running the measurement. ([Vercel, "What is LLM evaluation? A developer's primer on evals"](https://vercel.com/i/what-are-llm-evals-developers-primer))
-- When every quality question requires an engineer to write a script, engineering becomes the bottleneck for every product decision. ([Confident AI, "LLM Product Manager Workflows: A Complete Guide to AI Quality"](https://www.confident-ai.com/blog/llm-product-manager-workflows))
-- A 2026 study named a "results-actionability gap": teams that do measure still cannot tell what to change. ([arXiv:2604.16304, "Results-Actionability Gap: Understanding How Practitioners Evaluate LLM Products in the Wild"](https://arxiv.org/abs/2604.16304))
+- A 2026 survey of 130 backend, full-stack, and AI engineers found that 35% of teams do no AI evals at all. ([daily.dev, "AI in production: the 2026 benchmark report"](https://daily.dev/posts/ai-in-production-the-2026-benchmark-report-yw32fuhfl))
+- Choosing what to check is the hard part of evaluating an AI product, not running the check; a generic quality score almost always measures something other than what the team cares about. ([Vercel, "What is LLM evaluation? A developer's primer on evals"](https://vercel.com/i/what-are-llm-evals-developers-primer))
+- Without an evaluation workflow of her own, a PM can describe a quality problem but cannot act on it, so AI quality moves at engineering's bandwidth and "is the product getting better" becomes a question nobody can answer quickly. ([Confident AI, "LLM Product Manager Workflows: A Complete Guide to AI Quality"](https://www.confident-ai.com/blog/llm-product-manager-workflows))
+- A 2026 study named a "results-actionability gap": practitioners gather evaluation data but cannot translate the findings into concrete improvements. ([arXiv:2604.16304, "Results-Actionability Gap: Understanding How Practitioners Evaluate LLM Products in the Wild"](https://arxiv.org/abs/2604.16304))
 
-Incumbent tools (DeepEval, Braintrust, LangSmith, promptfoo, Confident AI) are developer tools that assume the user already knows their metrics and writes code. WildVis, the dataset authors' own tool, is a search-and-browse visualizer built for researchers, not a metrics product for product owners. Loupe is demonstrated on WildChat-4.8M, a public dataset of 3.2 million real human-ChatGPT conversations, standing in for a team's own production logs. The findings it produces describe this dataset's population; they are suggestive, not representative, of AI assistant users in general.
+Incumbent tools (DeepEval, Braintrust, LangSmith, promptfoo, Confident AI) are developer tools that assume the user already knows their metrics and writes code. WildVis, the dataset authors' own tool, is a search-and-browse visualizer for researchers, not a metrics product for product owners. Loupe is demonstrated on WildChat-4.8M, 3.2 million real human-ChatGPT conversations, standing in for a team's own production logs. Its findings describe this dataset's population; they are suggestive, not representative, of AI assistant users in general.
 
 ## Why now
 
-2026 is the year AI features moved from demos to accountability. Teams are past shipping a chatbot and into defending its numbers to a VP or a board, but 35% still measure nothing and most of the rest patch together scripts. Evaluation tooling matured fast over the last two years, and it matured for the people who write the prompts and the code, not for the people who own the product decision. A PM who is accountable for an assistant's quality and adoption still has no product built for her.
+35% of teams shipping AI still run no evaluation at all, and choosing what to measure, not running the measurement, is the hard part. Evaluation tooling matured fast over the last two years, and it matured for the people who write the prompts and the code, not for the people who own the product decision. A PM who is accountable for an assistant's quality and adoption still has no product built for her.
 
 ## The wedge
 
-Loupe is opinionated, PM-facing, metrics-first analytics over conversation logs, not a general eval framework. It covers five families a product owner asks about, in this order: volume (who and how many), intensity (how often, growing or decaying), intent (what people are trying to do), friction (where the assistant fails), and data quality (how much to trust the rest). Friction, not a full eval product, is the wedge. A full eval product asks an engineer to define pass/fail criteria for every response, which recreates the same bottleneck this brief opens with. Friction proxies (a repeated request, a one-turn abandonment, a correction, a refusal pattern) are computed from conversation structure alone, need no code from the team, and point a PM straight at which failure mode to escalate. That is a narrower claim than "we score every response," and it is the claim a PM without an eval engineer can actually use.
+Loupe is opinionated, PM-facing, metrics-first analytics over conversation logs, not a general eval framework. It covers five families a product owner asks about, in this order: volume (who and how many), intensity (how often, growing or decaying), intent (what people are trying to do), friction (where the assistant fails), and data quality (how much to trust the rest). Friction, not a full eval product, is the wedge. A full eval product asks an engineer to define pass/fail criteria for every response, which recreates the same bottleneck this brief opens with. Friction proxies (a repeated request, a one-turn abandonment, a correction, a refusal pattern) are computed from conversation structure alone, need no code from the team, and point a PM straight at which failure mode to escalate. That claim is narrower than "we score every response," and it is one a PM without an eval engineer can use.
 
 ## What we will not do
 
@@ -43,4 +43,4 @@ Loupe is opinionated, PM-facing, metrics-first analytics over conversation logs,
 
 ## Decision requested
 
-Build v1 as specified in the PRD, demonstrated on WildChat, time-boxed to eight working days.
+Build v1 as specified in the PRD, demonstrated on WildChat, with all findings labeled as describing that dataset's population, time-boxed to eight working days.
