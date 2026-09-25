@@ -12,6 +12,7 @@ dependencies = [
   "numpy>=1.26",
   "huggingface_hub>=0.25",
   "markdown>=3.7",
+  "openai>=1.0",
 ]
 
 [project.optional-dependencies]

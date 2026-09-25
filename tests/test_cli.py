@@ -21,18 +21,33 @@ def test_cli_label_exit_codes(monkeypatch):
         raise label.CanaryFailed("canary parse rate 0.10 below 0.9")
 
     monkeypatch.setattr(label, "run", canary_failed)
-    assert cli.main(["label"]) == 5
+    assert cli.main(["label", "--backend", "anthropic"]) == 5
     monkeypatch.setattr(label, "run", lambda **kw: {"ok": False, "labeled": 1})
-    assert cli.main(["label"]) == 4
+    assert cli.main(["label", "--backend", "anthropic"]) == 4
     monkeypatch.setattr(label, "run", lambda **kw: {"ok": True, "labeled": 4})
-    assert cli.main(["label"]) == 0
+    assert cli.main(["label", "--backend", "anthropic"]) == 0
     monkeypatch.setattr(label, "run", lambda **kw: {"dry": True})  # dry-run log has no "ok"
-    assert cli.main(["label", "--dry-run"]) == 0
+    assert cli.main(["label", "--backend", "anthropic", "--dry-run"]) == 0
 
 
 def test_cli_label_resume_batch_is_passed_through(monkeypatch):
     from loupe.stages import label
     seen = {}
     monkeypatch.setattr(label, "run", lambda **kw: seen.update(kw) or {"ok": True})
-    assert cli.main(["label", "--resume-batch", "msgbatch_123"]) == 0
+    assert cli.main(["label", "--backend", "anthropic", "--resume-batch", "msgbatch_123"]) == 0
     assert seen["resume_batch_id"] == "msgbatch_123"
+
+
+def test_cli_label_tritonai_backend_routes_to_gateway(monkeypatch):
+    from loupe import gateway
+    seen = {}
+    monkeypatch.setattr(gateway, "run", lambda **kw: seen.update(kw) or {"ok": True})
+    assert cli.main(["label", "--backend", "tritonai", "--limit", "30", "--concurrency", "3"]) == 0
+    assert seen["limit"] == 30 and seen["concurrency"] == 3
+
+    def canary_failed(**kw):
+        raise gateway.CanaryFailed("low parse rate")
+    monkeypatch.setattr(gateway, "run", canary_failed)
+    assert cli.main(["label", "--backend", "tritonai"]) == 5
+    monkeypatch.setattr(gateway, "run", lambda **kw: {"ok": False})
+    assert cli.main(["label", "--backend", "tritonai"]) == 4

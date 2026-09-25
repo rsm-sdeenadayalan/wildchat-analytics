@@ -16,8 +16,10 @@ flatten:
 sample:
 	uv run loupe sample --n 20000
 
+LABEL_BACKEND ?= tritonai
+
 label:
-	uv run loupe label
+	uv run loupe label --backend $(LABEL_BACKEND)
 
 classify:
 	uv run loupe classify

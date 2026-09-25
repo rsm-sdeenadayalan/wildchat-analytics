@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 
 
@@ -14,7 +15,10 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("sample", help="stratified intent sample")
     s.add_argument("--n", type=int, default=20000)
 
-    l = sub.add_parser("label", help="label sample via Anthropic Message Batches")
+    l = sub.add_parser("label", help="label the intent sample (backend: tritonai gateway or Anthropic batches)")
+    l.add_argument("--backend", choices=["tritonai", "anthropic"], default=os.environ.get("LOUPE_LABEL_BACKEND", "tritonai"))
+    l.add_argument("--concurrency", type=int, default=None, help="tritonai: parallel requests (gateway max 7)")
+    l.add_argument("--limit", type=int, default=None, help="tritonai: label only the first N rows (smoke test)")
     l.add_argument("--dry-run", action="store_true")
     l.add_argument("--model", default=None)
     l.add_argument("--budget", type=float, default=None)
@@ -45,6 +49,17 @@ def main(argv=None) -> int:
         return 0
     if args.stage == "label":
         from loupe.stages import label
+        if args.backend == "tritonai":
+            from loupe import gateway
+            try:
+                kw = {"model": args.model, "limit": args.limit}
+                if args.concurrency:
+                    kw["concurrency"] = args.concurrency
+                run_log = gateway.run(**kw)
+            except gateway.CanaryFailed as e:
+                print(e)
+                return 5
+            return 0 if run_log.get("ok", True) else 4
         try:
             run_log = label.run(model=args.model, budget_usd=args.budget, dry_run=args.dry_run,
                                 resume_batch_id=args.resume_batch)
