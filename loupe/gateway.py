@@ -99,7 +99,8 @@ async def _label_one(row, client, model, sem, progress, max_attempts, backoff_ba
             usage = getattr(resp, "usage", None)
             pt = int(getattr(usage, "prompt_tokens", 0) or 0)
             ct = int(getattr(usage, "completion_tokens", 0) or 0)
-            label = parse_label(resp.choices[0].message.content)
+            choices = getattr(resp, "choices", None) or []
+            label = parse_label(choices[0].message.content) if choices else None
             if label is None:
                 progress.write(json.dumps({"conv_id": conv_id, "error": "parse"}) + "\n")
                 progress.flush()

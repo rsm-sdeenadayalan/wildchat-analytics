@@ -32,6 +32,8 @@ class FakeClient:
 
     async def _create(self, model, messages, max_tokens, temperature):
         self.calls += 1
+        if self._empty_next.pop(0) if getattr(self, "_empty_next", None) else False:
+            return _EmptyResp()
         self._in_flight += 1
         self.max_in_flight = max(self.max_in_flight, self._in_flight)
         await asyncio.sleep(0.001)
@@ -41,6 +43,11 @@ class FakeClient:
         if isinstance(item, Exception):
             raise item
         return _Resp(item)
+
+
+class _EmptyResp:
+    choices = []
+    usage = SimpleNamespace(prompt_tokens=5, completion_tokens=0)
 
 
 def _rows(ids):
@@ -117,3 +124,11 @@ def test_pacer_spaces_request_starts(tmp_path):
     asyncio.run(gateway.label_rows(_rows([1, 2, 3, 4, 5]), client, "m", concurrency=5, progress_path=tmp_path / "p.jsonl",
                                    backoff_base=0.0, min_interval_s=0.05))
     assert time.monotonic() - t >= 0.2   # five starts spaced at least 0.05 s apart
+
+
+def test_empty_choices_counts_as_parse_error(tmp_path):
+    client = FakeClient({1: '{"intent": "coding", "confidence": "high"}'})
+    client._empty_next = [True]
+    summary = asyncio.run(gateway.label_rows(_rows([1]), client, "m", concurrency=1, progress_path=tmp_path / "p.jsonl",
+                                             backoff_base=0.0, min_interval_s=0.0))
+    assert summary["parse_errors"] == 1 and summary["labeled"] == 0
