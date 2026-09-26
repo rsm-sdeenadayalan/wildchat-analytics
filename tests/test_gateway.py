@@ -64,7 +64,7 @@ def test_label_rows_retries_429_records_errors_and_writes_progress(tmp_path):
     })
     progress = tmp_path / "p.jsonl"
     summary = asyncio.run(gateway.label_rows(_rows([1, 2, 3, 4]), client, "m", concurrency=2,
-                                             progress_path=progress, max_attempts=3, backoff_base=0.0))
+                                             progress_path=progress, max_attempts=3, backoff_base=0.0, min_interval_s=0.0))
     assert summary == {"labeled": 2, "parse_errors": 1, "failed": 1, "input_tokens": 210, "output_tokens": 60}  # tokens are consumed by the parse-error response too
     assert client.max_in_flight <= 2
     lines = [json.loads(l) for l in progress.read_text().splitlines()]
@@ -80,7 +80,7 @@ def test_run_resumes_from_progress_runs_canary_and_writes_outputs(tmp_path):
     client = FakeClient({i: '{"intent": "translation", "confidence": "medium"}' for i in range(2, 7)})
     out = tmp_path / "labels.parquet"
     log = gateway.run(sample_path=sample, out_path=out, progress_path=progress, run_log_path=tmp_path / "log.json",
-                      client=client, model="m", concurrency=2, canary_n=2, backoff_base=0.0)
+                      client=client, model="m", concurrency=2, canary_n=2, backoff_base=0.0, min_interval_s=0.0)
     assert client.calls == 5                       # conv 1 skipped (resumed)
     rows = {r["conv_id"]: r["intent"] for r in pq.read_table(out).to_pylist()}
     assert rows == {1: "coding", **{i: "translation" for i in range(2, 7)}}
@@ -95,7 +95,7 @@ def test_run_canary_aborts_before_main_batch(tmp_path):
     client = FakeClient({i: "garbage" for i in range(1, 11)})
     with pytest.raises(gateway.CanaryFailed):
         gateway.run(sample_path=sample, out_path=tmp_path / "o.parquet", progress_path=tmp_path / "p.jsonl",
-                    run_log_path=tmp_path / "log.json", client=client, model="m", concurrency=2, canary_n=4, backoff_base=0.0)
+                    run_log_path=tmp_path / "log.json", client=client, model="m", concurrency=2, canary_n=4, backoff_base=0.0, min_interval_s=0.0)
     assert client.calls == 4
     assert json.loads((tmp_path / "log.json").read_text())["aborted"] is True
 
@@ -108,3 +108,12 @@ def test_load_dotenv_sets_only_missing_vars(tmp_path, monkeypatch):
     gateway.load_dotenv(env)
     import os
     assert os.environ["TRITONAI_API_KEY"] == "abc" and os.environ["OTHER"] == "keep"
+
+
+def test_pacer_spaces_request_starts(tmp_path):
+    import time
+    client = FakeClient({i: '{"intent": "coding", "confidence": "high"}' for i in range(1, 6)})
+    t = time.monotonic()
+    asyncio.run(gateway.label_rows(_rows([1, 2, 3, 4, 5]), client, "m", concurrency=5, progress_path=tmp_path / "p.jsonl",
+                                   backoff_base=0.0, min_interval_s=0.05))
+    assert time.monotonic() - t >= 0.2   # five starts spaced at least 0.05 s apart

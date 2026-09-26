@@ -25,6 +25,7 @@ from loupe.stages.label import (LABEL_SCHEMA, CANARY_MIN_PARSE_RATE, CANARY_N, M
 BASE_URL = "https://tritonai-api.ucsd.edu/v1"
 DEFAULT_MODEL = "claude-sonnet-5"
 DEFAULT_CONCURRENCY = 6  # the gateway allows at most 7 parallel requests per key
+MIN_INTERVAL_S = 0.7  # ~85 requests/min, under the gateway's 100/min cap
 MAX_TOKENS = 64
 CONFIDENCES = {"low", "medium", "high"}
 _JSON = re.compile(r"\{.*?\}", re.S)
@@ -63,11 +64,29 @@ def _is_retryable(exc: Exception) -> bool:
     return status in (408, 409, 429) or (isinstance(status, int) and status >= 500) or status is None and "timeout" in type(exc).__name__.lower()
 
 
-async def _label_one(row, client, model, sem, progress, max_attempts, backoff_base):
+class _Pacer:
+    """Spaces request starts at least `interval` seconds apart across all workers."""
+
+    def __init__(self, interval: float):
+        self.interval = interval
+        self._next = 0.0
+        self._lock = asyncio.Lock()
+
+    async def wait(self):
+        async with self._lock:
+            now = time.monotonic()
+            start = max(now, self._next)
+            self._next = start + self.interval
+        if start > now:
+            await asyncio.sleep(start - now)
+
+
+async def _label_one(row, client, model, sem, progress, max_attempts, backoff_base, pacer):
     conv_id, text = row
     async with sem:
         for attempt in range(max_attempts):
             try:
+                await pacer.wait()
                 resp = await client.chat.completions.create(model=model, messages=build_messages(text),
                                                             max_tokens=MAX_TOKENS, temperature=0)
             except Exception as exc:  # noqa: BLE001 - any transport/API error is handled uniformly
@@ -92,12 +111,13 @@ async def _label_one(row, client, model, sem, progress, max_attempts, backoff_ba
 
 
 async def label_rows(rows: list[tuple[int, str]], client, model: str, concurrency: int, progress_path: Path,
-                     max_attempts: int = 6, backoff_base: float = 2.0) -> dict:
+                     max_attempts: int = 6, backoff_base: float = 2.0, min_interval_s: float = MIN_INTERVAL_S) -> dict:
     progress_path.parent.mkdir(parents=True, exist_ok=True)
     sem = asyncio.Semaphore(concurrency)
+    pacer = _Pacer(min_interval_s)
     summary = {"labeled": 0, "parse_errors": 0, "failed": 0, "input_tokens": 0, "output_tokens": 0}
     with open(progress_path, "a") as progress:
-        results = await asyncio.gather(*[_label_one(r, client, model, sem, progress, max_attempts, backoff_base) for r in rows])
+        results = await asyncio.gather(*[_label_one(r, client, model, sem, progress, max_attempts, backoff_base, pacer) for r in rows])
     for status, pt, ct in results:
         summary["input_tokens"] += pt
         summary["output_tokens"] += ct
@@ -122,7 +142,7 @@ def _read_progress(progress_path: Path) -> tuple[list[dict], set[int]]:
 def run(sample_path: Path = Path("samples/intent_sample.parquet"), out_path: Path = Path("samples/intent_labels.parquet"),
         progress_path: Path = Path("samples/intent_labels_progress.jsonl"), run_log_path: Path = Path("data/label_run.json"),
         client=None, model: str | None = None, concurrency: int = DEFAULT_CONCURRENCY, canary_n: int = CANARY_N,
-        limit: int | None = None, backoff_base: float = 2.0) -> dict:
+        limit: int | None = None, backoff_base: float = 2.0, min_interval_s: float = MIN_INTERVAL_S) -> dict:
     model = model or os.environ.get("LOUPE_LABEL_MODEL", DEFAULT_MODEL)
     if client is None:
         load_dotenv()
@@ -142,7 +162,7 @@ def run(sample_path: Path = Path("samples/intent_sample.parquet"), out_path: Pat
     totals = {"labeled": len(prior), "parse_errors": 0, "failed": 0, "input_tokens": 0, "output_tokens": 0}
     if todo and not prior:
         canary = todo[:canary_n]
-        s = asyncio.run(label_rows(canary, client, model, concurrency, progress_path, backoff_base=backoff_base))
+        s = asyncio.run(label_rows(canary, client, model, concurrency, progress_path, backoff_base=backoff_base, min_interval_s=min_interval_s))
         rate = s["labeled"] / max(1, len(canary))
         log["canary_parse_rate"] = rate
         for k in totals:
@@ -156,7 +176,7 @@ def run(sample_path: Path = Path("samples/intent_sample.parquet"), out_path: Pat
         log["canary_parse_rate"] = None if prior else 1.0
 
     if todo:
-        s = asyncio.run(label_rows(todo, client, model, concurrency, progress_path, backoff_base=backoff_base))
+        s = asyncio.run(label_rows(todo, client, model, concurrency, progress_path, backoff_base=backoff_base, min_interval_s=min_interval_s))
         for k in totals:
             totals[k] += s[k]
 
