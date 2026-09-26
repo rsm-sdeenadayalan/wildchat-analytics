@@ -81,14 +81,14 @@ class _Pacer:
             await asyncio.sleep(start - now)
 
 
-async def _label_one(row, client, model, sem, progress, max_attempts, backoff_base, pacer):
+async def _label_one(row, client, model, sem, progress, max_attempts, backoff_base, pacer, max_tokens=MAX_TOKENS):
     conv_id, text = row
     async with sem:
         for attempt in range(max_attempts):
             try:
                 await pacer.wait()
                 resp = await client.chat.completions.create(model=model, messages=build_messages(text),
-                                                            max_tokens=MAX_TOKENS, temperature=0)
+                                                            max_tokens=max_tokens, temperature=0)
             except Exception as exc:  # noqa: BLE001 - any transport/API error is handled uniformly
                 if attempt + 1 < max_attempts and _is_retryable(exc):
                     await asyncio.sleep(backoff_base * (2 ** attempt) + random.uniform(0, backoff_base))
@@ -112,13 +112,14 @@ async def _label_one(row, client, model, sem, progress, max_attempts, backoff_ba
 
 
 async def label_rows(rows: list[tuple[int, str]], client, model: str, concurrency: int, progress_path: Path,
-                     max_attempts: int = 6, backoff_base: float = 2.0, min_interval_s: float = MIN_INTERVAL_S) -> dict:
+                     max_attempts: int = 6, backoff_base: float = 2.0, min_interval_s: float = MIN_INTERVAL_S,
+                     max_tokens: int = MAX_TOKENS) -> dict:
     progress_path.parent.mkdir(parents=True, exist_ok=True)
     sem = asyncio.Semaphore(concurrency)
     pacer = _Pacer(min_interval_s)
     summary = {"labeled": 0, "parse_errors": 0, "failed": 0, "input_tokens": 0, "output_tokens": 0}
     with open(progress_path, "a") as progress:
-        results = await asyncio.gather(*[_label_one(r, client, model, sem, progress, max_attempts, backoff_base, pacer) for r in rows])
+        results = await asyncio.gather(*[_label_one(r, client, model, sem, progress, max_attempts, backoff_base, pacer, max_tokens) for r in rows])
     for status, pt, ct in results:
         summary["input_tokens"] += pt
         summary["output_tokens"] += ct
