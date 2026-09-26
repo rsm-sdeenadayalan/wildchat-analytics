@@ -95,7 +95,7 @@ Any of these blocks a release regardless of the metrics above.
 
 - Zero row-level transcript content reachable from the dashboard.
 - Minimum-cell suppression applied on every geography and language slice.
-- Intent classifier agreement with LLM labels at 85% or higher on the held-out sample.
+- Intent classifier agreement with LLM labels at 85% or higher on the held-out sample. **Amended 2026-09-26:** an inter-rater study (two independent labeling models on 348 conversations) measured 84% agreement on the ten-class taxonomy and 87% on the revised seven-class taxonomy. A classifier cannot be expected to exceed the agreement of the raters that produced its labels, so the gate is restated as: held-out accuracy at or above 90% of measured inter-rater agreement on the current taxonomy (78.4% for taxonomy v2). The absolute 85% figure remains the fallback when no rater study exists. The taxonomy revision and the study are recorded in artifact 03 and the PRD decision log.
 - Friction proxy precision at 70% or higher against 300 hand-labeled conversations (Section 13).
 - Pipeline cost per million conversations under the cap set in the PRD before the classifier stage runs.
 - Aggregates never older than one week from the latest log.

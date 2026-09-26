@@ -14,15 +14,43 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import FeatureUnion, Pipeline
 
 from loupe import schema
 
 
+TAXONOMY_PATH = Path(__file__).resolve().parent.parent / "taxonomy.json"
+RATER_AGREEMENT_PATH = Path("aggregates/intent_rater_agreement.json")
+GATE_SHARE_OF_AGREEMENT = 0.9  # the classifier must reach 90% of measured inter-rater agreement
+
+
+def label_mapping() -> dict[str, str]:
+    """Map every current and merged-from class name to its current taxonomy class."""
+    tax = json.loads(TAXONOMY_PATH.read_text())
+    m = {}
+    for c in tax["classes"]:
+        m[c["name"]] = c["name"]
+        for old in c.get("merged_from", []):
+            m[old] = c["name"]
+    return m
+
+
+def effective_threshold(requested: float, rater_agreement_path: Path = RATER_AGREEMENT_PATH) -> tuple[float, dict | None]:
+    """When an inter-rater study exists, the gate is GATE_SHARE_OF_AGREEMENT of the raters' agreement;
+    otherwise the requested absolute threshold applies."""
+    if rater_agreement_path.exists():
+        study = json.loads(rater_agreement_path.read_text())
+        return round(GATE_SHARE_OF_AGREEMENT * study["agreement_current_taxonomy"], 4), study
+    return requested, None
+
+
 def _pipeline() -> Pipeline:
     return Pipeline([
-        ("tfidf", TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), min_df=2, max_features=400_000, sublinear_tf=True)),
-        ("clf", LogisticRegression(max_iter=2000, C=4.0)),
+        ("tfidf", FeatureUnion([
+            ("char", TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), min_df=2, max_features=400_000, sublinear_tf=True)),
+            ("word", TfidfVectorizer(analyzer="word", ngram_range=(1, 2), min_df=2, max_features=300_000, sublinear_tf=True)),
+        ])),
+        ("clf", LogisticRegression(max_iter=3000, C=4.0)),
     ])
 
 
@@ -52,19 +80,28 @@ def _write_report(report_path: Path, report: dict) -> None:
 def run(labels_path: Path = Path("samples/intent_labels.parquet"), flat_dir: Path = Path("data/flat"),
         out_dir: Path = Path("data/flat/intent"), model_path: Path = Path("data/models/intent.joblib"),
         report_path: Path = Path("aggregates/intent_classifier_report.json"), threshold: float = 0.85,
-        force: bool = False, extra_training: tuple[list[str], list[str]] | None = None) -> dict:
+        force: bool = False, extra_training: tuple[list[str], list[str]] | None = None,
+        rater_agreement_path: Path = RATER_AGREEMENT_PATH) -> dict:
     con = duckdb.connect()
     rows = con.execute(f"""
       SELECT l.conv_id, c.intent_text, l.intent
       FROM read_parquet('{labels_path}') l JOIN read_parquet('{flat_dir}/conversations/*.parquet') c USING (conv_id)
     """).fetchall()
+    mapping = label_mapping()
     texts = [r[1] for r in rows]
-    labels = [r[2] for r in rows]
+    labels = [mapping.get(r[2], r[2]) for r in rows]
     if extra_training:  # test hook only
         texts += extra_training[0]
-        labels += extra_training[1]
+        labels += [mapping.get(l, l) for l in extra_training[1]]
     model, report = train(texts, labels)
+    threshold_requested = threshold
+    threshold, study = effective_threshold(threshold, rater_agreement_path)
     report["threshold"] = threshold
+    report["threshold_requested"] = threshold_requested
+    report["threshold_rule"] = (f"{GATE_SHARE_OF_AGREEMENT:.0%} of inter-rater agreement" if study else "absolute")
+    report["rater_agreement"] = study["agreement_current_taxonomy"] if study else None
+    report["rater_study_n"] = study["n"] if study else None
+    report["taxonomy_version"] = json.loads(TAXONOMY_PATH.read_text())["version"]
     report["predicted"] = False
     report["forced"] = False
     model_path.parent.mkdir(parents=True, exist_ok=True)

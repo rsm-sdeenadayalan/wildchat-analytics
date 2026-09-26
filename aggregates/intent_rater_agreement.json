@@ -1,0 +1,35 @@
+{
+  "n": 348,
+  "agreement_v1_classes": 0.8362,
+  "agreement_current_taxonomy": 0.8707,
+  "top_disagreements_current": [
+    {
+      "primary": "other",
+      "second": "creative_roleplay",
+      "count": 21
+    },
+    {
+      "primary": "questions",
+      "second": "writing_and_business",
+      "count": 5
+    },
+    {
+      "primary": "coding",
+      "second": "other",
+      "count": 3
+    },
+    {
+      "primary": "other",
+      "second": "questions",
+      "count": 3
+    },
+    {
+      "primary": "coding",
+      "second": "writing_and_business",
+      "count": 2
+    }
+  ],
+  "primary_model": "claude-sonnet-5",
+  "second_model": "gemini-3.5-flash",
+  "taxonomy_version": "v2"
+}

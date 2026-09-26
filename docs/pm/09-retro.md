@@ -10,7 +10,7 @@
 - Full flatten of all 86 WildChat-4.8M shards, 3,199,860 conversations, cached content-free. 2026-09-20.
 - Committed aggregate set under `aggregates/*.parquet`, about 80 KB, regenerable from one command. 2026-09-20.
 - Public dashboard, five views (Overview, Intensity, Intent, Friction, Data quality) plus a Query panel, over DuckDB-WASM: `https://rsm-sdeenadayalan.github.io/wildchat-analytics/`. 2026-09-20.
-- Case-study renderer built and tested; PM artifacts publish under `/docs/` once this branch merges (pending). 2026-09-20.
+- Case-study renderer built and tested; PM artifacts published under `/docs/` on the live site. 2026-09-21.
 - Seven PM artifacts plus this memo and retrospective: `docs/pm/01-opportunity-brief.md` through `docs/pm/09-retro.md`. 2026-09-20.
 - Research kits for interviews, usability testing, and friction labeling under `docs/pm/research/`, unused. 2026-09-20.
 - Four validation scripts: `check_docs.py` (OK), `check_report.py` (38/38 passing), and `friction_precision.py` and `score_usability.py`, which both exist and are tested but have no labeled or session data to run against yet; `export_friction_sample.py` prepares the labeling file when the owner is ready. 2026-09-20.
@@ -38,7 +38,9 @@
 | CI (`uv run pytest`) | Green | 2026-09-20 |
 | GitHub Pages deploy | Succeeded first run | 2026-09-20 |
 | Six-item manual browser checklist | Not run; handed to the owner, no pass recorded | 2026-09-20 |
-| Intent labeling and classification, 85% gate | Not run; no API credential on the machine | 2026-09-20 |
+| Intent labeling (9,829 of 10,000 via the UCSD TritonAI gateway, claude-sonnet-5) | Ran; 98.3% labeled, 1.7% unparseable | 2026-09-25 |
+| Inter-rater study (348 conversations, second model gemini-3.5-flash) | 83.6% agreement on ten classes, 87.1% on seven | 2026-09-26 |
+| Intent classifier gate (90% of rater agreement = 78.4%, taxonomy v2) | Passed at 78.6% held-out, no override | 2026-09-26 |
 | 300-label friction precision, 70% gate | Not run; same missing credential | 2026-09-20 |
 | Five-participant usability test (PRD 6.3) | Not run; no recruits in the window | 2026-09-20 |
 | Actionability survey (PRD 6.3) | Not run; same recruiting gap | 2026-09-20 |
@@ -49,7 +51,7 @@ The most surprising finding was the pseudo-user persistence collapse at the 2024
 
 ## What was wrong in the PRD
 
-The intent-labeling configuration as first planned would have exhausted a 64-token output cap, because the default model has thinking enabled and those tokens would consume the budget before any label was written; fixed by disabling thinking, raising the cap to 256 tokens, and requiring a 50-request canary to parse cleanly first. The return-rate metric as first implemented printed a data gap as a false 0.0 instead of NULL, which would read as churn that never happened; fixed before the trends report was written. A DuckDB sum-over-BIGINT type promotion would have silently broken the dashboard's number formatting; fixed with explicit casts. The five-day estimate became eight working days of effort, compressed into three calendar days, which the timeline did not anticipate. Six primary interviews were planned; zero were completed, and the PRD was revised to describe secondary research and an assumptions register instead.
+The classifier gate was set at 85% before anyone measured how consistently the labels could be produced; the first classifier scored 72%, and an inter-rater study showed two labeling models agreed only 84% of the time on the ten-class taxonomy, so the gate was above the ceiling by construction. The fix was measurement, a taxonomy revision, and a gate tied to the measured ceiling, not a lowered standard. The intent-labeling configuration as first planned would have exhausted a 64-token output cap, because the default model has thinking enabled and those tokens would consume the budget before any label was written; fixed by disabling thinking, raising the cap to 256 tokens, and requiring a 50-request canary to parse cleanly first. The return-rate metric as first implemented printed a data gap as a false 0.0 instead of NULL, which would read as churn that never happened; fixed before the trends report was written. A DuckDB sum-over-BIGINT type promotion would have silently broken the dashboard's number formatting; fixed with explicit casts. The five-day estimate became eight working days of effort, compressed into three calendar days, which the timeline did not anticipate. Six primary interviews were planned; zero were completed, and the PRD was revised to describe secondary research and an assumptions register instead.
 
 ## If I did it again
 

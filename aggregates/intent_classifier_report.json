@@ -1,0 +1,132 @@
+{
+  "n_train": 7863,
+  "n_test": 1966,
+  "accuracy": 0.7858596134282808,
+  "macro_f1": 0.805064598233605,
+  "classes": [
+    "coding",
+    "creative_roleplay",
+    "image_prompting",
+    "other",
+    "questions",
+    "translation",
+    "writing_and_business"
+  ],
+  "per_class": {
+    "coding": {
+      "precision": 0.8982035928143712,
+      "recall": 0.7894736842105263,
+      "f1": 0.8403361344537815,
+      "support": 380
+    },
+    "creative_roleplay": {
+      "precision": 0.84375,
+      "recall": 0.675,
+      "f1": 0.75,
+      "support": 160
+    },
+    "image_prompting": {
+      "precision": 1.0,
+      "recall": 0.8770491803278688,
+      "f1": 0.9344978165938864,
+      "support": 122
+    },
+    "other": {
+      "precision": 0.8838174273858921,
+      "recall": 0.726962457337884,
+      "f1": 0.797752808988764,
+      "support": 293
+    },
+    "questions": {
+      "precision": 0.6543046357615894,
+      "recall": 0.894927536231884,
+      "f1": 0.75592960979342,
+      "support": 552
+    },
+    "translation": {
+      "precision": 0.9782608695652174,
+      "recall": 0.7258064516129032,
+      "f1": 0.8333333333333334,
+      "support": 124
+    },
+    "writing_and_business": {
+      "precision": 0.7540453074433657,
+      "recall": 0.6955223880597015,
+      "f1": 0.7236024844720497,
+      "support": 335
+    }
+  },
+  "confusion": [
+    [
+      300,
+      0,
+      0,
+      4,
+      63,
+      0,
+      13
+    ],
+    [
+      5,
+      108,
+      0,
+      5,
+      30,
+      0,
+      12
+    ],
+    [
+      1,
+      1,
+      107,
+      1,
+      7,
+      1,
+      4
+    ],
+    [
+      9,
+      4,
+      0,
+      213,
+      60,
+      1,
+      6
+    ],
+    [
+      11,
+      3,
+      0,
+      13,
+      494,
+      0,
+      31
+    ],
+    [
+      0,
+      1,
+      0,
+      3,
+      20,
+      90,
+      10
+    ],
+    [
+      8,
+      11,
+      0,
+      2,
+      81,
+      0,
+      233
+    ]
+  ],
+  "threshold": 0.7836,
+  "threshold_requested": 0.85,
+  "threshold_rule": "90% of inter-rater agreement",
+  "rater_agreement": 0.8707,
+  "rater_study_n": 348,
+  "taxonomy_version": "v2",
+  "predicted": true,
+  "forced": false
+}

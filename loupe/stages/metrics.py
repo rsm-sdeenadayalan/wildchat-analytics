@@ -112,10 +112,14 @@ def run(flat_dir: Path = Path("data/flat"), out_dir: Path = Path("aggregates"), 
         "pseudo_user_caveat": PSEUDO_USER_CAVEAT,
         "caveats": caveats,
     }
-    for key in ("classifier_accuracy", "classifier_macro_f1", "classifier_threshold", "classifier_forced"):
+    for key in ("classifier_accuracy", "classifier_macro_f1", "classifier_threshold", "classifier_threshold_requested",
+                "classifier_threshold_rule", "classifier_forced", "classifier_taxonomy_version", "classifier_n_test",
+                "classifier_rater_agreement", "classifier_rater_study_n"):
         src = key.removeprefix("classifier_")
         if src in rep:
             meta[key] = rep[src]
+    if "per_class" in rep:
+        meta["classifier_per_class_f1"] = {c: round(v["f1"], 3) for c, v in rep["per_class"].items()}
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
     con.close()
     if total_bytes > 25 * 1024 * 1024:

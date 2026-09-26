@@ -24,7 +24,24 @@ expect: "2025-07-31"
 
 Two caveats apply to every finding below. First, this population came to a free public chatbot hosted by the WildChat researchers, seeking free access to GPT-4-class models. It is not ChatGPT's own product and not a representative sample of AI assistant users generally; every claim here is scoped to this dataset's population. Second, "users" in this report are pseudo-users: a hash of IP address, user agent, and accept-language, not a login. A pseudo-user can be a whole household or lab sharing a network, or one person split across several pseudo-users across devices. Distinct-user counts, return rate, and concentration are all biased by this, in both directions at once, and neither bias can be corrected from this data.
 
-Intent labeling has not run on this build, so the four intent aggregates (what people are trying to do, by week, model, and language) are empty. Findings below come only from volume, intensity, depth, friction, and data-quality aggregates; intent findings will be added once labeling runs.
+Intent findings (F8 to F11) use labels predicted for every conversation by a classifier trained on 9,829 model-labeled examples. The classifier scores 78.6% on held-out data, against a gate of 78.4% set at 90% of the agreement between two independent labeling models on the same conversations (87.1%). That study also drove a taxonomy revision from ten classes to seven, because raters could not separate information seeking, homework, and advice, or general writing from business writing. Read a five-point difference between intent classes as real and a two-point difference as noise. Details are in the metrics framework.
+
+<!-- loupe-check id=intro-clf-acc
+sql: SELECT round(classifier_accuracy, 3) FROM read_json_auto('aggregates/meta.json')
+expect: 0.786
+-->
+<!-- loupe-check id=intro-clf-gate
+sql: SELECT classifier_threshold FROM read_json_auto('aggregates/meta.json')
+expect: 0.7836
+-->
+<!-- loupe-check id=intro-rater-agree
+sql: SELECT classifier_rater_agreement FROM read_json_auto('aggregates/meta.json')
+expect: 0.8707
+-->
+<!-- loupe-check id=intro-taxonomy
+sql: SELECT classifier_taxonomy_version FROM read_json_auto('aggregates/meta.json')
+expect: "v2"
+-->
 
 The WildChat paper already reports this corpus's overall language mix, per-conversation turn counts, and toxicity rates. Everything below goes past that: it tracks change over time, breaks the data by model family, and surfaces a measurement problem (F1) the paper's cross-sectional numbers cannot show.
 
@@ -240,13 +257,153 @@ tolerance: 0.0005
 
 **Implication for a product owner:** there is no basis in this data for a cost-per-conversation or token-volume estimate outside that 17-week window, and even inside it, any number not normalized by conversations_with_tokens is describing under one in ten conversations, not the whole slice. **What would falsify this:** finding nonzero token_usage_coverage outside 2024-09-09 to 2024-12-30 in a re-pull of the raw data would mean the window is wider than this aggregate shows. Live view: dashboard Data quality tab (`#quality`).
 
+### F8: Questions are the largest use, then coding; the classifier and the labeled sample agree within three points
+
+Across all classified conversations, asking questions (information, explanations, homework, advice) accounts for 27.0% of traffic, coding for 19.3%, writing and business documents for 16.6%, creative and roleplay for 6.9%, translation for 6.7%, and image-prompt generation for 5.3%. The residual "other" class, greetings, tests of the assistant, and unreadable input, is 18.1%. As a calibration check, the same seven shares computed on the 9,829 model-labeled conversations, without the classifier, are 28.1%, 19.3%, 17.0%, 8.1%, 6.3%, 6.2%, and 14.9%: every class within about three points, with the classifier over-calling "other" by three points.
+
+<!-- loupe-check id=F8-questions
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet'), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent = 'questions'
+expect: 27.0
+-->
+<!-- loupe-check id=F8-coding
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet'), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent = 'coding'
+expect: 19.3
+-->
+<!-- loupe-check id=F8-writing
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet'), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent = 'writing_and_business'
+expect: 16.6
+-->
+<!-- loupe-check id=F8-other
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet'), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent = 'other'
+expect: 18.1
+-->
+<!-- loupe-check id=F8-creative
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet'), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent = 'creative_roleplay'
+expect: 6.9
+-->
+<!-- loupe-check id=F8-translation
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet'), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent = 'translation'
+expect: 6.7
+-->
+<!-- loupe-check id=F8-image
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet'), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent = 'image_prompting'
+expect: 5.3
+-->
+
+Implication: the assistant is a question-answering and coding tool first; writing is third, not first, which changes where quality effort should go. What would falsify it: a hand-labeled random sample of 300 conversations whose question share differs from 27% by more than the classifier's known error. Live view: [Intent tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#intent).
+
+### F9: In 2025, more than a third of traffic is greetings, tests, or gibberish, and it is almost all single-turn
+
+The "other" class was 2.7% of 2023 conversations and 11.2% of 2024, then 37.5% of 2025. Conversations classed "other" end after one turn 83.7% of the time, against 17.3% for questions and 23.7% for coding. Translation also rises from 1.0% in 2023 to 15.3% in 2025, while questions fall from 45.1% to 18.6%. This is the same 2025 population that F1 and F3 flag as a collection change: a different assistant model, and pseudo-user keys that no longer persist. The most likely reading is that a large share of 2025 traffic is automated probing or one-shot testing rather than people using the assistant.
+
+<!-- loupe-check id=F9-other-2023
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet' WHERE year(week)=2023), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent='other' AND year(week)=2023
+expect: 2.7
+-->
+<!-- loupe-check id=F9-other-2024
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet' WHERE year(week)=2024), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent='other' AND year(week)=2024
+expect: 11.2
+-->
+<!-- loupe-check id=F9-other-2025
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet' WHERE year(week)=2025), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent='other' AND year(week)=2025
+expect: 37.5
+-->
+<!-- loupe-check id=F9-other-oad
+sql: SELECT round(sum(conversations*one_and_done_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='other'
+expect: 0.837
+-->
+<!-- loupe-check id=F9-questions-oad
+sql: SELECT round(sum(conversations*one_and_done_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='questions'
+expect: 0.173
+-->
+<!-- loupe-check id=F9-coding-oad
+sql: SELECT round(sum(conversations*one_and_done_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='coding'
+expect: 0.237
+-->
+<!-- loupe-check id=F9-translation-2023
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet' WHERE year(week)=2023), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent='translation' AND year(week)=2023
+expect: 1.0
+-->
+<!-- loupe-check id=F9-translation-2025
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet' WHERE year(week)=2025), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent='translation' AND year(week)=2025
+expect: 15.3
+-->
+<!-- loupe-check id=F9-questions-2023
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet' WHERE year(week)=2023), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent='questions' AND year(week)=2023
+expect: 45.1
+-->
+<!-- loupe-check id=F9-questions-2025
+sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggregates/intent_weekly.parquet' WHERE year(week)=2025), 1) FROM 'aggregates/intent_weekly.parquet' WHERE intent='questions' AND year(week)=2025
+expect: 18.6
+-->
+
+Implication: a product owner should track junk traffic as its own metric and exclude it from engagement and quality denominators, or every 2025 number is diluted. What would falsify it: reading a random 100 of the 2025 "other" conversations and finding most are real requests the classifier mislabeled. Live view: [Intent tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#intent).
+
+### F10: Image-prompt generation lived almost entirely on the cheapest model, and reasoning models pulled coding work
+
+Image-prompt generation (writing prompts for Midjourney-style tools) is 19.2% of gpt-3.5-turbo conversations and 0.5% of gpt-4 conversations. On the reasoning models the mix tilts to code: coding is 42.4% of o1-mini conversations and 32.4% of o1, against 10.5% on gpt-3.5-turbo and 15.1% on gpt-4. Era and model are confounded here (F3), so this describes which model served which work in this collection, not which model people would choose given a free pick.
+
+<!-- loupe-check id=F10-img-35
+sql: SELECT round(100.0*conversations/(SELECT sum(conversations) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-3.5-turbo'), 1) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-3.5-turbo' AND intent='image_prompting'
+expect: 19.2
+-->
+<!-- loupe-check id=F10-img-4
+sql: SELECT round(100.0*conversations/(SELECT sum(conversations) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-4'), 1) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-4' AND intent='image_prompting'
+expect: 0.5
+-->
+<!-- loupe-check id=F10-code-o1mini
+sql: SELECT round(100.0*conversations/(SELECT sum(conversations) FROM 'aggregates/intent_by_model.parquet' WHERE model='o1-mini'), 1) FROM 'aggregates/intent_by_model.parquet' WHERE model='o1-mini' AND intent='coding'
+expect: 42.4
+-->
+<!-- loupe-check id=F10-code-o1
+sql: SELECT round(100.0*conversations/(SELECT sum(conversations) FROM 'aggregates/intent_by_model.parquet' WHERE model='o1'), 1) FROM 'aggregates/intent_by_model.parquet' WHERE model='o1' AND intent='coding'
+expect: 32.4
+-->
+<!-- loupe-check id=F10-code-35
+sql: SELECT round(100.0*conversations/(SELECT sum(conversations) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-3.5-turbo'), 1) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-3.5-turbo' AND intent='coding'
+expect: 10.5
+-->
+<!-- loupe-check id=F10-code-4
+sql: SELECT round(100.0*conversations/(SELECT sum(conversations) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-4'), 1) FROM 'aggregates/intent_by_model.parquet' WHERE model='gpt-4' AND intent='coding'
+expect: 15.1
+-->
+
+Implication: the cheap tier carried a distinct, prompt-generation workload that the premium tier did not; a product owner sizing model tiers should look at intent mix per tier, not just volume. What would falsify it: an intent-by-model table where image prompting is spread evenly across families. Live view: [Intent tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#intent).
+
+### F11: Friction differs by what people are doing: creative and question conversations draw the most refusals, coding the most single-turn exits among real requests
+
+Excluding the "other" class, one-turn exits are highest for coding (23.7%) and lowest for image prompting (0.8%), which runs as long multi-turn prompt-refinement sessions. Refusal patterns are most frequent in creative and roleplay conversations (4.3%) and questions (3.8%), and rarest in image prompting (0.6%). Repeated requests are most common for questions (5.4%). These are structural proxies, still unvalidated against hand labels (F5); the ordering across intents is more trustworthy than any single rate.
+
+<!-- loupe-check id=F11-img-oad
+sql: SELECT round(sum(conversations*one_and_done_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='image_prompting'
+expect: 0.008
+-->
+<!-- loupe-check id=F11-creative-refusal
+sql: SELECT round(sum(conversations*refusal_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='creative_roleplay'
+expect: 0.043
+-->
+<!-- loupe-check id=F11-questions-refusal
+sql: SELECT round(sum(conversations*refusal_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='questions'
+expect: 0.038
+-->
+<!-- loupe-check id=F11-img-refusal
+sql: SELECT round(sum(conversations*refusal_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='image_prompting'
+expect: 0.006
+-->
+<!-- loupe-check id=F11-questions-repeat
+sql: SELECT round(sum(conversations*repeat_rate)/sum(conversations), 3) FROM 'aggregates/friction_by_intent_model.parquet' WHERE intent='questions'
+expect: 0.054
+-->
+
+Implication: quality investment should be intent-specific; a refusal-rate target that ignores intent will be dominated by creative conversations. What would falsify it: the 300-label precision check showing the refusal proxy fires mostly on non-refusals in creative conversations. Live view: [Friction tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#friction).
+
 ## Method
 
-Aggregates are built by Loupe's pipeline from the raw WildChat-4.8M shards: parse and redact, compute per-conversation features (turns, model family, pseudo-user key, friction proxies), then roll up into the tables read here. Every column's grain, SQL source, and suppression rule are defined in `03-metrics-framework.md`. The intent taxonomy is `v1` (ten classes) but has not been applied to this build, so intent aggregates are empty (see "Read this first"). Classifier accuracy: pending; the labeling and classification stages have not run (`intent_coverage` is `"none"`).
+Aggregates are built by Loupe's pipeline from the raw WildChat-4.8M shards: parse and redact, compute per-conversation features (turns, model family, pseudo-user key, friction proxies), then roll up into the tables read here. Every column's grain, SQL source, and suppression rule are defined in `03-metrics-framework.md`. The intent taxonomy is `v2` (seven classes; the v1 ten-class draft and the merge provenance are in `loupe/taxonomy.json` and the metrics framework). Classifier accuracy: 78.6% held-out on 1,966 conversations (macro F1 0.805) with taxonomy v2; gate 78.4%, set at 90% of the 87.1% inter-rater agreement measured on 348 conversations; `intent_coverage` is `"full"`.
 
 <!-- loupe-check id=method-intent-coverage
 sql: SELECT intent_coverage FROM read_json_auto('aggregates/meta.json')
-expect: "none"
+expect: "full"
 -->
 
 Any slice under the `min_cell` of 20 conversations is dropped or rolled into a `suppressed_or_unknown` row, depending on the table (see `03-metrics-framework.md`). Aggregates cover 2023-04-09 through 2025-07-31, with complete weeks from 2023-04-10 through 2025-07-21.
@@ -273,3 +430,5 @@ The biases that matter for the findings above, drawn from `03-metrics-framework.
 3. When comparing model families on any metric, control for era first; a difference between gpt-3.5-turbo and gpt-4.1-mini may be population drift, not model quality (F3, F4).
 4. Hold the friction dashboard's one_and_done, correction, and refusal trends out of any external-facing deck until the 300-label precision check runs and clears the 0.70 gate (F5).
 5. Scope any cost, token-budget, or geography/language sizing work to the windows where the underlying data actually has coverage: 2024-09-09 to 2024-12-30 for tokens, and the majority of conversations that carry a usable country for geography (F6, F7).
+6. Report junk traffic (the "other" class) as its own line and exclude it from engagement denominators before comparing 2025 to earlier periods (F9).
+7. Set quality targets per intent, starting with refusals in creative conversations and single-turn exits in coding (F11); size model tiers by intent mix, not volume (F10).

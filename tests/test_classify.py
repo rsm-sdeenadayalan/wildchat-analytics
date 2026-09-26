@@ -65,7 +65,7 @@ def test_run_refuses_below_threshold_and_writes_complete_report(tmp_path, mini_s
     pq.write_table(pa.Table.from_pylist(rows), labels_path)
     report = classify.run(labels_path=labels_path, flat_dir=flat, out_dir=tmp_path / "intent",
                           model_path=tmp_path / "m.joblib", report_path=tmp_path / "r.json",
-                          threshold=1.01, extra_training=(texts, labels))
+                          threshold=1.01, extra_training=(texts, labels), rater_agreement_path=tmp_path / "none.json")
     assert report["predicted"] is False
     assert report["forced"] is False
     on_disk = json.loads((tmp_path / "r.json").read_text())
@@ -87,10 +87,47 @@ def test_run_force_marks_forced(tmp_path, mini_shard_path):
     pq.write_table(pa.Table.from_pylist(rows), labels_path)
     report = classify.run(labels_path=labels_path, flat_dir=flat, out_dir=tmp_path / "intent",
                           model_path=tmp_path / "m.joblib", report_path=tmp_path / "r.json",
-                          threshold=1.01, force=True, extra_training=(texts, labels))
+                          threshold=1.01, force=True, extra_training=(texts, labels), rater_agreement_path=tmp_path / "none.json")
     assert report["predicted"] is True
     assert report["forced"] is True
     on_disk = json.loads((tmp_path / "r.json").read_text())
     assert on_disk["predicted"] is True
     assert on_disk["forced"] is True
     assert (tmp_path / "intent" / "mini_wildchat.parquet").exists()
+
+
+def test_label_mapping_folds_merged_v1_classes_into_current():
+    m = classify.label_mapping()
+    assert m["information_seeking"] == "questions" and m["homework_study"] == "questions" and m["personal_advice"] == "questions"
+    assert m["writing_editing"] == "writing_and_business" and m["business_professional"] == "writing_and_business"
+    assert m["coding"] == "coding" and m["other"] == "other"
+
+
+def test_effective_threshold_uses_rater_agreement_when_present(tmp_path):
+    import json
+    assert classify.effective_threshold(0.85, tmp_path / "missing.json") == (0.85, None)
+    p = tmp_path / "agree.json"
+    p.write_text(json.dumps({"n": 348, "agreement_current_taxonomy": 0.8707}))
+    thr, study = classify.effective_threshold(0.85, p)
+    assert thr == 0.7836 and study["n"] == 348
+
+
+def test_run_records_the_rule_and_maps_labels(tmp_path, mini_shard_path):
+    import json
+    flat = tmp_path / "flat"
+    flatten.run(local_paths=[mini_shard_path], out_dir=flat)
+    texts, labels = _synthetic()
+    rows = [{"conv_id": 1001, "intent": "coding", "confidence": "high"},
+            {"conv_id": 5001, "intent": "writing_editing", "confidence": "high"},        # v1 names
+            {"conv_id": 6001, "intent": "business_professional", "confidence": "high"}]  # both map to writing_and_business
+    labels_path = tmp_path / "labels.parquet"
+    pq.write_table(pa.Table.from_pylist(rows), labels_path)
+    agree = tmp_path / "agree.json"
+    agree.write_text(json.dumps({"n": 10, "agreement_current_taxonomy": 0.5}))
+    report = classify.run(labels_path=labels_path, flat_dir=flat, out_dir=tmp_path / "intent",
+                          model_path=tmp_path / "m.joblib", report_path=tmp_path / "r.json",
+                          threshold=0.85, extra_training=(texts, labels), rater_agreement_path=agree)
+    assert report["threshold"] == 0.45 and report["threshold_requested"] == 0.85
+    assert report["threshold_rule"].endswith("inter-rater agreement") and report["rater_agreement"] == 0.5
+    assert "writing_and_business" in report["classes"] and "writing_editing" not in report["classes"]
+    assert report["predicted"] is True

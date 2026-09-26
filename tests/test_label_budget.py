@@ -5,10 +5,11 @@ import pytest
 from loupe.stages import label
 
 
-def test_taxonomy_has_ten_named_classes():
+def test_taxonomy_has_seven_named_classes():
     tax = json.loads(Path("loupe/taxonomy.json").read_text())
     names = [c["name"] for c in tax["classes"]]
-    assert len(names) == 10 and names[0] == "coding" and names[-1] == "other"
+    assert len(names) == 7 and names[0] == "coding" and names[-1] == "other"
+    assert "questions" in names and "writing_and_business" in names
     assert label.class_names() == names
 
 

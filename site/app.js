@@ -201,11 +201,31 @@ function noIntent(view) {
   view.innerHTML = `<div class="card"><h2>Intent not available</h2><p class="note">The classify stage has not produced intent labels for this build. See Data quality → coverage.</p></div>`;
 }
 
+function reliabilityCard(meta) {
+  const acc = meta.classifier_accuracy, agree = meta.classifier_rater_agreement;
+  if (acc == null) return null;
+  const perClass = meta.classifier_per_class_f1 || {};
+  const rows = Object.entries(perClass).sort((a, b) => b[1] - a[1]).map(([c, f]) => `${c} ${fmtPct(f)}`).join(" · ");
+  const gate = agree != null
+    ? `Two independent labeling models agree ${fmtPct(agree)} of the time on this taxonomy (n=${meta.classifier_rater_study_n}); the release gate is ${meta.classifier_threshold_rule}, i.e. ${fmtPct(meta.classifier_threshold)}.`
+    : `Release gate: ${fmtPct(meta.classifier_threshold)} held-out accuracy.`;
+  const el = document.createElement("div");
+  el.className = "card";
+  el.innerHTML = `<h2>How reliable are these labels?</h2>
+    <p class="note">Every conversation's intent is predicted by a classifier trained on model-labeled examples (taxonomy ${meta.classifier_taxonomy_version}).
+    Held-out accuracy: <b>${fmtPct(acc)}</b> on ${fmtInt.format(meta.classifier_n_test || 0)} conversations. ${gate}${meta.classifier_forced ? " The gate was overridden for this build." : ""}
+    Read a 5-point difference between two classes as real; read a 2-point difference as noise.</p>
+    <p class="note">Per-class reliability (F1): ${rows}</p>`;
+  return el;
+}
+
 export async function renderIntent(conn, meta) {
   const view = $("#view-intent");
   if (meta.intent_coverage === "none") return noIntent(view);
   view.innerHTML = "";
   const w = Math.min(1060, view.clientWidth);
+  const rel = reliabilityCard(meta);
+  if (rel) view.append(rel);
   const weekly = await q(conn, `SELECT week, intent, conversations FROM intent_weekly ORDER BY week`);
   view.append(card("What people ask for, over time", "Share of each week's classified conversations by intent. Classes are defined in the metrics framework.",
     Plot.plot({ width: w, height: 340, marginLeft: 50, color: { legend: true, range: palette() },

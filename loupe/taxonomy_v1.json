@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "classes": [
+    {"name": "coding", "definition": "Writing, fixing, explaining, or converting code, scripts, SQL, configs, or software errors."},
+    {"name": "writing_editing", "definition": "Drafting, rewriting, summarizing, or proofreading non-fiction text: emails, essays, posts, letters, reports."},
+    {"name": "creative_roleplay", "definition": "Fiction, poems, stories, character roleplay, dialogue, or interactive scenarios."},
+    {"name": "image_prompting", "definition": "Generating or refining prompts for image models such as Midjourney or Stable Diffusion, or describing images to generate."},
+    {"name": "homework_study", "definition": "School or exam questions, worked problems, definitions to study, or explanations of academic concepts for learning."},
+    {"name": "information_seeking", "definition": "Factual questions, recommendations, comparisons, how-to or general knowledge not tied to schoolwork."},
+    {"name": "translation", "definition": "Translating text between languages, or asking about grammar, vocabulary, or usage in another language."},
+    {"name": "business_professional", "definition": "Marketing copy, product descriptions, business plans, analysis, resumes, job applications, or workplace tasks."},
+    {"name": "personal_advice", "definition": "Advice about relationships, health, mental wellbeing, finances, or life decisions for the person asking."},
+    {"name": "other", "definition": "Anything else: greetings, tests of the assistant, gibberish, or requests that fit no class above."}
+  ]
+}

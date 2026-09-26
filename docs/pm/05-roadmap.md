@@ -16,11 +16,11 @@ Everything P0 and P1 from the PRD ships, over the full 3.2M-conversation corpus:
 - A coverage banner stating the token-usage window, intent-labeling coverage, and suppression share (R7).
 - Dark mode (R8) and usability at 400 px width (R9).
 
-One gap inside "shipped": labeling and classification have not run, for lack of an API credential. The Intent view shows "not available" rather than fabricated numbers, and the friction precision table carries "pending" instead of real scores.
+Labeling and classification ran after the v1 site went live (2026-09-25 to 26) through the university gateway; the Intent view carries the classifier's measured reliability on the view itself.
 
 ## Next
 
-- Run labeling (Stage 3a) and classification (Stage 3b) if not already run, unlocking the Intent view and the friction proxy precision table against the 300 hand labels, and checking the 85% classifier gate.
+- Run the 300-conversation friction labeling and the precision check (labeling and classification ran on 2026-09-25 and 2026-09-26; the Intent view is live with taxonomy v2). Add a third rater to the inter-rater study and revisit whether "other" should split into greetings and tests versus unreadable input.
 - Instrument the in-market metrics from PRD 6.1: export events, so exporting a number with its caveat counts as an answered question, plus a caveat retention check.
 - Build a second adapter for a common log format, OpenAI-compatible chat completion logs as JSONL, to prove the schema is not WildChat-specific (R12).
 - Run usability test round two with in-market pilot users, not the interview-pool proxy sample used for the v1 launch criteria, on real questions.
