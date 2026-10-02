@@ -213,11 +213,21 @@ These proxies are structural pattern matches, not hand-validated signals: per th
 
 ### F6: Geography and language are usable but not clean; one label is likely a detector artifact
 
-8.29% of conversations carry no usable country and are published as a residual rather than dropped. Of conversations with a detected language, English is the majority at 52.5%, but "Yoruba" is the sixth most common label at 2.8% of all conversations, an implausible share for a language with far smaller global reach on English-language chatbots, and almost certainly a langdetect artifact on short or garbled text rather than genuine Yoruba usage at that scale.
+8.29% of conversations carry no usable country: 6.79% have no country in the logs at all and 1.49% fall in week × country cells under the 20-conversation floor. Both are published as explicit residual rows rather than dropped. Of conversations with a detected language, English is the majority at 52.5%, but "Yoruba" is the sixth most common label at 2.8% of all conversations, an implausible share for a language with far smaller global reach on English-language chatbots, and almost certainly a langdetect artifact on short or garbled text rather than genuine Yoruba usage at that scale.
 
 <!-- loupe-check id=F6-unknown-country
-sql: SELECT round(sum(CASE WHEN country='suppressed_or_unknown' THEN conversations ELSE 0 END)*1.0/sum(conversations),4) FROM 'aggregates/volume_weekly_country.parquet'
+sql: SELECT round(sum(CASE WHEN country IN ('not recorded','small cells') THEN conversations ELSE 0 END)*1.0/sum(conversations),4) FROM 'aggregates/volume_weekly_country.parquet'
 expect: 0.0829
+tolerance: 0.00005
+-->
+<!-- loupe-check id=F6-not-recorded
+sql: SELECT round(sum(CASE WHEN country='not recorded' THEN conversations ELSE 0 END)*1.0/sum(conversations),4) FROM 'aggregates/volume_weekly_country.parquet'
+expect: 0.0679
+tolerance: 0.00005
+-->
+<!-- loupe-check id=F6-small-cells
+sql: SELECT round(sum(CASE WHEN country='small cells' THEN conversations ELSE 0 END)*1.0/sum(conversations),4) FROM 'aggregates/volume_weekly_country.parquet'
+expect: 0.0149
 tolerance: 0.00005
 -->
 <!-- loupe-check id=F6-english-share
@@ -406,7 +416,7 @@ sql: SELECT intent_coverage FROM read_json_auto('aggregates/meta.json')
 expect: "full"
 -->
 
-Any slice under the `min_cell` of 20 conversations is dropped or rolled into a `suppressed_or_unknown` row, depending on the table (see `03-metrics-framework.md`). Aggregates cover 2023-04-09 through 2025-07-31, with complete weeks from 2023-04-10 through 2025-07-21.
+Any slice under the `min_cell` of 20 conversations is dropped or rolled into a `small cells` row, depending on the table; conversations missing a country are a separate `not recorded` row (see `03-metrics-framework.md`). Aggregates cover 2023-04-09 through 2025-07-31, with complete weeks from 2023-04-10 through 2025-07-21.
 
 <!-- loupe-check id=method-cw-from
 sql: SELECT complete_weeks_from::VARCHAR FROM read_json_auto('aggregates/meta.json')

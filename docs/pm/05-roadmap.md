@@ -9,7 +9,7 @@
 Everything P0 and P1 from the PRD ships, over the full 3.2M-conversation corpus:
 
 - Five views (Overview, Intensity, Intent, Friction, Data quality) plus a Query panel (R1, R6).
-- Minimum-cell suppression (min_cell = 20) on every geography and language slice, with a `suppressed_or_unknown` row instead of a silent drop (R2).
+- Minimum-cell suppression (min_cell = 20) on every geography and language slice, with explicit `not recorded` and `small cells` rows instead of a silent drop (R2), and a reconciliation check that fails the build if any table stops summing to the total.
 - Population, pseudo-user, and coverage caveats visible on every view, not linked in a footnote (R3).
 - The full aggregate set regenerates from one committed command against cached flat tables (R4).
 - No row-level conversation content served by the dashboard or committed to the repo (R5).

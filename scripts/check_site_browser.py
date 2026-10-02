@@ -31,6 +31,30 @@ def _serve(directory: Path, port: int):
 LAYOUT_WIDTHS = (390, 768, 1000, 1100, 1280)
 
 
+def expected_tiles(dist: Path) -> dict[str, str]:
+    """Overview tile values recomputed from dist/aggregates with DuckDB, formatted as the page formats them."""
+    import json
+    import duckdb
+
+    agg = dist / "aggregates"
+    meta = json.loads((agg / "meta.json").read_text())
+    con = duckdb.connect()
+    convs, turns = con.execute(f"SELECT sum(conversations), sum(turns) FROM '{agg / 'volume_daily_model.parquet'}'").fetchone()
+    peak = con.execute(f"SELECT max(pseudo_users) FROM '{agg / 'intensity_weekly.parquet'}'").fetchone()[0]
+    ret = con.execute(f"SELECT return_rate FROM '{agg / 'intensity_weekly.parquet'}' WHERE return_rate IS NOT NULL "
+                      f"AND week <= DATE '{meta['complete_weeks_through']}' ORDER BY week DESC LIMIT 1").fetchone()[0]
+    weeks = con.execute(f"SELECT count(DISTINCT date_trunc('week', date)) FROM '{agg / 'volume_daily_model.parquet'}' "
+                        f"WHERE date_trunc('week', date) <= DATE '{meta['complete_weeks_through']}'").fetchone()[0]
+    return {
+        "conversations": f"{convs:,}",
+        "turns": f"{turns:,}",
+        "complete weeks with data": f"{weeks:,}",
+        "peak weekly pseudo-users": f"{peak:,}",
+        "week-over-week return": f"{100 * ret:.1f}%",
+        "intent coverage": meta["intent_coverage"],
+    }
+
+
 def location_has_model(hash_value: str, model: str) -> bool:
     return hash_value.endswith("/" + model)
 
@@ -84,6 +108,13 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 problems.append(f"legend isolate did not reduce drawn series: {before} -> {after}")
             await page.click('#view-overview .card.chart .legend .chip-all')
             await page.wait_for_timeout(300)
+            # Tiles must equal the same quantities computed straight from the published aggregates.
+            await page.click('.tabs button[data-view="overview"]')
+            await page.wait_for_timeout(500)
+            tiles = await page.evaluate("Object.fromEntries([...document.querySelectorAll('#view-overview .tile')].map(t => [t.querySelector('span').textContent, t.querySelector('b').textContent]))")
+            for label, want in expected_tiles(dist).items():
+                if tiles.get(label) != want:
+                    problems.append(f"tile {label!r} shows {tiles.get(label)!r}, aggregates say {want!r}")
             # Cross-view model filter: picking a model re-renders every view for that model only.
             await page.click('#model-picker button[data-model="gpt-4o"]')
             await page.wait_for_timeout(1500)

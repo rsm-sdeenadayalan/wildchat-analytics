@@ -34,6 +34,7 @@ clean-raw:
 
 site:
 	uv run python scripts/build_site.py
+	uv run python scripts/check_consistency.py
 	uv run python scripts/check_site.py
 
 serve: site

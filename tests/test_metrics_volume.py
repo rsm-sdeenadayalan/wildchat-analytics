@@ -21,17 +21,21 @@ def test_volume_daily_model(con, tmp_path, mini_shard_path):
 
 def test_volume_weekly_country_suppresses_small_cells(con, tmp_path, mini_shard_path):
     _register(con, tmp_path, mini_shard_path)
-    # everything is below the floor: nothing is dropped silently, one residual row per week
+    # everything is below the floor: nothing is dropped silently, the residual is one 'small cells' row per week
     sup = metrics.run_sql(con, "volume_weekly_country", min_cell=20).to_pylist()
-    assert [r["country"] for r in sup] == ["suppressed_or_unknown"] * 2
+    assert [r["country"] for r in sup] == ["small cells"] * 2
     assert [r["conversations"] for r in sup] == [3, 3]
     assert all(r["pseudo_users"] is None for r in sup)
     assert [r["week"] for r in sup] == [dt.date(2024, 3, 4), dt.date(2024, 3, 11)]
+    # the mini shard has a country on every conversation, so no 'not recorded' row appears
+    assert not [r for r in sup if r["country"] == "not recorded"]
     rows = metrics.run_sql(con, "volume_weekly_country", min_cell=1).to_pylist()
     us_w1 = [r for r in rows if r["country"] == "United States" and r["week"] == dt.date(2024, 3, 4)][0]
     assert us_w1["conversations"] == 3 and us_w1["pseudo_users"] == 2
     # nothing was suppressed at min_cell=1, so no residual rows at all
-    assert not [r for r in rows if r["country"] == "suppressed_or_unknown"]
+    assert not [r for r in rows if r["country"] in ("small cells", "not recorded")]
+    # rows always sum to the shard's conversations, whatever the floor
+    assert sum(r["conversations"] for r in rows) == sum(r["conversations"] for r in sup) == 6
 
 
 def test_volume_weekly_language(con, tmp_path, mini_shard_path):
@@ -39,6 +43,6 @@ def test_volume_weekly_language(con, tmp_path, mini_shard_path):
     rows = metrics.run_sql(con, "volume_weekly_language", min_cell=1).to_pylist()
     zh = [r for r in rows if r["language"] == "Chinese"][0]
     assert zh["conversations"] == 1 and zh["week"] == dt.date(2024, 3, 11)
-    assert not [r for r in rows if r["language"] == "suppressed_or_unknown"]
+    assert not [r for r in rows if r["language"] in ("small cells", "not recorded")]
     sup = metrics.run_sql(con, "volume_weekly_language", min_cell=20).to_pylist()
-    assert [(r["language"], r["conversations"]) for r in sup] == [("suppressed_or_unknown", 3)] * 2
+    assert [(r["language"], r["conversations"]) for r in sup] == [("small cells", 3)] * 2

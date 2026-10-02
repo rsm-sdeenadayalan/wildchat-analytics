@@ -189,3 +189,6 @@ details.reliability .note { margin-top: 12px; }
 .linklike { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; }
 .linklike:hover { text-decoration: underline; }
 .scope { display: inline-block; vertical-align: middle; margin-left: 10px; padding: 2px 8px; border-radius: 999px; background: var(--bg-alt); color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Chart keys and residual rows */
+.card .keys { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
