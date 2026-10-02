@@ -14,6 +14,9 @@ const fmtPct = (x) => (x == null ? "–" : (100 * x).toFixed(1) + "%");
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const palette = () => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => css(`--c${i}`));
 
+const RENDERERS = {};
+export function registerRenderer(name, fn) { RENDERERS[name] = fn; }
+
 export async function boot() {
   const bundles = duckdb.getJsDelivrBundles();
   const bundle = await duckdb.selectBundle(bundles);
@@ -163,14 +166,14 @@ export async function renderQuality(conn, meta) {
 }
 registerRenderer("quality", renderQuality);
 
+registerRenderer("overview", renderOverview);
+
 function showView(name) {
   document.querySelectorAll("main section").forEach((s) => (s.hidden = s.id !== `view-${name}`));
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
   location.hash = name;
 }
 
-const RENDERERS = { overview: renderOverview };
-export function registerRenderer(name, fn) { RENDERERS[name] = fn; }
 
 async function main() {
   try {
