@@ -46,3 +46,34 @@ def test_build_without_docs_writes_fallback_index(tmp_path):
     assert (out / "docs" / "index.html").exists()
     assert "Case study pages will appear here" in (out / "docs" / "index.html").read_text()
     assert result["pages"] == []
+
+
+def test_render_doc_rewrites_markdown_links_to_site_pages(tmp_path):
+    from scripts.build_site import render_doc
+
+    tpl = tmp_path / "t.html"
+    tpl.write_text("{{title}}|{{nav}}|{{body}}")
+    md = "[PRD](04-prd.md) [home](README.md) [sec](07-trends-report.md#f1) [kit](research/) [guide](research/interview-guide.md) [ext](https://x.y/z.md) [top](#here)"
+    html = render_doc(md, "T", [], template_path=tpl)
+    assert 'href="04-prd.html"' in html
+    assert 'href="index.html"' in html
+    assert 'href="07-trends-report.html#f1"' in html
+    assert 'href="https://github.com/rsm-sdeenadayalan/wildchat-analytics/tree/main/docs/pm/research/"' in html
+    assert 'href="https://github.com/rsm-sdeenadayalan/wildchat-analytics/blob/main/docs/pm/research/interview-guide.md"' in html
+    assert 'href="https://x.y/z.md"' in html
+    assert 'href="#here"' in html
+    assert ".md\"" not in html.replace('z.md"', "").replace('guide.md"', "")
+
+
+def test_build_fails_on_dangling_relative_link(tmp_path):
+    import pytest
+    from scripts.build_site import build
+
+    site = tmp_path / "site"; site.mkdir()
+    (site / "index.html").write_text("<html></html>")
+    (site / "doc_template.html").write_text("{{title}}|{{nav}}|{{body}}")
+    agg = tmp_path / "aggregates"; agg.mkdir()
+    docs = tmp_path / "docs"; docs.mkdir()
+    (docs / "README.md").write_text("# Home\n\n[missing](nowhere.md)\n")
+    with pytest.raises(RuntimeError, match="nowhere.html"):
+        build(site_dir=site, aggregates_dir=agg, docs_dir=docs, out_dir=tmp_path / "dist")
