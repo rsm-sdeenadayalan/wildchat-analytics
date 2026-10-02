@@ -87,3 +87,26 @@ def test_data_quality_weekly_has_no_negative_zero(con, tmp_path, mini_shard_path
     for r in metrics.run_sql(con, "data_quality_weekly").to_pylist():
         for k in ("redacted_rate", "empty_input_rate", "token_usage_coverage"):
             assert str(r[k]) != "-0.0", (r["week"], k)
+
+
+def test_model_cuts_have_model_column_and_match_totals(tmp_path, mini_shard_path):
+    import duckdb
+
+    flat = tmp_path / "flat"
+    flatten.run(local_paths=[mini_shard_path], out_dir=flat)
+    out = tmp_path / "agg"
+    metrics.run(flat_dir=flat, out_dir=out, min_cell=1)
+    for name in ("intensity_weekly_model", "friction_weekly_model", "data_quality_weekly_model", "intent_weekly_model"):
+        t = pq.read_table(out / f"{name}.parquet")
+        assert "model" in t.column_names and "week" in t.column_names, name
+    con = duckdb.connect()
+    # Summing the per-model friction and quality cuts over models recovers the all-model weekly counts.
+    for cut, whole in (("friction_weekly_model", "friction_weekly"), ("data_quality_weekly_model", "data_quality_weekly")):
+        diff = con.execute(f"""
+            WITH a AS (SELECT week, sum(conversations) AS n FROM '{out / cut}.parquet' GROUP BY week),
+                 b AS (SELECT week, conversations AS n FROM '{out / whole}.parquet')
+            SELECT count(*) FROM a FULL JOIN b USING (week) WHERE a.n IS DISTINCT FROM b.n""").fetchone()[0]
+        assert diff == 0, cut
+    bad = con.execute(f"SELECT count(*) FROM '{out / 'intensity_weekly_model'}.parquet' "
+                      "WHERE return_rate IS NOT NULL AND (return_rate < 0 OR return_rate > 1)").fetchone()[0]
+    assert bad == 0

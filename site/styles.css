@@ -177,3 +177,15 @@ details.reliability summary h2 { display: inline; margin-right: 10px; }
 details.reliability summary .so { display: block; margin-top: 6px; color: var(--muted); }
 details.reliability[open] summary .so { display: none; }
 details.reliability .note { margin-top: 12px; }
+
+/* Cross-view model filter */
+.picker-wrap { padding-top: 6px; }
+.model-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.model-picker button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font: 500 13px/1.2 var(--font); cursor: pointer; transition: all 0.15s ease; }
+.model-picker button:hover { color: var(--fg); border-color: rgba(0, 0, 0, 0.2); }
+.model-picker button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.scope-banner { margin: 12px auto 0; text-align: center; font-size: 14px; color: var(--muted); }
+.scope-banner b { color: var(--fg); font-weight: 600; }
+.linklike { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; }
+.linklike:hover { text-decoration: underline; }
+.scope { display: inline-block; vertical-align: middle; margin-left: 10px; padding: 2px 8px; border-radius: 999px; background: var(--bg-alt); color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }

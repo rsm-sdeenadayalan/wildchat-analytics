@@ -6,6 +6,7 @@ export const AGGREGATES = [
   "intensity_weekly", "pseudo_user_persistence_quarterly", "depth_by_model",
   "intent_weekly", "intent_by_model", "intent_by_language",
   "friction_by_intent_model", "friction_weekly", "data_quality_weekly",
+  "intensity_weekly_model", "intent_weekly_model", "friction_weekly_model", "data_quality_weekly_model",
 ];
 
 const $ = (sel) => document.querySelector(sel);
@@ -38,6 +39,14 @@ const finding = (n) => `docs/07-trends-report.html#f${n}`;
 
 const RENDERERS = {};
 export function registerRenderer(name, fn) { RENDERERS[name] = fn; }
+
+// Cross-view model filter. One model family or null for all. Every renderer reads it; views that
+// have no per-model cut (countries, languages, persistence) say so with a scope tag.
+export const FILTER = { model: null, models: [] };
+const sqlQuote = (v) => `'${String(v).replace(/'/g, "''")}'`;
+const modelWhere = (col = "model") => (FILTER.model ? ` AND ${col} = ${sqlQuote(FILTER.model)}` : "");
+const perModel = (table) => (FILTER.model ? `${table}_model` : table);
+const scopeLabel = () => (FILTER.model ? FILTER.model : "all models");
 
 export async function boot() {
   const bundles = duckdb.getJsDelivrBundles();
@@ -107,8 +116,9 @@ function insight(view, question, items, link) {
 
 // A chart card with its own clickable legend. `series` fixes the colour of every key; `draw`
 // re-renders the figure whenever the viewer isolates, compares, or hovers a series.
-function chart(view, { title, so, note, series, draw }) {
-  const card = el(`<div class="card chart"><div class="card-head"><h2>${title}</h2>${so ? `<p class="so">${so}</p>` : ""}</div>
+function chart(view, { title, so, note, series, draw, scope }) {
+  const tag = scope === "all" && FILTER.model ? `<span class="scope" title="This chart has no per-model cut">All models</span>` : "";
+  const card = el(`<div class="card chart"><div class="card-head"><h2>${title}${tag}</h2>${so ? `<p class="so">${so}</p>` : ""}</div>
     <div class="legend" role="group" aria-label="Series"></div><figure></figure>
     ${note ? `<details class="def"><summary>What this measures</summary><p>${note}</p></details>` : ""}</div>`);
   view.append(card);
@@ -178,6 +188,7 @@ function lastVsPrior(rows, weekKey, valueFn) {
   return {
     recent: valueFn(rows.filter((r) => recent.has(+r[weekKey]))),
     prior: valueFn(rows.filter((r) => prior.has(+r[weekKey]))),
+    enough: weeks.length >= 24,
   };
 }
 
@@ -187,11 +198,12 @@ export async function renderOverview(conn, meta) {
   const view = $("#view-overview");
   view.innerHTML = "";
   const through = completeThrough(meta);
-  const [tot] = await q(conn, `SELECT sum(conversations)::BIGINT AS convs, sum(turns)::BIGINT AS turns, min(date) AS d0, max(date) AS d1 FROM volume_daily_model`);
-  const [users] = await q(conn, `SELECT max(pseudo_users) AS peak_users FROM intensity_weekly`);
-  const weekly = (await q(conn, `SELECT date_trunc('week', date)::DATE AS week, model, sum(conversations)::BIGINT AS conversations FROM volume_daily_model GROUP BY ALL ORDER BY week`))
+  const [tot] = await q(conn, `SELECT sum(conversations)::BIGINT AS convs, sum(turns)::BIGINT AS turns, min(date) AS d0, max(date) AS d1 FROM volume_daily_model WHERE true${modelWhere()}`);
+  const [users] = await q(conn, `SELECT max(pseudo_users) AS peak_users FROM ${perModel("intensity_weekly")} WHERE true${modelWhere()}`);
+  const allWeekly = (await q(conn, `SELECT date_trunc('week', date)::DATE AS week, model, sum(conversations)::BIGINT AS conversations FROM volume_daily_model GROUP BY ALL ORDER BY week`))
     .filter((r) => r.week <= through);
-  const intensity = (await q(conn, `SELECT * FROM intensity_weekly ORDER BY week`)).filter((r) => r.week <= through);
+  const weekly = FILTER.model ? allWeekly.filter((r) => r.model === FILTER.model) : allWeekly;
+  const intensity = (await q(conn, `SELECT * FROM ${perModel("intensity_weekly")} WHERE true${modelWhere()} ORDER BY week`)).filter((r) => r.week <= through);
   const last = intensity.at(-1) || {};
   const lastRet = [...intensity].reverse().find((r) => r.return_rate != null);
 
@@ -199,8 +211,10 @@ export async function renderOverview(conn, meta) {
   const recent = totals.slice(-12), prior = totals.slice(-24, -12);
   const change = pctChange(sum(recent, (r) => r.conversations), sum(prior, (r) => r.conversations));
   const recentWeeks = new Set(recent.map((r) => +r.week));
-  const recentByModel = [...by(weekly.filter((r) => recentWeeks.has(+r.week)), (r) => r.model, (r) => r.conversations)].sort((a, b) => b[1] - a[1]);
+  const recentByModel = [...by(allWeekly.filter((r) => recentWeeks.has(+r.week)), (r) => r.model, (r) => r.conversations)].sort((a, b) => b[1] - a[1]);
+  const recentAll = sum(recentByModel, ([, n]) => n);
   const [topModel, topN] = recentByModel[0] || ["–", 0];
+  const thisModelRecent = recentByModel.find(([m]) => m === FILTER.model)?.[1] ?? 0;
   const peak = totals.reduce((a, b) => (b.conversations > a.conversations ? b : a), totals[0]);
   const latest = totals.at(-1);
 
@@ -208,22 +222,26 @@ export async function renderOverview(conn, meta) {
     ${tile("conversations", fmtInt.format(tot.convs))}
     ${tile("turns", fmtInt.format(tot.turns))}
     ${tile("weeks covered", fmtInt.format(Math.round((tot.d1 - tot.d0) / 86400000 / 7)))}
-    ${tile("peak weekly pseudo-users", fmtInt.format(users.peak_users))}
-    ${tile("week-over-week return", fmtPct(lastRet?.return_rate), fmtWeek(lastRet?.week))}
+    ${tile("peak weekly pseudo-users", fmtInt.format(users.peak_users ?? 0))}
+    ${tile(FILTER.model ? "week-over-week return (same model)" : "week-over-week return", fmtPct(lastRet?.return_rate), lastRet ? fmtWeek(lastRet.week) : "no measurable week")}
     ${tile("intent coverage", meta.intent_coverage)}
   </div>`;
 
-  insight(view, "Is usage growing, or is it the same power users?", [
-    `<b>${fmtInt.format(sum(recent, (r) => r.conversations))}</b> conversations in the last 12 complete weeks, ${describeChange(change)} versus the 12 weeks before.`,
-    `In the ${fmtWeek(last.week)}, the top 10% of pseudo-users produced <b>${fmtPct(last.top10_share)}</b> of conversations; the median pseudo-user had ${(last.convs_per_user_p50 ?? 0).toFixed(1)} conversation${last.convs_per_user_p50 === 1 ? "" : "s"}.`,
-    `<b>${esc(topModel)}</b> served ${fmtPct0(topN / Math.max(1, sum(recent, (r) => r.conversations)))} of recent traffic. The model behind the logs changed several times over the period, so compare eras, not just dates.`,
+  insight(view, FILTER.model ? `Is ${esc(FILTER.model)} usage growing, or is it the same power users?` : "Is usage growing, or is it the same power users?", [
+    `<b>${fmtInt.format(sum(recent, (r) => r.conversations))}</b> conversations in the last 12 complete weeks, ${prior.length ? describeChange(change) + " versus the 12 weeks before" : "with no earlier 12-week window to compare against"}.`,
+    last.week ? `In the ${fmtWeek(last.week)}, the top 10% of ${FILTER.model ? "its " : ""}pseudo-users produced <b>${fmtPct(last.top10_share)}</b> of conversations; the median pseudo-user had ${(last.convs_per_user_p50 ?? 0).toFixed(1)} conversation${last.convs_per_user_p50 === 1 ? "" : "s"}.` : `No complete week has enough ${esc(FILTER.model)} pseudo-users to report intensity.`,
+    FILTER.model
+      ? (topModel === FILTER.model
+          ? `<b>${esc(FILTER.model)}</b> was the largest model in its last 12 complete weeks, at ${fmtPct0(thisModelRecent / Math.max(1, recentAll))} of all traffic.`
+          : `<b>${esc(FILTER.model)}</b> was ${fmtPct0(thisModelRecent / Math.max(1, recentAll))} of all traffic in its last 12 complete weeks; ${esc(topModel)} was the largest model at ${fmtPct0(topN / Math.max(1, recentAll))}.`)
+      : `<b>${esc(topModel)}</b> served ${fmtPct0(topN / Math.max(1, recentAll))} of recent traffic. The model behind the logs changed several times over the period, so compare eras, not just dates.`,
   ], { href: finding(3), text: "Read finding F3 in the trends report" });
 
   const models = [...by(weekly, (r) => r.model, (r) => r.conversations)].sort((a, b) => b[1] - a[1]).map(([m]) => m);
   const colors = palette();
   chart(view, {
-    title: "Weekly conversations by model",
-    so: latest ? `Latest complete week: ${fmtInt.format(latest.conversations)} conversations, ${describeChange(pctChange(latest.conversations, peak.conversations))} from the peak in the ${fmtWeek(peak.week)}.` : "",
+    title: FILTER.model ? `Weekly ${FILTER.model} conversations` : "Weekly conversations by model",
+    so: latest ? `Latest complete week: ${fmtInt.format(latest.conversations)} conversations, ${describeChange(pctChange(latest.conversations, peak.conversations))} from the peak in the ${fmtWeek(peak.week)}.` : "No complete weeks for this model.",
     note: "Conversations per week. Each line is one model family as recorded in the logs. The partial final week is excluded.",
     series: models.map((m, i) => ({ key: m, color: colors[i % colors.length] })),
     draw: ({ isOn, hover, w }) => Plot.plot({
@@ -247,14 +265,17 @@ export async function renderIntensity(conn, meta) {
   const view = $("#view-intensity");
   view.innerHTML = "";
   const through = completeThrough(meta);
-  const weekly = (await q(conn, `SELECT * FROM intensity_weekly ORDER BY week`)).filter((r) => r.week <= through);
+  const weekly = (await q(conn, `SELECT * FROM ${perModel("intensity_weekly")} WHERE true${modelWhere()} ORDER BY week`)).filter((r) => r.week <= through);
   const last = weekly.at(-1) || {};
   const lastRet = [...weekly].reverse().find((r) => r.return_rate != null);
   const preBreak = weekly.filter((r) => r.week < COLLECTION_BREAK && r.return_rate != null);
+  const postBreak = weekly.filter((r) => r.week >= COLLECTION_BREAK && r.return_rate != null);
   const preMedian = median(preBreak.map((r) => r.return_rate));
+  const postMedian = median(postBreak.map((r) => r.return_rate));
   const c1 = css("--c1"), c7 = css("--c7");
+  const retNote = FILTER.model ? " Return here is model retention: a pseudo-user counts as returned only if they used this model again the following week." : "";
 
-  const depth = await q(conn, `SELECT model, depth_bucket, conversations FROM depth_by_model`);
+  const depth = await q(conn, `SELECT model, depth_bucket, conversations FROM depth_by_model WHERE true${modelWhere()}`);
   const order = ["1", "2", "3-5", "6-10", "11+"];
   const depthTotals = by(depth, (r) => r.model, (r) => r.conversations);
   depth.forEach((r) => (r.share = r.conversations / depthTotals.get(r.model)));
@@ -266,21 +287,29 @@ export async function renderIntensity(conn, meta) {
 
   view.innerHTML = `<div class="tiles">
     ${tile("pseudo-users", fmtInt.format(last.pseudo_users ?? 0), fmtWeek(last.week))}
-    ${tile("week-over-week return", fmtPct(lastRet?.return_rate), lastRet ? fmtWeek(lastRet.week) : "no complete following week yet")}
+    ${tile(FILTER.model ? "week-over-week return (same model)" : "week-over-week return", fmtPct(lastRet?.return_rate), lastRet ? fmtWeek(lastRet.week) : "no measurable week")}
     ${tile("top-10% share of conversations", fmtPct(last.top10_share), fmtWeek(last.week))}
     ${tile("conversations / pseudo-user (p50)", (last.convs_per_user_p50 ?? 0).toFixed(1), fmtWeek(last.week))}
   </div>`;
 
-  insight(view, "Are people coming back?", [
-    `In the comparable era, April 2023 to September 2024, week-over-week return held at a median of <b>${fmtPct(preMedian)}</b> and did not trend up or down.`,
-    `From ${fmtMonth(COLLECTION_BREAK)} pseudo-user keys stop persisting in the collection, so return reads near zero afterwards. Treat that as a collection change, not churn.`,
-    `<b>${fmtPct0(singleShare)}</b> of all conversations end after one turn. ${esc(multiByModel[0]?.[0] ?? "–")} carries the most multi-turn work (${fmtPct0(multiByModel[0]?.[1])} run three or more turns); ${esc(singleByModel[0]?.[0] ?? "–")} the least (${fmtPct0(singleByModel[0]?.[1])} single-turn).`,
+  const retLine = preMedian != null
+    ? `In the comparable era, April 2023 to September 2024, week-over-week return${FILTER.model ? ` to ${esc(FILTER.model)}` : ""} held at a median of <b>${fmtPct(preMedian)}</b>${postMedian != null ? `; since the collection break it reads ${fmtPct(postMedian)}` : ""}.`
+    : postMedian != null
+      ? `${esc(FILTER.model)} only has weeks after the collection break, where pseudo-user keys do not persist, so its return rate (median <b>${fmtPct(postMedian)}</b>) understates real return and cannot be compared with earlier models.`
+      : `No week has enough ${esc(FILTER.model)} pseudo-users to measure return.`;
+  const depthLine = FILTER.model
+    ? `<b>${fmtPct0(singleShare)}</b> of ${esc(FILTER.model)} conversations end after one turn; ${fmtPct0(multiByModel[0]?.[1] ?? 0)} run three or more turns.`
+    : `<b>${fmtPct0(singleShare)}</b> of all conversations end after one turn. ${esc(multiByModel[0]?.[0] ?? "–")} carries the most multi-turn work (${fmtPct0(multiByModel[0]?.[1])} run three or more turns); ${esc(singleByModel[0]?.[0] ?? "–")} the least (${fmtPct0(singleByModel[0]?.[1])} single-turn).`;
+  insight(view, FILTER.model ? `Are ${esc(FILTER.model)} users coming back?` : "Are people coming back?", [
+    retLine,
+    `From ${fmtMonth(COLLECTION_BREAK)} pseudo-user keys stop persisting in the collection, so return reads near zero afterwards. Treat that as a collection change, not churn.${retNote}`,
+    depthLine,
   ], { href: finding(1), text: "Read findings F1, F2 and F4 in the trends report" });
 
   chart(view, {
     title: "Week-over-week return rate",
-    so: lastRet ? `${fmtPct(lastRet.return_rate)} in the ${fmtWeek(lastRet.week)}, against a pre-break median of ${fmtPct(preMedian)}.` : "",
-    note: "Share of pseudo-users active in a week who are active again the following week. Weeks whose following week is not in the data are drawn as gaps, not zeros.",
+    so: lastRet ? `${fmtPct(lastRet.return_rate)} in the ${fmtWeek(lastRet.week)}${preMedian != null ? `, against a pre-break median of ${fmtPct(preMedian)}` : ""}.` : "No week has a measurable return rate.",
+    note: `Share of pseudo-users active in a week who are active again the following week. Weeks whose following week is not in the data are drawn as gaps, not zeros.${retNote}`,
     series: [{ key: "return rate", color: c1 }],
     draw: ({ w }) => Plot.plot({
       width: w, height: 260, marginLeft: 50, y: { label: "return rate", grid: true, percent: true }, x: { label: null },
@@ -339,6 +368,7 @@ export async function renderIntensity(conn, meta) {
     so: `Before 2024 Q4, about ${fmtPct0(median(pre.map((r) => r.share_multi_week)))} of a quarter's pseudo-users were active in more than one week; since then, about ${fmtPct(median(post.map((r) => r.share_multi_week)))}.`,
     note: "Share of a quarter's pseudo-users active in more than one week. The drop after 2024 Q3 is a property of the collection (pseudo-user keys stopped persisting), not of user behavior; return rates are not comparable across that boundary.",
     series: [{ key: "share active in more than one week", color: c1 }],
+    scope: "all",
     draw: ({ w }) => Plot.plot({
       width: w, height: 240, marginLeft: 50, marginBottom: w < 640 ? 48 : 30, y: { label: "share active in >1 week", grid: true, percent: true }, x: { label: null, tickRotate: w < 640 ? -40 : 0 },
       marks: [Plot.barY(persistence, { x: "quarter_label", y: "share_multi_week", fill: (d) => (d.quarter < COLLECTION_BREAK ? c1 : css("--seq-2")), tip: true, rx: 4 })],
@@ -347,8 +377,8 @@ export async function renderIntensity(conn, meta) {
 
   const seqColors = seq();
   chart(view, {
-    title: "Session depth by model",
-    so: `Sorted by single-turn share. ${esc(singleByModel[0]?.[0] ?? "–")} is single-turn ${fmtPct0(singleByModel[0]?.[1])} of the time; ${esc(singleByModel.at(-1)?.[0] ?? "–")} ${fmtPct0(singleByModel.at(-1)?.[1])}.`,
+    title: FILTER.model ? `Session depth, ${FILTER.model}` : "Session depth by model",
+    so: FILTER.model ? `${fmtPct0(singleShare)} single-turn; ${fmtPct0(multiByModel[0]?.[1] ?? 0)} run three or more turns.` : `Sorted by single-turn share. ${esc(singleByModel[0]?.[0] ?? "–")} is single-turn ${fmtPct0(singleByModel[0]?.[1])} of the time; ${esc(singleByModel.at(-1)?.[0] ?? "–")} ${fmtPct0(singleByModel.at(-1)?.[1])}.`,
     note: "Distribution of turns per conversation, per model family. A turn is one user message and one reply. Isolate a bucket to compare models on it directly.",
     series: order.map((b, i) => ({ key: b, label: `${b} turn${b === "1" ? "" : "s"}`, color: seqColors[i] })),
     draw: ({ isOn, hover, w, active }) => {
@@ -379,7 +409,7 @@ export async function renderQuality(conn, meta) {
     ${tile("aggregates size", (meta.aggregate_bytes / 1e6).toFixed(1) + " MB")}
   </div>`;
   const through = completeThrough(meta);
-  const dq = (await q(conn, `SELECT * FROM data_quality_weekly ORDER BY week`)).filter((r) => r.week <= through);
+  const dq = (await q(conn, `SELECT * FROM ${perModel("data_quality_weekly")} WHERE true${modelWhere()} ORDER BY week`)).filter((r) => r.week <= through);
   const lastDq = dq.at(-1) || {};
   const countries = await q(conn, `SELECT country, sum(conversations)::BIGINT AS conversations FROM volume_weekly_country GROUP BY country ORDER BY 2 DESC LIMIT 15`);
   const [{ total_c }] = await q(conn, `SELECT sum(conversations)::BIGINT AS total_c FROM volume_weekly_country`);
@@ -390,9 +420,9 @@ export async function renderQuality(conn, meta) {
   const c1 = css("--c1"), c2 = css("--c2"), c3 = css("--c3");
 
   insight(view, "What in these numbers can I trust?", [
-    `Intent labels cover <b>${fmtPct(meta.intent_share)}</b> of conversations. The classifier is ${fmtPct(meta.classifier_accuracy)} accurate against a ${fmtPct(meta.classifier_rater_agreement)} ceiling set by two labeling models disagreeing with each other.`,
-    `<b>${fmtPct(suppressedC)}</b> of conversations have no usable country, so geography is directional. Language is nearly complete, but one top-10 label is probably a detector artifact.`,
-    `Token counts exist only from ${meta.token_coverage_first_week} and cover ${fmtPct(lastDq.token_usage_coverage)} of conversations in the latest complete week, so token metrics are not reported.`,
+    `Intent labels cover <b>${fmtPct(meta.intent_share)}</b> of ${FILTER.model ? "all " : ""}conversations. The classifier is ${fmtPct(meta.classifier_accuracy)} accurate against a ${fmtPct(meta.classifier_rater_agreement)} ceiling set by two labeling models disagreeing with each other.`,
+    `<b>${fmtPct(suppressedC)}</b> of ${FILTER.model ? "all " : ""}conversations have no usable country, so geography is directional. Language is nearly complete, but one top-10 label is probably a detector artifact.`,
+    `Token counts exist only from ${meta.token_coverage_first_week} and cover ${fmtPct(lastDq.token_usage_coverage)} of ${scopeLabel() === "all models" ? "" : esc(FILTER.model) + " "}conversations in the latest complete week, so token metrics are not reported.`,
   ], { href: finding(6), text: "Read findings F6 and F7 in the trends report" });
 
   const pii = dq.flatMap((r) => [{ week: r.week, signal: "redacted for PII", rate: r.redacted_rate }, { week: r.week, signal: "empty user input", rate: r.empty_input_rate }]);
@@ -413,7 +443,8 @@ export async function renderQuality(conn, meta) {
     note: "Share of conversations whose logs include token counts. The field did not exist before 2024-09-09 and is spotty afterwards; token metrics are only valid where this is high.",
     series: [{ key: "coverage", color: c1 }],
     draw: ({ w }) => Plot.plot({
-      width: w, height: 200, marginLeft: 50, y: { label: "coverage", grid: true, percent: true }, x: { label: null },
+      width: w, height: 200, marginLeft: 50, x: { label: null },
+      y: { label: "coverage", grid: true, percent: true, domain: [0, Math.max(10, Math.ceil(100 * Math.max(0, ...dq.map((r) => r.token_usage_coverage || 0))))] },
       marks: [Plot.areaY(dq, { x: "week", y: "token_usage_coverage", fill: c1, fillOpacity: 0.12 }), Plot.lineY(dq, { x: "week", y: "token_usage_coverage", stroke: c1, strokeWidth: 1.75, tip: true })],
     }),
   });
@@ -422,6 +453,7 @@ export async function renderQuality(conn, meta) {
     so: `${esc(countries.find((r) => r.country !== "suppressed_or_unknown")?.country ?? "–")} leads; ${fmtPct(suppressedC)} of conversations have no usable country and are shown as their own bar.`,
     note: `Any week × country cell with fewer than ${meta.min_cell} conversations, together with conversations that have no country, is rolled into a suppressed_or_unknown row per week. That row is kept as its own bar here, not dropped; it is large because country is frequently missing, not because any one country is hidden.`,
     series: [{ key: "conversations", color: c1 }],
+    scope: "all",
     draw: ({ w }) => Plot.plot({
       width: w, height: 360, marginLeft: 150, x: { label: "conversations", grid: true }, y: { label: null },
       marks: [Plot.barX(countries, { y: "country", x: "conversations", fill: (d) => (d.country === "suppressed_or_unknown" ? css("--seq-2") : c1), sort: { y: "-x" }, tip: true, rx: 4 })],
@@ -432,6 +464,7 @@ export async function renderQuality(conn, meta) {
     so: `${esc(topLang?.language ?? "–")} is ${fmtPct0((topLang?.conversations ?? 0) / total_l)} of conversations. "Yoruba" in the top ten is most likely a language-detector artifact.`,
     note: `Most frequently detected language per conversation. The suppressed_or_unknown row (missing or below the ${meta.min_cell}-conversation floor) is kept as its own bar, under 1% of conversations since language is rarely missing.`,
     series: [{ key: "conversations", color: c3 }],
+    scope: "all",
     draw: ({ w }) => Plot.plot({
       width: w, height: 320, marginLeft: 150, x: { label: "conversations", grid: true }, y: { label: null },
       marks: [Plot.barX(langs, { y: "language", x: "conversations", fill: (d) => (d.language === "suppressed_or_unknown" ? css("--seq-2") : c3), sort: { y: "-x" }, tip: true, rx: 4 })],
@@ -465,31 +498,36 @@ export async function renderIntent(conn, meta) {
   if (meta.intent_coverage === "none") return noIntent(view);
   view.innerHTML = "";
   const through = completeThrough(meta);
-  const weekly = (await q(conn, `SELECT week, intent, conversations FROM intent_weekly ORDER BY week`)).filter((r) => r.week <= through);
+  const weekly = (await q(conn, `SELECT week, intent, conversations FROM ${perModel("intent_weekly")} WHERE true${modelWhere()} ORDER BY week`)).filter((r) => r.week <= through);
   const weekTotals = by(weekly, (r) => +r.week, (r) => r.conversations);
   weekly.forEach((r) => (r.share = r.conversations / weekTotals.get(+r.week)));
-  const byModel = await q(conn, `SELECT model, intent, conversations FROM intent_by_model`);
+  const allByModel = await q(conn, `SELECT model, intent, conversations FROM intent_by_model`);
+  const byModel = FILTER.model ? allByModel.filter((r) => r.model === FILTER.model) : allByModel;
   const modelTotals = by(byModel, (r) => r.model, (r) => r.conversations);
   byModel.forEach((r) => (r.share = r.conversations / modelTotals.get(r.model)));
   const byLang = await q(conn, `SELECT language, intent, conversations FROM intent_by_language`);
   const langTotals = by(byLang, (r) => r.language, (r) => r.conversations);
   byLang.forEach((r) => (r.share = r.conversations / langTotals.get(r.language)));
 
-  const intents = [...by(byModel, (r) => r.intent, (r) => r.conversations)].sort((a, b) => b[1] - a[1]).map(([i]) => i);
+  const intents = [...by(allByModel, (r) => r.intent, (r) => r.conversations)].sort((a, b) => b[1] - a[1]).map(([i]) => i);
   const colors = palette();
   const color = Object.fromEntries(intents.map((i, k) => [i, colors[k % colors.length]]));
   const overall = by(byModel, (r) => r.intent, (r) => r.conversations);
   const overallN = sum(byModel, (r) => r.conversations);
 
   const shareIn = (rows) => { const t = sum(rows, (r) => r.conversations); return Object.fromEntries(intents.map((i) => [i, sum(rows.filter((r) => r.intent === i), (r) => r.conversations) / Math.max(1, t)])); };
-  const { recent, prior } = lastVsPrior(weekly, "week", shareIn);
+  const { recent, prior, enough } = lastVsPrior(weekly, "week", shareIn);
   const deltas = intents.map((i) => ({ intent: i, delta: recent[i] - prior[i], now: recent[i] })).sort((a, b) => b.delta - a.delta);
   const riser = deltas[0], faller = deltas.at(-1);
+  const ranked = [...overall].sort((a, b) => b[1] - a[1]).map(([i]) => i);
+  const shiftLine = enough
+    ? `Over the last 12 complete weeks, <b>${esc(riser.intent)}</b> rose most (${fmtPts(riser.delta)}, to ${fmtPct0(riser.now)}) and <b>${esc(faller.intent)}</b> fell most (${fmtPts(faller.delta)}, to ${fmtPct0(faller.now)}) versus the 12 weeks before.`
+    : `${esc(FILTER.model)} has fewer than 24 complete weeks, so there is no earlier 12-week window to measure a shift against; the largest class in its last 12 weeks is <b>${esc(deltas.sort((a, b) => b.now - a.now)[0]?.intent ?? "–")}</b>.`;
 
   const rel = reliabilityCard(meta);
-  insight(view, "What are people using it for, and what is shifting?", [
-    `<b>${esc(intents[0])}</b> is the largest use at ${fmtPct0(overall.get(intents[0]) / overallN)} of classified conversations, then ${esc(intents[1])} at ${fmtPct0(overall.get(intents[1]) / overallN)}.`,
-    `Over the last 12 complete weeks, <b>${esc(riser.intent)}</b> rose most (${fmtPts(riser.delta)}, to ${fmtPct0(riser.now)}) and <b>${esc(faller.intent)}</b> fell most (${fmtPts(faller.delta)}, to ${fmtPct0(faller.now)}) versus the 12 weeks before.`,
+  insight(view, FILTER.model ? `What are people using ${esc(FILTER.model)} for, and what is shifting?` : "What are people using it for, and what is shifting?", [
+    `<b>${esc(ranked[0])}</b> is the largest use at ${fmtPct0(overall.get(ranked[0]) / overallN)} of classified ${FILTER.model ? esc(FILTER.model) + " " : ""}conversations, then ${esc(ranked[1])} at ${fmtPct0(overall.get(ranked[1]) / overallN)}.`,
+    shiftLine,
     `"other" is greetings, tests and gibberish; at ${fmtPct0(recent.other ?? 0)} of recent traffic it is the clearest sign of people probing the assistant rather than working with it.`,
   ], { href: finding(8), text: "Read findings F8 to F10 in the trends report" });
   if (rel) view.append(rel);
@@ -511,7 +549,7 @@ export async function renderIntent(conn, meta) {
 
   chart(view, {
     title: "What people ask for, over time",
-    so: `Last 12 weeks: ${esc(riser.intent)} ${fmtPts(riser.delta)}, ${esc(faller.intent)} ${fmtPts(faller.delta)}. Isolate an intent to see its share as a single line.`,
+    so: enough ? `Last 12 weeks: ${esc(riser.intent)} ${fmtPts(riser.delta)}, ${esc(faller.intent)} ${fmtPts(faller.delta)}. Isolate an intent to see its share as a single line.` : "Isolate an intent to see its share as a single line.",
     note: "Share of each week's classified conversations by intent. Classes are defined in the metrics framework. The partial final week is excluded.",
     series,
     draw: ({ isOn, hover, w, active }) => {
@@ -530,8 +568,8 @@ export async function renderIntent(conn, meta) {
   const modelOrder = [...modelTotals].sort((a, b) => b[1] - a[1]).map(([m]) => m);
   const codingTop = [...byModel.filter((r) => r.intent === "coding")].sort((a, b) => b.share - a.share)[0];
   chart(view, {
-    title: "Intent mix by model",
-    so: codingTop ? `${esc(codingTop.model)} has the highest coding share at ${fmtPct0(codingTop.share)}. Isolate an intent to rank models on it.` : "",
+    title: FILTER.model ? `Intent mix, ${FILTER.model}` : "Intent mix by model",
+    so: FILTER.model ? `All-time mix for ${esc(FILTER.model)}.` : codingTop ? `${esc(codingTop.model)} has the highest coding share at ${fmtPct0(codingTop.share)}. Isolate an intent to rank models on it.` : "",
     note: "Which models people reached for, by what they were trying to do. Models are ordered by total conversations.",
     series,
     draw: ({ isOn, hover, w, active }) => stackedShare(byModel, "model", modelOrder, hover, isOn, active, w, 40 + 30 * modelOrder.length, 100, "model's conversations"),
@@ -543,6 +581,7 @@ export async function renderIntent(conn, meta) {
     so: `Top ${langOrder.length} languages by volume. Cells under ${meta.min_cell} conversations are suppressed.`,
     note: "Share of each language's classified conversations by intent, for the most common detected languages.",
     series,
+    scope: "all",
     draw: ({ isOn, hover, w, active }) => stackedShare(byLang, "language", langOrder, hover, isOn, active, w, 40 + 30 * langOrder.length, 100, "language's conversations"),
   });
 }
@@ -554,7 +593,7 @@ export async function renderFriction(conn, meta) {
   const view = $("#view-friction");
   view.innerHTML = "";
   const through = completeThrough(meta);
-  const weekly = (await q(conn, `SELECT * FROM friction_weekly ORDER BY week`)).filter((r) => r.week <= through);
+  const weekly = (await q(conn, `SELECT * FROM ${perModel("friction_weekly")} WHERE true${modelWhere()} ORDER BY week`)).filter((r) => r.week <= through);
   const signals = ["repeat_rate", "one_and_done_rate", "correction_rate", "refusal_rate"];
   const labels = { repeat_rate: "repeated request", one_and_done_rate: "one-and-done", correction_rate: "correction follow-up", refusal_rate: "assistant refusal" };
   const colors = palette();
@@ -566,7 +605,7 @@ export async function renderFriction(conn, meta) {
 
   let byIntent = [];
   if (meta.intent_coverage !== "none") {
-    byIntent = await q(conn, `SELECT intent, model, conversations, repeat_rate, one_and_done_rate, correction_rate, refusal_rate FROM friction_by_intent_model`);
+    byIntent = await q(conn, `SELECT intent, model, conversations, repeat_rate, one_and_done_rate, correction_rate, refusal_rate FROM friction_by_intent_model WHERE true${modelWhere()}`);
   }
   const big = byIntent.filter((r) => r.conversations >= 1000);
   const worstRefusal = [...big].sort((a, b) => b.refusal_rate - a.refusal_rate)[0];
@@ -575,15 +614,20 @@ export async function renderFriction(conn, meta) {
       sum(conversations*one_and_done_rate)/sum(conversations) AS one_and_done_rate,
       sum(conversations*correction_rate)/sum(conversations) AS correction_rate,
       sum(conversations*refusal_rate)/sum(conversations) AS refusal_rate
-    FROM friction_by_intent_model GROUP BY intent ORDER BY n DESC`).catch(() => []);
+    FROM friction_by_intent_model WHERE true${modelWhere()} GROUP BY intent ORDER BY n DESC`).catch(() => []);
   const realWork = perIntent.filter((r) => r.intent !== "other");
   const mostOad = [...realWork].sort((a, b) => b.one_and_done_rate - a.one_and_done_rate)[0];
   const mostRefused = [...realWork].sort((a, b) => b.refusal_rate - a.refusal_rate)[0];
 
-  insight(view, "Where does the assistant fail people most?", [
-    worstRefusal ? `Refusals peak in <b>${esc(worstRefusal.intent)} on ${esc(worstRefusal.model)}</b> at ${fmtPct(worstRefusal.refusal_rate)} of conversations (cells with at least 1,000 conversations).` : "Friction by intent needs intent labels; this build has none.",
-    `One-and-done exits averaged <b>${fmtPct(oad.recent)}</b> of conversations over the last 12 complete weeks, ${describeChange(pctChange(oad.recent, oad.prior))} versus the 12 weeks before.`,
-    mostOad ? `Among real requests, <b>${esc(mostOad.intent)}</b> has the most single-turn exits (${fmtPct(mostOad.one_and_done_rate)}) and <b>${esc(mostRefused.intent)}</b> draws the most refusals (${fmtPct(mostRefused.refusal_rate)}).` : "",
+  insight(view, FILTER.model ? `Where does ${esc(FILTER.model)} fail people most?` : "Where does the assistant fail people most?", [
+    worstRefusal ? `Refusals peak in <b>${esc(worstRefusal.intent)}${FILTER.model ? "" : ` on ${esc(worstRefusal.model)}`}</b> at ${fmtPct(worstRefusal.refusal_rate)} of conversations (cells with at least 1,000 conversations).` : byIntent.length ? "No intent × model cell reaches 1,000 conversations, so refusal peaks are not ranked." : "Friction by intent needs intent labels; this build has none.",
+    oad.recent != null ? `One-and-done exits averaged <b>${fmtPct(oad.recent)}</b> of conversations over the last 12 complete weeks${oad.enough ? `, ${describeChange(pctChange(oad.recent, oad.prior))} versus the 12 weeks before` : ""}.` : "",
+    !mostOad ? ""
+      : FILTER.model && worstRefusal && mostRefused.intent === worstRefusal.intent
+        ? `Among real requests, <b>${esc(mostOad.intent)}</b> has the most single-turn exits (${fmtPct(mostOad.one_and_done_rate)}).`
+        : mostOad.intent === mostRefused.intent
+          ? `Among real requests, <b>${esc(mostOad.intent)}</b> both has the most single-turn exits (${fmtPct(mostOad.one_and_done_rate)}) and draws the most refusals (${fmtPct(mostRefused.refusal_rate)}).`
+          : `Among real requests, <b>${esc(mostOad.intent)}</b> has the most single-turn exits (${fmtPct(mostOad.one_and_done_rate)}) and <b>${esc(mostRefused.intent)}</b> draws the most refusals (${fmtPct(mostRefused.refusal_rate)}).`,
   ].filter(Boolean), { href: finding(11), text: "Read findings F5 and F11 in the trends report" });
 
   chart(view, {
@@ -604,11 +648,11 @@ export async function renderFriction(conn, meta) {
     return;
   }
   const heat = byIntent.flatMap((r) => signals.map((s) => ({ intent: r.intent, model: r.model, signal: labels[s], rate: r[s], conversations: r.conversations })));
-  const rowKey = (d) => `${d.intent} · ${d.model}`;
+  const rowKey = (d) => (FILTER.model ? d.intent : `${d.intent} · ${d.model}`);
   const rowOrder = [...byIntent].sort((a, b) => a.intent.localeCompare(b.intent) || b.conversations - a.conversations).map(rowKey);
   chart(view, {
-    title: "Friction by intent and model",
-    so: "Darker is worse. Isolate one signal to rank every intent × model pair on it.",
+    title: FILTER.model ? `Friction by intent, ${FILTER.model}` : "Friction by intent and model",
+    so: FILTER.model ? "Darker is worse. Isolate one signal to rank intents on it." : "Darker is worse. Isolate one signal to rank every intent × model pair on it.",
     note: `Rate of each friction signal for every intent × model pair with at least ${meta.min_cell} conversations. Rows are grouped by intent and ordered by volume.`,
     series: signals.map((s) => ({ key: labels[s], color: color[labels[s]] })),
     draw: ({ isOn, w, active }) => {
@@ -634,7 +678,7 @@ export async function renderFriction(conn, meta) {
     repeat_rate: fmtPct(r.repeat_rate), one_and_done_rate: fmtPct(r.one_and_done_rate),
     correction_rate: fmtPct(r.correction_rate), refusal_rate: fmtPct(r.refusal_rate),
   }));
-  const tbl = el(`<div class="card"><h2>Friction by intent, all models</h2><p class="note">Conversation-weighted rates.</p></div>`);
+  const tbl = el(`<div class="card"><h2>Friction by intent, ${FILTER.model ? esc(FILTER.model) : "all models"}</h2><p class="note">Conversation-weighted rates.</p></div>`);
   tbl.append(tableEl(aggFmt));
   view.append(tbl);
 }
@@ -671,7 +715,38 @@ registerRenderer("query", renderQuery);
 function showView(name) {
   document.querySelectorAll("main section").forEach((s) => (s.hidden = s.id !== `view-${name}`));
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
-  location.hash = name;
+  location.hash = FILTER.model ? `${name}/${encodeURIComponent(FILTER.model)}` : name;
+}
+
+function parseHash() {
+  const [view, model] = (location.hash || "#overview").slice(1).split("/");
+  return { view: view || "overview", model: model ? decodeURIComponent(model) : null };
+}
+
+// The model picker under the tabs. Changing it re-renders every view for that model only.
+function buildPicker(models, counts, onChange) {
+  const picker = $("#model-picker");
+  picker.innerHTML = "";
+  const all = el(`<button type="button" data-model="" aria-pressed="${!FILTER.model}">All models</button>`);
+  picker.append(all);
+  for (const m of models) picker.append(el(`<button type="button" data-model="${esc(m)}" aria-pressed="${FILTER.model === m}">${esc(m)}</button>`));
+  const banner = $("#scope-banner");
+  const paint = () => {
+    picker.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.model || null) === FILTER.model)));
+    banner.hidden = !FILTER.model;
+    banner.innerHTML = FILTER.model
+      ? `Showing <b>${esc(FILTER.model)}</b> only · ${fmtInt.format(counts.get(FILTER.model) || 0)} conversations · return is same-model retention · <button type="button" class="linklike" id="scope-reset">Show all models</button>`
+      : "";
+    banner.querySelector("#scope-reset")?.addEventListener("click", () => { FILTER.model = null; paint(); onChange(); });
+  };
+  picker.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-model]");
+    if (!b) return;
+    FILTER.model = b.dataset.model || null;
+    paint();
+    onChange();
+  });
+  paint();
 }
 
 async function main() {
@@ -686,13 +761,21 @@ async function main() {
       b.hidden = false;
       b.textContent = `Intent coverage is "${meta.intent_coverage}". Intent and friction-by-intent views are incomplete or absent.`;
     }
-    const rendered = new Set();
+    const modelRows = await q(conn, `SELECT model, sum(conversations)::BIGINT AS n FROM volume_daily_model GROUP BY model ORDER BY n DESC`);
+    FILTER.models = modelRows.map((r) => r.model);
+    const counts = new Map(modelRows.map((r) => [r.model, r.n]));
+    const start = parseHash();
+    FILTER.model = FILTER.models.includes(start.model) ? start.model : null;
+    let rendered = new Set();
+    let current = start.view;
     const go = async (name) => {
+      current = name;
       showView(name);
       if (!rendered.has(name) && RENDERERS[name]) { await RENDERERS[name](conn, meta); rendered.add(name); }
     };
+    buildPicker(FILTER.models, counts, () => { rendered = new Set(); go(current); });
     document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
-    await go((location.hash || "#overview").slice(1));
+    await go(RENDERERS[start.view] ? start.view : "overview");
   } catch (err) {
     $("#status").textContent = `Failed to load: ${err.message}`;
     console.error(err);

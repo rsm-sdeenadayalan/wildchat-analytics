@@ -18,6 +18,7 @@ METRICS = [
     "intensity_weekly", "pseudo_user_persistence_quarterly", "depth_by_model",
     "intent_weekly", "intent_by_model", "intent_by_language",
     "friction_by_intent_model", "friction_weekly", "data_quality_weekly",
+    "intensity_weekly_model", "intent_weekly_model", "friction_weekly_model", "data_quality_weekly_model",
 ]
 
 
