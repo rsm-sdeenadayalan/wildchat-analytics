@@ -24,7 +24,7 @@ Labeling and classification ran after the v1 site went live (2026-09-25 to 26) t
 - Instrument the in-market metrics from PRD 6.1: export events, so exporting a number with its caveat counts as an answered question, plus a caveat retention check.
 - Build a second adapter for a common log format, OpenAI-compatible chat completion logs as JSONL, to prove the schema is not WildChat-specific (R12).
 - Run usability test round two with in-market pilot users, not the interview-pool proxy sample used for the v1 launch criteria, on real questions.
-- Dashboard polish (from the design review): legend for the p50/p90 pair, a muted token for the suppressed_or_unknown bar, a fixed taxonomy-order color domain for intent charts.
+- Cross-view model filter: a picker that isolates one model family on every view at once. Needs the weekly intensity, intent and friction aggregates re-cut by model under the same `min_cell` rule; per-chart legend isolation shipped 2026-10-02 covers the single-chart case.
 
 ## Later
 
