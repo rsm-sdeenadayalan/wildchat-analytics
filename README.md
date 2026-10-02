@@ -6,11 +6,7 @@ Loupe turns raw conversation logs into the answers a product manager needs: who 
 
 It is built and demonstrated on [WildChat-4.8M](https://huggingface.co/datasets/allenai/WildChat-4.8M), 3.2 million real human–ChatGPT conversations, and it ships as both a product (pipeline + dashboard published from this repo via GitHub Pages) and a set of findings (a public trends report).
 
-This repo is also an end-to-end record of the product management work behind it: opportunity brief, user research, metrics framework, PRD, roadmap, design, launch, findings, strategy memo, and retrospective. Start with the design spec:
-
-- `docs/superpowers/specs/2026-09-17-loupe-design.md`
-
-PM artifacts will live under `docs/pm/` in the order they were produced.
+This repo is also an end-to-end record of the product management work behind it. Start with the [case study guide](docs/pm/README.md), which tells you what to read in what order; the ten-minute version is the [opportunity brief](docs/pm/01-opportunity-brief.md), the [trends report](docs/pm/07-trends-report.md) (eleven findings, every number re-derived from the published data by `scripts/check_report.py`), and the [retrospective](docs/pm/09-retro.md). The engineering design spec is at `docs/superpowers/specs/2026-09-17-loupe-design.md`.
 
 ## Attribution
 
