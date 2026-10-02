@@ -38,12 +38,25 @@ export async function boot() {
 
 export async function q(conn, sql) {
   const table = await conn.query(sql);
+  // Arrow JS serializes DATE as epoch milliseconds and TIMESTAMP as an integer in the column's unit;
+  // convert those columns back to JS Dates so axes and tables show dates, not numbers.
+  const dateCols = new Map();
+  for (const f of table.schema.fields) {
+    const t = String(f.type);
+    if (/^Date/.test(t)) dateCols.set(f.name, 1);
+    else if (/^Timestamp<NANO/.test(t)) dateCols.set(f.name, 1e-6);
+    else if (/^Timestamp<MICRO/.test(t)) dateCols.set(f.name, 1e-3);
+    else if (/^Timestamp<MILLI/.test(t)) dateCols.set(f.name, 1);
+    else if (/^Timestamp<SECOND/.test(t)) dateCols.set(f.name, 1e3);
+  }
   return table.toArray().map((row) => {
     const o = row.toJSON();
     for (const k in o) {
       const v = o[k];
+      if (v == null) continue;
+      if (dateCols.has(k)) { o[k] = v instanceof Date ? v : new Date(Number(v) * dateCols.get(k)); continue; }
       if (typeof v === "bigint") o[k] = Number(v);
-      else if (v && typeof v === "object" && !(v instanceof Date) && typeof v.toString === "function" && /^-?\d+$/.test(v.toString())) o[k] = Number(v.toString());
+      else if (typeof v === "object" && !(v instanceof Date) && typeof v.toString === "function" && /^-?\d+$/.test(v.toString())) o[k] = Number(v.toString());
     }
     return o;
   });

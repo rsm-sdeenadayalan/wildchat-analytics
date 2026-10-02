@@ -47,6 +47,10 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             except Exception:
                 status = await page.evaluate("document.querySelector('#status')?.textContent")
                 problems.append(f"dashboard never rendered; status still: {status!r}")
+            epoch_ticks = await page.evaluate(
+                "[...document.querySelectorAll('#view-overview svg text')].map(t => t.textContent).filter(t => /^\\d{1,3}(,\\d{3}){3,}$/.test(t))")
+            if epoch_ticks:
+                problems.append(f"overview axis shows epoch milliseconds instead of dates: {epoch_ticks[:3]}")
             for tab in TABS[1:]:
                 await page.click(f'.tabs button[data-view="{tab}"]')
                 await page.wait_for_timeout(1500)
