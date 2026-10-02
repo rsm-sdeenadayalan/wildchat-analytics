@@ -28,6 +28,9 @@ def _serve(directory: Path, port: int):
     return httpd
 
 
+LAYOUT_WIDTHS = (390, 768, 1000, 1100, 1280)
+
+
 async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None = None, timeout_s: int = 90) -> list[str]:
     from playwright.async_api import async_playwright
 
@@ -57,6 +60,18 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 n = await page.evaluate(f"document.querySelectorAll('#view-{tab} .card, #view-{tab} .tile').length")
                 if n == 0:
                     problems.append(f"view {tab}: rendered nothing")
+            # Layout: at common widths no horizontal page scroll, and no KPI number wider than its tile.
+            for width in LAYOUT_WIDTHS:
+                await page.set_viewport_size({"width": width, "height": 900})
+                await page.click('.tabs button[data-view="overview"]')
+                await page.wait_for_timeout(300)
+                sw, cw = await page.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+                if sw > cw:
+                    problems.append(f"horizontal overflow at {width}px: scrollWidth {sw} > {cw}")
+                clipped = await page.evaluate(
+                    "[...document.querySelectorAll('.tile b')].filter(b => b.scrollWidth > b.clientWidth + 1 || b.getClientRects().length > 1).map(b => b.textContent)")
+                if clipped:
+                    problems.append(f"KPI numbers wrap or clip at {width}px: {clipped[:3]}")
             await browser.close()
     finally:
         httpd.shutdown()
