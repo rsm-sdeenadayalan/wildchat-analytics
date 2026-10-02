@@ -2,7 +2,7 @@
 
 **What this is for:** Show what Loupe ships now, what comes next, what is deferred, and what was cut on purpose.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## Now
 

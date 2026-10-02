@@ -2,7 +2,7 @@
 
 **What this is for:** Define what Loupe must do, for whom, at what priority, and how launch is judged, before dashboard and pipeline work is finalized.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 **Version:** 0.1
 
 ## Problem

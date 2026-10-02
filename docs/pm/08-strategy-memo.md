@@ -2,7 +2,7 @@
 
 **What this is for:** Tell leadership of a company building a general-purpose AI assistant what a 3.2-million-conversation usage dataset implies for quality investment and reading early usage signals, and what is still unproven.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## Situation
 

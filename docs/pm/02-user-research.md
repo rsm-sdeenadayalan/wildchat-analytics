@@ -2,7 +2,7 @@
 
 **What this is for:** Record what we know about the user from public evidence, what we are assuming, and how each assumption would be tested first.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## Research questions
 

@@ -2,7 +2,7 @@
 
 **What this is for:** Make the case for building Loupe before any design or code work starts.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## Problem
 

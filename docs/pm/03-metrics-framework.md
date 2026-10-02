@@ -2,7 +2,7 @@
 
 **What this is for:** Define, before any pipeline code runs, exactly what Loupe measures about an assistant's usage, why, and where each number is honest versus biased.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## Purpose
 

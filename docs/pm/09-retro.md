@@ -2,7 +2,7 @@
 
 **What this is for:** Record what Loupe shipped, what was cut, what the launch checks found, and what a next run should do differently, honestly.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## What shipped
 

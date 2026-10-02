@@ -2,7 +2,7 @@
 
 **What this is for:** Tell a reader what to read, in what order, and how long it takes.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 Loupe is a user analytics product for teams that ship a GenAI assistant. This folder is the record of the product work behind it, in the order it was done. Every document is dated and carries a status. Numbers in the trends report are reproducible from the committed aggregates by running `uv run python scripts/check_report.py`.
 

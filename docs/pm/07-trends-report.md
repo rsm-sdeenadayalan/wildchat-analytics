@@ -2,7 +2,7 @@
 
 **What this is for:** Give a product owner findings about real usage of a free public GPT-style assistant, each tied to a live dashboard view and a number anyone can re-run against the aggregates.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## Read this first
 

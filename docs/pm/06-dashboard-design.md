@@ -2,7 +2,7 @@
 
 **What this is for:** Fix what the dashboard shows and how a reader interacts with it before the build is judged.
 **Date:** 2026-09-20
-**Status:** Draft
+**Status:** Final
 
 ## Who reads it and when
 
