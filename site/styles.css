@@ -129,3 +129,51 @@ table.grid tbody tr:hover td { background: var(--bg-alt); }
 .doc ul, .doc ol { padding-left: 24px; margin: 0 0 16px; }
 .doc li { margin-bottom: 6px; }
 .doc img { max-width: 100%; border-radius: var(--radius-sm); }
+
+/* Tiles: date or context line under the label */
+.tile small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; opacity: 0.85; }
+
+/* Insight card: the question a product owner asks, answered from the data */
+.card.insight { background: var(--fg); color: #fff; box-shadow: none; padding: 28px 30px 26px; }
+.card.insight .eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
+.card.insight h2 { color: #fff; font-size: clamp(22px, 3vw, 30px); letter-spacing: -0.025em; margin-bottom: 16px; }
+.facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.facts li { position: relative; padding-left: 22px; font-size: 16px; line-height: 1.5; color: rgba(255, 255, 255, 0.82); }
+.facts li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 10px; height: 10px; border-radius: 50%; background: var(--c1); }
+.facts li:nth-child(2)::before { background: var(--c2); }
+.facts li:nth-child(3)::before { background: var(--c3); }
+.facts li b { color: #fff; font-weight: 600; }
+.card.insight .more { display: inline-block; margin-top: 18px; color: #6cb4ff; font-size: 15px; font-weight: 500; }
+@media (max-width: 640px) { .card.insight { padding: 22px 20px 20px; } .facts li { font-size: 15px; } }
+
+/* Chart cards */
+.card.chart .card-head { margin-bottom: 12px; }
+.card .so { margin: 4px 0 0; font-size: 15px; line-height: 1.45; color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; background: var(--bg-alt); color: var(--fg); border: 0; border-radius: 999px; padding: 5px 11px 5px 8px; font: 500 13px/1.2 var(--font); letter-spacing: -0.005em; cursor: pointer; transition: background 0.15s ease, opacity 0.15s ease, color 0.15s ease; }
+.chip i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.chip:hover { background: #e8e8ed; }
+.chip.off { opacity: 0.38; }
+.chip.off i { filter: grayscale(1); }
+.chip[aria-pressed="true"] { background: var(--fg); color: #fff; }
+.chip[hidden] { display: none; }
+.chip.chip-all { background: transparent; color: var(--accent); padding-left: 10px; }
+.chip.chip-all:hover { text-decoration: underline; }
+.legend .hint { margin-left: auto; color: var(--muted); font-size: 12px; }
+@media (max-width: 640px) { .legend .hint { display: none; } }
+.panels { display: grid; gap: 0; }
+details.def { margin-top: 10px; }
+details.def summary { cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 500; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+details.def summary::-webkit-details-marker { display: none; }
+details.def summary::before { content: "i"; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid currentColor; font: 600 10px/1 var(--font); font-style: italic; }
+details.def[open] summary { color: var(--fg); }
+details.def p { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 820px; }
+.card figure [class$="-ramp"] { font-family: var(--font) !important; font-size: 11px !important; margin-bottom: 8px; }
+
+/* Collapsible reliability card on the Intent view */
+details.reliability summary { cursor: pointer; list-style: none; }
+details.reliability summary::-webkit-details-marker { display: none; }
+details.reliability summary h2 { display: inline; margin-right: 10px; }
+details.reliability summary .so { display: block; margin-top: 6px; color: var(--muted); }
+details.reliability[open] summary .so { display: none; }
+details.reliability .note { margin-top: 12px; }

@@ -60,6 +60,26 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 n = await page.evaluate(f"document.querySelectorAll('#view-{tab} .card, #view-{tab} .tile').length")
                 if n == 0:
                     problems.append(f"view {tab}: rendered nothing")
+            # Product surface: every analytic view opens with an insight card, and every chart has a clickable legend
+            # whose chips isolate a series (the drawn series count must drop).
+            for tab in TABS[:-1]:
+                n_insight = await page.evaluate(f"document.querySelectorAll('#view-{tab} .card.insight').length")
+                if n_insight != 1:
+                    problems.append(f"view {tab}: expected one insight card, found {n_insight}")
+                n_charts, n_legends = await page.evaluate(
+                    f"[document.querySelectorAll('#view-{tab} .card.chart').length, document.querySelectorAll('#view-{tab} .card.chart .legend .chip[data-key]').length]")
+                if n_charts == 0 or n_legends < n_charts:
+                    problems.append(f"view {tab}: {n_charts} charts but only {n_legends} legend chips")
+            await page.click('.tabs button[data-view="overview"]')
+            await page.wait_for_timeout(300)
+            before = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg path[stroke]').length")
+            await page.click('#view-overview .card.chart .legend .chip[data-key]')
+            await page.wait_for_timeout(500)
+            after = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg path[stroke]').length")
+            if not (0 < after < before):
+                problems.append(f"legend isolate did not reduce drawn series: {before} -> {after}")
+            await page.click('#view-overview .card.chart .legend .chip-all')
+            await page.wait_for_timeout(300)
             # Layout: at common widths no horizontal page scroll, and no KPI number wider than its tile.
             for width in LAYOUT_WIDTHS:
                 await page.set_viewport_size({"width": width, "height": 900})

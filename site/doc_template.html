@@ -11,5 +11,14 @@
 <header class="top"><div class="wrap"><a class="brand" href="../">Loupe</a><span class="tag">case study</span><a class="docs-link" href="../">Dashboard →</a></div></header>
 <nav class="docnav">{{nav}}</nav>
 <article class="doc">{{body}}</article>
+<script>
+  // Short anchors: #f3 scrolls to the heading whose generated id starts with "f3-".
+  (function () {
+    var m = /^#(f\d+)$/.exec(location.hash);
+    if (!m) return;
+    var h = document.querySelector('[id^="' + m[1] + '-"]');
+    if (h) h.scrollIntoView();
+  })();
+</script>
 </body>
 </html>
