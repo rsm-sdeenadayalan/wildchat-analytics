@@ -325,7 +325,7 @@ export async function renderOverview(conn, meta) {
       return Plot.plot({
         width: w, height: 320, marginLeft: 60,
         color: { domain: models, range: colors },
-        x: { label: null }, y: { label: "conversations / week", grid: true },
+        x: { label: null }, y: { label: "conversations / week", grid: true, insetBottom: 8 },
         marks: [...timeMarks(), Plot.lineY(rows, { x: "week", y: "conversations", stroke: "model", strokeWidth: 1.75, strokeOpacity: (d) => dim(hover, d.model), tip: TIP }), ...endMark],
       });
     },
@@ -415,7 +415,7 @@ export async function renderIntensity(conn, meta) {
       const share = bridged(weekly, { value: "top10_share" });
       if (isOn("pseudo-users")) box.append(Plot.plot({
         width: w, height: both ? 200 : 260, marginLeft: 60, marginBottom: both ? 10 : 30,
-        x: { label: null, axis: both ? null : "bottom" }, y: { label: "pseudo-users / week", grid: true },
+        x: { label: null, axis: both ? null : "bottom" }, y: { label: "pseudo-users / week", grid: true, insetBottom: 8 },
         marks: [...timeMarks(),
           Plot.areaY(users, { x: "week", y: "pseudo_users", fill: c1, fillOpacity: 0.12 * dim(hover, "pseudo-users") }),
           Plot.lineY(users, { x: "week", y: "pseudo_users", stroke: c1, strokeWidth: 1.75, strokeOpacity: dim(hover, "pseudo-users"), tip: TIP })],
