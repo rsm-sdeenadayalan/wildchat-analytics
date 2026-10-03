@@ -192,3 +192,5 @@ details.reliability .note { margin-top: 12px; }
 
 /* Chart keys and residual rows */
 .card .keys { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+table.grid .null { color: var(--muted); font-family: var(--mono); font-size: 12px; opacity: 0.8; }

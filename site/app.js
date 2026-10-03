@@ -166,8 +166,10 @@ function tableEl(rows, limit = 200) {
   const cols = Object.keys(rows[0]);
   const wrap = document.createElement("div");
   wrap.className = "tablewrap";
-  const fmt = (v) => v instanceof Date ? v.toISOString().slice(0, 10) : typeof v === "number" && !Number.isInteger(v) ? v.toFixed(4) : String(v ?? "");
-  wrap.innerHTML = `<table class="grid"><thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
+  // NULL is shown as a muted "null", as a SQL client would, never as an empty cell that looks like a bug.
+  const fmt = (v) => v == null ? `<span class="null" title="NULL: this value is undefined for this row">null</span>`
+    : v instanceof Date ? v.toISOString().slice(0, 10) : typeof v === "number" && !Number.isInteger(v) ? v.toFixed(4) : esc(v);
+  wrap.innerHTML = `<table class="grid"><thead><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead>
     <tbody>${rows.slice(0, limit).map((r) => `<tr>${cols.map((c) => `<td>${fmt(r[c])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   return wrap;
 }
@@ -841,7 +843,8 @@ export async function renderQuery(conn) {
   const cols = await q(conn, `SELECT table_name, string_agg(column_name || ' ' || data_type, ', ' ORDER BY ordinal_position) AS columns FROM information_schema.columns WHERE table_schema = 'main' GROUP BY table_name ORDER BY table_name`);
   view.innerHTML = `<div class="card"><h2>Run your own SQL over the aggregates</h2>
     <p class="note">Everything runs in your browser with DuckDB-WASM. Only pre-computed aggregates are available; no transcript content exists here.</p>
-    <textarea id="sql">SELECT week, pseudo_users, round(return_rate, 3) AS return_rate
+    <textarea id="sql">-- return_rate is NULL when the following week is absent from the data (see next_week_present)
+SELECT week, pseudo_users, round(return_rate, 3) AS return_rate, next_week_present
 FROM intensity_weekly ORDER BY week DESC LIMIT 12</textarea>
     <div class="controls"><button class="run" id="run">Run</button><span id="qerr" class="status"></span></div>
     <div id="qout"></div></div>
