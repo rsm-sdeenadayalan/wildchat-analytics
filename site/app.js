@@ -210,6 +210,24 @@ function bandMarks() {
   return [Plot.rectX(weeks, { x1: (d) => d, x2: (d) => new Date(+d + WEEK_MS), fill: css("--fg"), fillOpacity: 0.045, title: label })];
 }
 const timeMarks = (label) => [...bandMarks(), ...breakMarks(label)];
+const fmtDay = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", ...utc });
+
+// Weeks in which a model family first or last appears in the logs, merged per week so a handoff
+// ("gpt-3.5-turbo ends, gpt-4o-mini begins") is one marker with one tooltip.
+function handoffEvents(models) {
+  const byWeek = new Map();
+  const add = (week, text) => { const k = +week; if (!byWeek.has(k)) byWeek.set(k, { week: new Date(k), ends: [], begins: [] }); byWeek.get(k)[text.kind].push(text.model); };
+  for (const m of models) {
+    const w = DATA.windows.get(m);
+    if (!w) continue;
+    if (w.w0 > DATA.from) add(w.w0, { kind: "begins", model: m });
+    if (w.w1 < DATA.through) add(w.w1, { kind: "ends", model: m });
+  }
+  return [...byWeek.values()].sort((a, b) => a.week - b.week).map((e) => ({
+    ...e,
+    label: [e.ends.length ? `${e.ends.join(", ")} last served` : "", e.begins.length ? `${e.begins.join(", ")} first served` : ""].filter(Boolean).join(" · ") + ` (${fmtWeek(e.week)})`,
+  }));
+}
 const CAPTION_RATES = "Dashed rule: collection break · Shaded: no conversations that week · Dotted: no measurement that week, line carried across";
 const CAPTION_COUNTS = "Dashed rule: collection break · Shaded: no conversations that week";
 
@@ -314,23 +332,38 @@ export async function renderOverview(conn, meta) {
   chart(view, {
     title: FILTER.model ? `Weekly ${FILTER.model} conversations` : "Weekly conversations by model",
     so: latest ? `Latest complete week: ${fmtInt.format(latest.conversations)} conversations, ${describeChange(pctChange(latest.conversations, peak.conversations))} from the peak in the ${fmtWeek(peak.week)}.` : "No complete weeks for this model.",
-    note: "Stacked by model: the height is the total conversations that week, and each color is the share served by one model family. The chatbot behind the logs switched models on fixed dates, so one color handing over to the next is a configuration change, not users leaving. A week with no conversations is drawn as zero; the partial final week is excluded.",
-    caption: CAPTION_COUNTS,
+    note: "Stacked by model: the height is the total conversations that week, and each color is the share served by one model family. The chatbot behind the logs switched models on fixed dates, so one color handing over to the next is a configuration change, not users leaving; the dots mark those weeks and name the models. A week with no conversations is drawn as zero; the partial final week is excluded.",
+    caption: CAPTION_COUNTS + " · Dots: a model's first or last week in the logs, hover for which",
     series: models.map((m, i) => ({ key: m, color: colors[i % colors.length] })),
     draw: ({ isOn, hover, w }) => {
       // Every model gets a row for every week in range (zero outside its window) so the stack is well defined.
       const rows = fillZeros(weekly.filter((r) => isOn(r.model)), { key: "model", value: "conversations", windowOf: () => range() });
       const shown = models.filter(isOn);
+      const totals = by(rows, (r) => +r.week, (r) => r.conversations);
+      const events = handoffEvents(shown).map((e) => ({ ...e, total: totals.get(+e.week) ?? 0 }));
+      // Layer midpoints for the tooltip, stacked in the same order as the areas; zero rows are skipped.
+      const cum = new Map();
+      const tipPoints = [];
+      for (const m of shown) for (const r of rows.filter((r) => r.model === m)) {
+        const base = cum.get(+r.week) || 0;
+        if (r.conversations > 0) tipPoints.push({ week: r.week, model: m, conversations: r.conversations, label: null, y: base + r.conversations / 2 });
+        cum.set(+r.week, base + r.conversations);
+      }
+      for (const e of events) tipPoints.push({ week: e.week, model: null, conversations: null, label: e.label, y: e.total });
       const endMark = win && win.w1 < DATA.through && latest ? [
-        Plot.dot([latest], { x: "week", y: "conversations", fill: colors[0], r: 4 }),
-        Plot.text([latest], { x: "week", y: "conversations", text: () => "last week in logs", dy: -12, fill: css("--muted"), fontSize: 11, textAnchor: "end" })] : [];
+        Plot.text([latest], { x: "week", y: "conversations", text: () => "last week in logs", dy: -14, fill: css("--muted"), fontSize: 11, textAnchor: "end" })] : [];
       return Plot.plot({
-        width: w, height: 320, marginLeft: 60,
+        width: w, height: 320, marginLeft: 60, marginTop: 24,
         color: { domain: models, range: colors },
         x: { label: null }, y: { label: "conversations / week", grid: true },
         marks: [...timeMarks(),
-          Plot.areaY(rows, Plot.stackY({ order: shown }, { x: "week", y: "conversations", fill: "model", fillOpacity: (d) => 0.9 * dim(hover, d.model), tip: TIP })),
+          Plot.areaY(rows, Plot.stackY({ order: shown }, { x: "week", y: "conversations", fill: "model", fillOpacity: (d) => 0.9 * dim(hover, d.model) })),
           Plot.lineY(rows, Plot.stackY2({ order: shown }, { x: "week", y: "conversations", z: "model", stroke: "#fff", strokeWidth: 1, strokeOpacity: 0.7 })),
+          Plot.dot(events, { x: "week", y: "total", r: 4.5, fill: "#fff", stroke: css("--fg"), strokeWidth: 1.5 }),
+          // One tooltip layer: measured layer midpoints (never the zero-filled rows) plus the handoff markers.
+          Plot.tip(tipPoints, Plot.pointer({ x: "week", y: "y", maxRadius: 28,
+            channels: { model: "model", "conversations / week": "conversations", "model handoff": "label" },
+            format: { y: false, x: (d) => fmtWeek(d) } })),
           ...endMark],
       });
     },
