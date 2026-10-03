@@ -17,9 +17,25 @@
     </div>
   </header>
 
-  <section class="hero wrap">
-    <h1>See who your assistant serves.</h1>
-    <p>Who uses a GenAI assistant, how intensely, for what, and where it fails them. Demonstrated on 3.2 million real conversations from WildChat.</p>
+  <section class="intro wrap" id="intro" aria-label="About this project">
+    <div class="intro-grid">
+      <div class="intro-text">
+        <p class="eyebrow">A product case study by Shankar Deenadayalan</p>
+        <h1>See who your assistant serves.</h1>
+        <p class="thesis">A PM who owns an AI assistant usually can't answer four questions without an engineer writing a one-off script.</p>
+        <ol class="questions" id="questions" aria-label="The four questions"></ol>
+        <p class="intro-foot">Loupe answers them from logs alone, serving no transcript content. This is a working demo on <b id="intro-n">3.2 million</b> real conversations from the public WildChat dataset, standing in for a team's own logs.</p>
+        <div class="intro-actions">
+          <button type="button" class="run" id="intro-explore">Explore the dashboard</button>
+          <a class="btn-secondary" href="docs/">Read the case study →</a>
+        </div>
+      </div>
+      <figure class="loupe" aria-label="All conversations by week">
+        <div class="lens"><div class="glass" id="lens-chart"></div></div>
+        <figcaption id="lens-caption">Weekly conversations, all models</figcaption>
+      </figure>
+    </div>
+    <button type="button" class="intro-toggle" id="intro-toggle" hidden aria-expanded="false">About this project <span aria-hidden="true">▾</span></button>
   </section>
 
   <div class="tabs-wrap"><nav class="tabs" aria-label="Views">

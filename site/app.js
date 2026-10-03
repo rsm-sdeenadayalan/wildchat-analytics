@@ -863,6 +863,77 @@ FROM intensity_weekly ORDER BY week DESC LIMIT 12</textarea>
 }
 registerRenderer("query", renderQuery);
 
+// ---------- Intro: the four questions, answered live ----------
+
+const INTRO_KEY = "loupe-intro";
+const storage = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode or blocked storage: the intro simply stays open */ } },
+};
+
+export async function renderIntro(conn, meta, go) {
+  const intro = $("#intro");
+  if (!intro) return;
+  const through = completeThrough(meta);
+  const [vol] = await q(conn, `SELECT sum(conversations)::BIGINT AS n, min(date) AS d0, max(date) AS d1 FROM volume_daily_model`);
+  const weekly = (await q(conn, `SELECT date_trunc('week', date)::DATE AS week, sum(conversations)::BIGINT AS conversations FROM volume_daily_model GROUP BY 1 ORDER BY 1`)).filter((r) => r.week <= through);
+  const intensity = (await q(conn, `SELECT * FROM intensity_weekly ORDER BY week`)).filter((r) => r.week <= through);
+  const last = intensity.at(-1) || {};
+  const lastRet = [...intensity].reverse().find((r) => r.return_rate != null);
+  const [peak] = await q(conn, `SELECT max(pseudo_users) AS users FROM intensity_weekly`);
+  const [country] = await q(conn, `SELECT country, sum(conversations)::BIGINT AS n FROM volume_weekly_country WHERE country NOT IN ('not recorded', 'small cells') GROUP BY country ORDER BY n DESC LIMIT 1`);
+  const intents = meta.intent_coverage === "none" ? [] : await q(conn, `SELECT intent, sum(conversations)::BIGINT AS n FROM intent_by_model GROUP BY intent ORDER BY n DESC LIMIT 2`);
+  const intentN = sum(intents, (r) => r.n) || 1;
+  const [allIntent] = meta.intent_coverage === "none" ? [{ n: 1 }] : await q(conn, `SELECT sum(conversations)::BIGINT AS n FROM intent_by_model`);
+  const friction = (await q(conn, `SELECT * FROM friction_weekly ORDER BY week`)).filter((r) => r.week <= through);
+  const recentF = friction.slice(-12);
+  const oad = recentF.length ? sum(recentF, (r) => r.one_and_done_rate * r.conversations) / sum(recentF, (r) => r.conversations) : null;
+
+  const questions = [
+    { n: "01", q: "Who uses it?", view: "overview",
+      a: `<b>${fmtInt.format(peak.users ?? 0)}</b> pseudo-users in the busiest week${country ? `; ${esc(country.country)} is the largest country at ${fmtPct0(country.n / vol.n)}` : ""}` },
+    { n: "02", q: "How intensely?", view: "intensity",
+      a: lastRet ? `<b>${fmtPct(lastRet.return_rate)}</b> came back the following week; the top 10% of pseudo-users produce ${fmtPct0(last.top10_share)} of conversations` : "return rate not yet measurable" },
+    { n: "03", q: "For what?", view: "intent",
+      a: intents.length ? `<b>${esc(intents[0].intent)}</b> ${fmtPct0(intents[0].n / allIntent.n)}, then ${esc(intents[1].intent)} ${fmtPct0(intents[1].n / allIntent.n)}, across ${meta.taxonomy_version === "v2" ? "seven" : "the"} intent classes` : "intent labels not in this build" },
+    { n: "04", q: "Where does it fail them?", view: "friction",
+      a: oad != null ? `<b>${fmtPct0(oad)}</b> of recent conversations end after one turn; refusals, corrections and repeats are tracked per intent and model` : "friction proxies not yet computed" },
+  ];
+  $("#questions").innerHTML = questions.map((x) => `<li><button type="button" data-view="${x.view}">
+      <span class="num">${x.n}</span><span class="q">${x.q}</span><span class="a">${x.a}</span><span class="arrow" aria-hidden="true">→</span></button></li>`).join("");
+  $("#intro-n").textContent = fmtInt.format(vol.n);
+  $("#lens-caption").innerHTML = `<b>${fmtInt.format(vol.n)}</b> conversations, ${new Date(vol.d0).toLocaleDateString("en-US", { month: "short", year: "numeric", ...utc })} to ${new Date(vol.d1).toLocaleDateString("en-US", { month: "short", year: "numeric", ...utc })}, one point per week`;
+
+  // The glass: every week of traffic as one quiet line, the logo drawn from the data.
+  const glass = $("#lens-chart");
+  const size = glass.clientWidth || 240;
+  glass.replaceChildren(Plot.plot({
+    width: size, height: size, margin: 0, marginTop: size * 0.28, marginBottom: size * 0.28, marginLeft: size * 0.1, marginRight: size * 0.1,
+    x: { axis: null }, y: { axis: null },
+    marks: [
+      Plot.areaY(weekly, { x: "week", y: "conversations", fill: css("--c1"), fillOpacity: 0.12, curve: "monotone-x" }),
+      Plot.lineY(weekly, { x: "week", y: "conversations", stroke: css("--c1"), strokeWidth: 1.75, curve: "monotone-x" }),
+    ],
+  }));
+
+  const collapse = (yes) => {
+    intro.classList.toggle("collapsed", yes);
+    $("#intro-toggle").hidden = !yes;
+    $("#intro-toggle").setAttribute("aria-expanded", String(!yes));
+    storage.set(INTRO_KEY, yes ? "collapsed" : "open");
+  };
+  $("#intro-explore").addEventListener("click", () => { collapse(true); document.querySelector(".tabs-wrap")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("#intro-toggle").addEventListener("click", () => collapse(false));
+  $("#questions").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-view]");
+    if (!b) return;
+    collapse(true);
+    go(b.dataset.view);
+    document.querySelector(".tabs-wrap")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  if (storage.get(INTRO_KEY) === "collapsed") collapse(true);
+}
+
 // ---------- Shell ----------
 
 function showView(name) {
@@ -938,6 +1009,7 @@ async function main() {
     };
     const paint = buildPicker(FILTER.models, counts, () => { rendered = new Set(); go(current); });
     document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
+    await renderIntro(conn, meta, go);
     // Back/forward and hand-edited URLs: the hash is the source of truth for view and model.
     window.addEventListener("hashchange", () => {
       const h = parseHash();

@@ -108,6 +108,23 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 problems.append(f"legend isolate did not reduce drawn series: {before} -> {after}")
             await page.click('#view-overview .card.chart .legend .chip-all')
             await page.wait_for_timeout(300)
+            # Intro: four live-answered questions and a sparkline in the loupe; "Explore" folds it away and the choice persists.
+            nq = await page.evaluate("document.querySelectorAll('#questions button[data-view]').length")
+            if nq != 4:
+                problems.append(f"intro: expected 4 questions, found {nq}")
+            empty = await page.evaluate("[...document.querySelectorAll('#questions .a')].filter(a => !/\\d/.test(a.textContent)).length")
+            if empty:
+                problems.append(f"intro: {empty} question(s) have no numeric answer")
+            if not await page.evaluate("!!document.querySelector('#lens-chart svg path')"):
+                problems.append("intro: loupe sparkline did not render")
+            await page.click('#intro-explore')
+            await page.wait_for_timeout(300)
+            if not await page.evaluate("document.querySelector('#intro').classList.contains('collapsed') && !document.querySelector('#intro-toggle').hidden"):
+                problems.append("intro: Explore did not collapse the intro")
+            await page.click('#intro-toggle')
+            await page.wait_for_timeout(200)
+            if await page.evaluate("document.querySelector('#intro').classList.contains('collapsed')"):
+                problems.append("intro: toggle did not re-open the intro")
             # Tiles must equal the same quantities computed straight from the published aggregates.
             await page.click('.tabs button[data-view="overview"]')
             await page.wait_for_timeout(500)
