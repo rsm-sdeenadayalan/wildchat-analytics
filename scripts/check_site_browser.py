@@ -100,10 +100,10 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                     problems.append(f"view {tab}: {n_charts} charts but only {n_legends} legend chips")
             await page.click('.tabs button[data-view="overview"]')
             await page.wait_for_timeout(300)
-            before = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label="area"] path').length")
+            before = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label=\"area\"] path').length")
             await page.click('#view-overview .card.chart .legend .chip[data-key]')
             await page.wait_for_timeout(500)
-            after = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label="area"] path').length")
+            after = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label=\"area\"] path').length")
             if not (0 < after < before):
                 problems.append(f"legend isolate did not reduce drawn series: {before} -> {after}")
             await page.click('#view-overview .card.chart .legend .chip-all')
@@ -121,7 +121,7 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             banner = await page.evaluate("document.querySelector('#scope-banner')?.textContent || ''")
             if "gpt-4o" not in banner or not location_has_model(await page.evaluate("location.hash"), "gpt-4o"):
                 problems.append(f"model filter: banner/hash did not reflect gpt-4o: {banner!r}")
-            n_series = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label="area"] path').length")
+            n_series = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label=\"area\"] path').length")
             if n_series != 1:
                 problems.append(f"model filter: overview volume chart should draw one series, drew {n_series}")
             heading = await page.evaluate("document.querySelector('#view-overview .card.insight h2')?.textContent || ''")
@@ -140,7 +140,7 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             await page.wait_for_timeout(500)
             await page.click('.tabs button[data-view="overview"]')
             await page.wait_for_timeout(1500)
-            n_series = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label="area"] path').length")
+            n_series = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label=\"area\"] path').length")
             if n_series < 2:
                 problems.append(f"model filter: reset did not restore all series ({n_series})")
             # Layout: at common widths no horizontal page scroll, and no KPI number wider than its tile.
