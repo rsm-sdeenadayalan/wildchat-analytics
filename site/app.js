@@ -225,7 +225,8 @@ function handoffEvents(models) {
   }
   return [...byWeek.values()].sort((a, b) => a.week - b.week).map((e) => ({
     ...e,
-    label: [e.ends.length ? `${e.ends.join(", ")} last served` : "", e.begins.length ? `${e.begins.join(", ")} first served` : ""].filter(Boolean).join(" · ") + ` (${fmtWeek(e.week)})`,
+    ended: e.ends.length ? e.ends.join(", ") : null,
+    began: e.begins.length ? e.begins.join(", ") : null,
   }));
 }
 const CAPTION_RATES = "Dashed rule: collection break · Shaded: no conversations that week · Dotted: no measurement that week, line carried across";
@@ -346,10 +347,10 @@ export async function renderOverview(conn, meta) {
       const tipPoints = [];
       for (const m of shown) for (const r of rows.filter((r) => r.model === m)) {
         const base = cum.get(+r.week) || 0;
-        if (r.conversations > 0) tipPoints.push({ week: r.week, model: m, conversations: r.conversations, label: null, y: base + r.conversations / 2 });
+        if (r.conversations > 0) tipPoints.push({ week: r.week, model: m, conversations: r.conversations, ended: null, began: null, y: base + r.conversations / 2 });
         cum.set(+r.week, base + r.conversations);
       }
-      for (const e of events) tipPoints.push({ week: e.week, model: null, conversations: null, label: e.label, y: e.total });
+      for (const e of events) tipPoints.push({ week: e.week, model: null, conversations: null, ended: e.ended, began: e.began, y: e.total });
       const endMark = win && win.w1 < DATA.through && latest ? [
         Plot.text([latest], { x: "week", y: "conversations", text: () => "last week in logs", dy: -14, fill: css("--muted"), fontSize: 11, textAnchor: "end" })] : [];
       return Plot.plot({
@@ -362,7 +363,7 @@ export async function renderOverview(conn, meta) {
           Plot.dot(events, { x: "week", y: "total", r: 4.5, fill: "#fff", stroke: css("--fg"), strokeWidth: 1.5 }),
           // One tooltip layer: measured layer midpoints (never the zero-filled rows) plus the handoff markers.
           Plot.tip(tipPoints, Plot.pointer({ x: "week", y: "y", maxRadius: 28,
-            channels: { model: "model", "conversations / week": "conversations", "model handoff": "label" },
+            channels: { model: "model", "conversations / week": "conversations", "last week served": "ended", "first week served": "began" },
             format: { y: false, x: (d) => fmtWeek(d) } })),
           ...endMark],
       });
