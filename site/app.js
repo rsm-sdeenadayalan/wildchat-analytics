@@ -314,19 +314,24 @@ export async function renderOverview(conn, meta) {
   chart(view, {
     title: FILTER.model ? `Weekly ${FILTER.model} conversations` : "Weekly conversations by model",
     so: latest ? `Latest complete week: ${fmtInt.format(latest.conversations)} conversations, ${describeChange(pctChange(latest.conversations, peak.conversations))} from the peak in the ${fmtWeek(peak.week)}.` : "No complete weeks for this model.",
-    note: "Conversations per week. Each line is one model family as recorded in the logs, drawn across the weeks that model appears in; a week with no conversations is drawn as zero. The partial final week is excluded.",
+    note: "Stacked by model: the height is the total conversations that week, and each color is the share served by one model family. The chatbot behind the logs switched models on fixed dates, so one color handing over to the next is a configuration change, not users leaving. A week with no conversations is drawn as zero; the partial final week is excluded.",
     caption: CAPTION_COUNTS,
     series: models.map((m, i) => ({ key: m, color: colors[i % colors.length] })),
     draw: ({ isOn, hover, w }) => {
-      const rows = fillZeros(weekly.filter((r) => isOn(r.model)), { key: "model", value: "conversations", windowOf: (m) => { const x = DATA.windows.get(m); return [x.w0, x.w1 < DATA.through ? x.w1 : DATA.through]; } });
+      // Every model gets a row for every week in range (zero outside its window) so the stack is well defined.
+      const rows = fillZeros(weekly.filter((r) => isOn(r.model)), { key: "model", value: "conversations", windowOf: () => range() });
+      const shown = models.filter(isOn);
       const endMark = win && win.w1 < DATA.through && latest ? [
         Plot.dot([latest], { x: "week", y: "conversations", fill: colors[0], r: 4 }),
         Plot.text([latest], { x: "week", y: "conversations", text: () => "last week in logs", dy: -12, fill: css("--muted"), fontSize: 11, textAnchor: "end" })] : [];
       return Plot.plot({
         width: w, height: 320, marginLeft: 60,
         color: { domain: models, range: colors },
-        x: { label: null }, y: { label: "conversations / week", grid: true, insetBottom: 8 },
-        marks: [...timeMarks(), Plot.lineY(rows, { x: "week", y: "conversations", stroke: "model", strokeWidth: 1.75, strokeOpacity: (d) => dim(hover, d.model), tip: TIP }), ...endMark],
+        x: { label: null }, y: { label: "conversations / week", grid: true },
+        marks: [...timeMarks(),
+          Plot.areaY(rows, Plot.stackY({ order: shown }, { x: "week", y: "conversations", fill: "model", fillOpacity: (d) => 0.9 * dim(hover, d.model), tip: TIP })),
+          Plot.lineY(rows, Plot.stackY2({ order: shown }, { x: "week", y: "conversations", z: "model", stroke: "#fff", strokeWidth: 1, strokeOpacity: 0.7 })),
+          ...endMark],
       });
     },
   });
