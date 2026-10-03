@@ -5,7 +5,7 @@ Status: not yet run; the project owner could not recruit participants in the v1 
 Five participants from the interview pool. 25 minutes each. Moderated over a video call with screen share, or asynchronous as the fallback in the spec's risk table.
 
 ## Setup (3 min)
-Open the live dashboard at https://rsm-sdeenadayalan.github.io/wildchat-analytics/. "I'll ask five questions a product owner might ask about this assistant. Answer each using the dashboard; think aloud; I'll time you but speed is not the point. There are no trick questions."
+Open the live dashboard at https://loupe.shankard.com/. "I'll ask five questions a product owner might ask about this assistant. Answer each using the dashboard; think aloud; I'll time you but speed is not the point. There are no trick questions."
 
 ## Questions (one per job; start the timer when you finish reading; stop when they state an answer)
 1. Who: "Which three countries produced the most conversations overall?" (Data quality view)

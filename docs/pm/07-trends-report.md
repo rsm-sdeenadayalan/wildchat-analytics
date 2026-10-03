@@ -300,7 +300,7 @@ sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggr
 expect: 5.3
 -->
 
-Implication: the assistant is a question-answering and coding tool first; writing is third, not first, which changes where quality effort should go. What would falsify it: a hand-labeled random sample of 300 conversations whose question share differs from 27% by more than the classifier's known error. Live view: [Intent tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#intent).
+Implication: the assistant is a question-answering and coding tool first; writing is third, not first, which changes where quality effort should go. What would falsify it: a hand-labeled random sample of 300 conversations whose question share differs from 27% by more than the classifier's known error. Live view: [Intent tab](https://loupe.shankard.com/#intent).
 
 ### F9: In 2025, more than a third of traffic is greetings, tests, or gibberish, and it is almost all single-turn
 
@@ -347,7 +347,7 @@ sql: SELECT round(100.0*sum(conversations)/(SELECT sum(conversations) FROM 'aggr
 expect: 18.6
 -->
 
-Implication: a product owner should track junk traffic as its own metric and exclude it from engagement and quality denominators, or every 2025 number is diluted. What would falsify it: reading a random 100 of the 2025 "other" conversations and finding most are real requests the classifier mislabeled. Live view: [Intent tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#intent).
+Implication: a product owner should track junk traffic as its own metric and exclude it from engagement and quality denominators, or every 2025 number is diluted. What would falsify it: reading a random 100 of the 2025 "other" conversations and finding most are real requests the classifier mislabeled. Live view: [Intent tab](https://loupe.shankard.com/#intent).
 
 ### F10: Image-prompt generation lived almost entirely on the cheapest model, and reasoning models pulled coding work
 
@@ -378,7 +378,7 @@ sql: SELECT round(100.0*conversations/(SELECT sum(conversations) FROM 'aggregate
 expect: 15.1
 -->
 
-Implication: the cheap tier carried a distinct, prompt-generation workload that the premium tier did not; a product owner sizing model tiers should look at intent mix per tier, not just volume. What would falsify it: an intent-by-model table where image prompting is spread evenly across families. Live view: [Intent tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#intent).
+Implication: the cheap tier carried a distinct, prompt-generation workload that the premium tier did not; a product owner sizing model tiers should look at intent mix per tier, not just volume. What would falsify it: an intent-by-model table where image prompting is spread evenly across families. Live view: [Intent tab](https://loupe.shankard.com/#intent).
 
 ### F11: Friction differs by what people are doing: creative and question conversations draw the most refusals, coding the most single-turn exits among real requests
 
@@ -405,7 +405,7 @@ sql: SELECT round(sum(conversations*repeat_rate)/sum(conversations), 3) FROM 'ag
 expect: 0.054
 -->
 
-Implication: quality investment should be intent-specific; a refusal-rate target that ignores intent will be dominated by creative conversations. What would falsify it: the 300-label precision check showing the refusal proxy fires mostly on non-refusals in creative conversations. Live view: [Friction tab](https://rsm-sdeenadayalan.github.io/wildchat-analytics/#friction).
+Implication: quality investment should be intent-specific; a refusal-rate target that ignores intent will be dominated by creative conversations. What would falsify it: the 300-label precision check showing the refusal proxy fires mostly on non-refusals in creative conversations. Live view: [Friction tab](https://loupe.shankard.com/#friction).
 
 ## Method
 
