@@ -122,12 +122,18 @@ async function drawWorld(s) {
 const USER_TEXT = "Can you tighten the opening of my cover letter? It feels long.";
 const BOT_TEXT = "Yes. Lead with the role and the one result you're proudest of, then cut the sentence about your background. Want me to draft two versions?";
 
+const LOG_FIELDS = ["ts", "model", "ip", "country", "turns", "len"];
 function typeInto(p) {
   const u = $("#u-text"), b = $("#b-text"), uc = $("#u-caret"), bc = $("#b-caret"), typing = $("#b-typing"), stage = $("#stage");
   if (!u || !b) return;
-  const uN = Math.round(seg(p, 0.015, 0.1) * USER_TEXT.length);
-  const botOn = p > 0.115;
-  const bN = Math.round(seg(p, 0.15, 0.245) * BOT_TEXT.length);
+  // 0 .. 0.11: the log line, one field lighting up at a time with its meaning
+  const lit = Math.floor(seg(p, 0.01, 0.1) * (LOG_FIELDS.length + 0.999));
+  document.querySelectorAll(".lf, .ltag").forEach((e) => e.classList.toggle("lit", LOG_FIELDS.indexOf(e.dataset.f) < lit));
+  stage.classList.toggle("to-chat", p > 0.115);
+  // 0.12 .. 0.26: the line becomes the conversation it describes
+  const uN = Math.round(seg(p, 0.125, 0.175) * USER_TEXT.length);
+  const botOn = p > 0.18;
+  const bN = Math.round(seg(p, 0.195, 0.25) * BOT_TEXT.length);
   u.textContent = USER_TEXT.slice(0, uN);
   uc.hidden = !(uN > 0 && uN < USER_TEXT.length);
   stage.classList.toggle("bot-on", botOn);
@@ -146,7 +152,7 @@ const CAPTIONS = [
 function finalFrame() {
   const stage = $("#stage");
   if (!stage) return;
-  stage.dataset.beat = "4"; stage.classList.add("typed"); typeInto(1);
+  stage.dataset.beat = "4"; stage.classList.add("typed", "to-chat"); typeInto(1);
   stage.style.setProperty("--zoom", "1"); stage.style.setProperty("--gray", "0.6"); stage.style.setProperty("--lens", "1");
   document.querySelectorAll("#story-map circle").forEach((c) => c.classList.add("on"));
   document.querySelectorAll(".qtile").forEach((t) => t.classList.add("answered"));
@@ -156,7 +162,7 @@ function finalFrame() {
 }
 
 function bindStory(circles) {
-  const pin = $("#story"), stage = $("#stage"), caption = $("#frame-caption"), bar = $("#progress-bar"), label = $("#progress-label");
+  const pin = $("#story"), stage = $("#stage"), caption = $("#frame-caption");
   const panels = [...document.querySelectorAll(".caption")];
   const tiles = [...document.querySelectorAll(".qtile")];
   const render = (p) => {
@@ -172,8 +178,6 @@ function bindStory(circles) {
     stage.style.setProperty("--lens", String(seg(p, 0.74, 0.86)));
     tiles.forEach((t, i) => t.classList.toggle("answered", p > 0.85 + i * 0.03));
     panels.forEach((c) => c.classList.toggle("is-active", c.dataset.beat === String(beat)));
-    if (bar) bar.style.setProperty("--p", String(p));
-    if (label) label.textContent = `0${beat} / 04`;
   };
   if (reduced()) { finalFrame(); return; }
 
@@ -185,7 +189,6 @@ function bindStory(circles) {
   ScrollTrigger.create({
     trigger: pin, start: "top top", end: "+=520%", pin: true, scrub: true, anticipatePin: 1,
     onUpdate: (self) => render(self.progress),
-    onToggle: (self) => pin.classList.toggle("is-pinned", self.isActive),
   });
   render(0);
   // in-page links scroll smoothly through Lenis
@@ -204,6 +207,10 @@ async function fillBuilt() {
     set("#b-cost", `${p.cost_aware.cost_change_pct >= 0 ? "+" : ""}${Math.round(100 * p.cost_aware.cost_change_pct)}%`);
   } catch { /* strip keeps its build-time text */ }
 }
+
+// A reload must land on the headline, not on a scroll offset the browser remembered from an older layout.
+try { history.scrollRestoration = "manual"; } catch { /* unsupported */ }
+if (!location.hash) scrollTo(0, 0);
 
 (async () => {
   const story = await loadStory();

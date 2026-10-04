@@ -79,3 +79,24 @@ def test_build_fails_on_dangling_relative_link(tmp_path):
     (docs / "README.md").write_text("# Home\n\n[missing](nowhere.md)\n")
     with pytest.raises(RuntimeError, match="nowhere.html"):
         build(site_dir=site, aggregates_dir=agg, docs_dir=docs, out_dir=tmp_path / "dist")
+
+
+def test_build_appends_content_hashes_to_local_assets(tmp_path):
+    import re
+
+    site = tmp_path / "site"; site.mkdir()
+    (site / "index.html").write_text('<link rel="stylesheet" href="story.css" /><script type="module" src="story.js"></script>')
+    (site / "story.css").write_text("body{}"); (site / "story.js").write_text("// a"); (site / "styles.css").write_text("x{}"); (site / "app.js").write_text("// b")
+    (site / "doc_template.html").write_text('<link rel="stylesheet" href="../styles.css" />{{title}}|{{nav}}|{{body}}')
+    (site / "app").mkdir(); (site / "app" / "index.html").write_text('<link rel="stylesheet" href="../styles.css" /><script type="module" src="../app.js"></script>')
+    agg = tmp_path / "aggregates"; agg.mkdir(); (agg / "meta.json").write_text("{}")
+    docs = tmp_path / "docs"; docs.mkdir(); (docs / "README.md").write_text("# Guide\n")
+    out = tmp_path / "dist"
+    build(site, agg, docs, out)
+    idx = (out / "index.html").read_text(); app = (out / "app" / "index.html").read_text(); doc = (out / "docs" / "index.html").read_text()
+    assert re.search(r'href="story\.css\?v=[0-9a-f]{10}"', idx) and re.search(r'src="story\.js\?v=[0-9a-f]{10}"', idx)
+    assert re.search(r'href="\.\./styles\.css\?v=[0-9a-f]{10}"', app) and re.search(r'src="\.\./app\.js\?v=[0-9a-f]{10}"', app)
+    assert re.search(r'href="\.\./styles\.css\?v=[0-9a-f]{10}"', doc)
+    (site / "story.css").write_text("body{color:red}")
+    build(site, agg, docs, out)
+    assert (out / "index.html").read_text() != idx

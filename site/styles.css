@@ -199,6 +199,7 @@ table.grid .null { color: var(--muted-2); font-family: var(--mono); font-size: 1
 
 .era-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; }
 .card.built table.grid tr.rec td { background: rgba(242, 169, 59, 0.14); font-weight: 600; }
+.card.built .note.prior { margin: 10px 0 14px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg); }
 .card.built .exp { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .card.built .exp h3 { margin: 0 0 8px; font: 700 16px/1.2 var(--display); letter-spacing: -0.02em; }
 .card.built .exp ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; line-height: 1.5; }

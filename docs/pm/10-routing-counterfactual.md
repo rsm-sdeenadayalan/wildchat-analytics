@@ -73,6 +73,8 @@ tolerance: 0.0005
 
 The cost-aware rule is the recommendation. On the data as it stands it would have cut single-turn exits among real requests from one in five to one in twelve, for nine percent more spend. Sending everything to the cheapest model saves 94% and loses a third of real requests after one turn; sending everything to the best model for friction costs 2.6 times as much for half a point of extra benefit over the cost-aware rule.
 
+Routing by request is an existing market: OpenRouter's Auto, Martian, Not Diamond and the RouteLLM paper all do versions of it. The data arrived at the same conclusion on its own. What none of them publish is the size of the prize on real traffic by intent, or an outcome measured from what users did next. That is what this page adds, and what a team would need to decide whether to turn a router on.
+
 The earlier window tells a different story and is worth stating because it is a null result. Between 2023-04-09 and 2024-05-06 only gpt-3.5-turbo and gpt-4 overlapped, and routing barely moves friction: the best policy gains 1.6 points for 184% more cost. Routing is worth doing when the models differ by intent, not as a rule in itself.
 
 <!-- loupe-check id=eraA-best-gain

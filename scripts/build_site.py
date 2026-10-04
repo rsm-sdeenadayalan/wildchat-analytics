@@ -74,6 +74,20 @@ def story_numbers(aggregates_dir: Path) -> dict | None:
     }
 
 
+_ASSET_REF = re.compile(r'((?:href|src)=")((?:\.\./)?(?:styles\.css|story\.css|story\.js|app\.js))(")')
+
+
+def asset_hash(site_dir: Path, name: str) -> str:
+    import hashlib
+
+    return hashlib.sha256((site_dir / name).read_bytes()).hexdigest()[:10]
+
+
+def bust_assets(html: str, site_dir: Path) -> str:
+    """Append a content hash to every local stylesheet and script URL so a changed asset is never served stale."""
+    return _ASSET_REF.sub(lambda m: f"{m.group(1)}{m.group(2)}?v={asset_hash(site_dir, m.group(2).removeprefix('../'))}{m.group(3)}", html)
+
+
 def rewrite_links(body_html: str) -> str:
     """Point the markdown's repo-relative links at what the site actually serves.
 
@@ -105,7 +119,7 @@ def check_links(out_dir: Path) -> list[str]:
         for href in _HREF.findall(page.read_text()):
             if _EXTERNAL.match(href):
                 continue
-            path = href.split("#", 1)[0]
+            path = href.split("#", 1)[0].split("?", 1)[0]
             if not path:
                 continue
             target = (page.parent / path).resolve()
@@ -125,6 +139,8 @@ def render_doc(
 ) -> str:
     tpl_path = template_path if template_path is not None else _default_template_path()
     tpl = tpl_path.read_text()
+    if (tpl_path.parent / "styles.css").exists():
+        tpl = bust_assets(tpl, tpl_path.parent)
     _MD.reset()
     body = rewrite_links(_MD.convert(md_text))
     nav_html = " · ".join(
@@ -151,6 +167,8 @@ def build(
             shutil.copy2(p, out_dir / p.name)
         elif p.is_dir():
             shutil.copytree(p, out_dir / p.name)
+    for page in list(out_dir.glob("*.html")) + list(out_dir.glob("*/index.html")):
+        page.write_text(bust_assets(page.read_text(), site_dir))
 
     (out_dir / "aggregates").mkdir()
     copied = []

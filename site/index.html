@@ -32,7 +32,12 @@
       <h1>See who your<br />assistant serves</h1>
       <span class="marker marker-right">→ not another dashboard.<br />a loupe.</span>
     </div>
-    <p class="mast-sub">A product case study by Shankar Deenadayalan. Scroll to follow one conversation out to the whole world, and back in through the glass.</p>
+    <div class="plain">
+      <div><b>What it is</b>A user-analytics product for teams shipping an AI assistant. It reads the logs and answers four questions: who, how often, for what, where it fails.</div>
+      <div><b>Why I built it</b>Every team has the logs. Almost none can read them without an engineer. This is the product a PM would build to fix that, end to end.</div>
+      <div><b>What's real</b>3.2 million real conversations from a public dataset. Aggregates only, never transcripts. Every number is checked on every build.</div>
+    </div>
+    <p class="mast-sub">A product case study by Shankar Deenadayalan</p>
     <p class="scroll-cue" aria-hidden="true">scroll ↓</p>
   </header>
 
@@ -40,9 +45,9 @@
     <div class="viewport">
       <div class="captions" id="captions">
         <div class="caption is-active" data-beat="1">
-          <p class="kicker"><span class="num">①</span> someone, somewhere</p>
-          <h2>A question is asked.</h2>
-          <p class="body">One conversation with an assistant. The logs keep its shape, never its words. In these logs it happened three million times.</p>
+          <p class="kicker"><span class="num">①</span> one log line</p>
+          <h2>This is all a team ever sees.</h2>
+          <p class="body">A timestamp, a model, a hashed address, a country, a turn count, a reply length. No words. Every team has millions of these. Loupe reads them.</p>
         </div>
         <div class="caption" data-beat="2">
           <p class="kicker"><span class="num">②</span> <b id="s-users">…</b> of them, in one week</p>
@@ -68,9 +73,22 @@
       <figure class="frame" id="frame">
         <div class="canvas" id="stage" data-beat="1">
           <div class="light" aria-hidden="true"></div>
+          <div class="scene scene-log" aria-hidden="true">
+            <div class="logrow" id="logrow">
+              <span class="lf" data-f="ts">2024-11-18 14:02</span><span class="lsep">·</span>
+              <span class="lf" data-f="model">gpt-4o-mini</span><span class="lsep">·</span>
+              <span class="lf" data-f="ip">7a3f…c9</span><span class="lsep">·</span>
+              <span class="lf" data-f="country">Vietnam</span><span class="lsep">·</span>
+              <span class="lf" data-f="turns">1 turn</span><span class="lsep">·</span>
+              <span class="lf" data-f="len">212 chars</span>
+            </div>
+            <div class="logtags" id="logtags">
+              <span class="ltag" data-f="ts">when</span><span class="ltag" data-f="model">which model</span><span class="ltag" data-f="ip">who, hashed</span><span class="ltag" data-f="country">where</span><span class="ltag" data-f="turns">how long they stayed</span><span class="ltag" data-f="len">how much they got</span>
+            </div>
+          </div>
           <div class="scene scene-chat" aria-hidden="true">
             <div class="chatwin">
-              <div class="chat-head"><span class="chat-dot"></span><span class="chat-title">Assistant</span><span class="chat-meta">one conversation · illustrative</span></div>
+              <div class="chat-head"><span class="chat-dot"></span><span class="chat-title">Assistant</span><span class="chat-meta">the shape of that log line · words illustrative</span></div>
               <div class="chat-body">
                 <div class="msg user"><span class="msg-text" id="u-text"></span><i class="caret" id="u-caret"></i></div>
                 <div class="msg bot" id="bot-msg"><span class="typing" id="b-typing"><i></i><i></i><i></i></span><span class="msg-text" id="b-text"></span><i class="caret" id="b-caret"></i></div>
@@ -95,10 +113,9 @@
             <div class="glass" id="lens-chart"></div>
           </div>
         </div>
-        <figcaption class="frame-caption" id="frame-caption">fig. 1 — one conversation. the logs keep its shape, never its words</figcaption>
+        <figcaption class="frame-caption" id="frame-caption">fig. 1 — one log line, which is all a team ever sees</figcaption>
       </figure>
     </div>
-    <div class="progress" aria-hidden="true"><span id="progress-label">01 / 04</span><i><b id="progress-bar"></b></i></div>
   </section>
 
   <section class="finale" id="finale" aria-label="The four questions, answered">
@@ -108,7 +125,7 @@
       <div class="built-strip">
         <p class="marker finale-marker">and then, built from what it found</p>
         <div class="built-cards">
-          <a class="built-card" href="docs/10-routing-counterfactual.html"><span class="built-k">01</span><b>Route requests by intent</b><span>In the one window where four models served the same people, a cost-aware rule would have cut single-turn exits among real requests from <em id="b-base">20.6%</em> to <em id="b-ca">8.2%</em> for about <em id="b-cost">+9%</em> cost. Sized from the data, with the experiment that would settle it.</span></a>
+          <a class="built-card" href="docs/10-routing-counterfactual.html"><span class="built-k">01</span><b>Route requests by intent</b><span>In the one window where four models served the same people, a cost-aware rule would have cut single-turn exits among real requests from <em id="b-base">20.6%</em> to <em id="b-ca">8.2%</em> for about <em id="b-cost">+9%</em> cost. Routers like OpenRouter Auto already do this; this is what one would have been worth here, and how you'd know.</span></a>
           <a class="built-card" href="docs/11-usage-weighted-eval.html"><span class="built-k">02</span><b>Judge assistants by real usage</b><span>The observed intent mix, published as weights for a team's own eval set, with a scorer that says plainly which kinds of work the set never tests.</span></a>
         </div>
       </div>

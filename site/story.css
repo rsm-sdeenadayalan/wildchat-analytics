@@ -27,7 +27,7 @@ b { font-weight: 600; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
 /* fixed chrome */
-.readout { position: fixed; top: 64px; left: var(--gutter); z-index: 40; display: grid; gap: 2px; font: 400 10.5px/1.3 var(--mono); letter-spacing: 0.02em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.readout { display: grid; gap: 2px; font: 400 10.5px/1.3 var(--mono); letter-spacing: 0.02em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .readout span:first-child { color: var(--ink); font-weight: 600; }
 .readout-site { margin-top: 4px; color: var(--ink-3); }
 .readout-site:hover { color: var(--ink); }
@@ -56,14 +56,15 @@ b { font-weight: 600; }
 
 /* marker notes */
 .marker { font: italic 400 24px/1.1 var(--marker); color: var(--ink-2); letter-spacing: 0; text-transform: none; }
-.marker-left { position: absolute; left: 0; top: 10px; border-bottom: 1.5px solid var(--orange); padding-bottom: 2px; }
-.marker-right { position: absolute; right: 0; bottom: -40px; text-align: left; }
+.marker-left { grid-area: left; justify-self: start; align-self: start; border-bottom: 1.5px solid var(--orange); padding-bottom: 2px; }
+.marker-right { grid-area: right; justify-self: end; align-self: end; text-align: left; }
 
 /* masthead */
 .masthead { position: relative; padding: 150px var(--gutter) 24px; max-width: 1280px; margin: 0 auto; }
-.mast-inner { position: relative; text-align: center; padding: 0 180px; }
+.mast-inner { display: grid; grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr); grid-template-areas: "left title right"; column-gap: 28px; align-items: center; text-align: center; }
+.masthead h1 { grid-area: title; }
 .masthead h1 { margin: 0; font: 700 clamp(56px, 8.6vw, 124px)/0.96 var(--display); letter-spacing: -0.045em; color: var(--ink); }
-.mast-sub { margin: 48px auto 0; max-width: 560px; text-align: center; color: var(--ink-2); font-size: 16px; }
+.mast-sub { margin: 40px auto 0; text-align: center; color: var(--ink-3); font: 400 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
 
 /* the pinned story */
 .pin { position: relative; }
@@ -148,13 +149,6 @@ b { font-weight: 600; }
 .scroll-cue { margin: 18px 0 0; text-align: center; font: 400 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); animation: cue 1.8s ease-in-out infinite; }
 @keyframes cue { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
 
-/* progress */
-.progress { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 14px; display: flex; align-items: center; gap: 14px; font: 400 10.5px/1 var(--mono); letter-spacing: 0.08em; color: var(--ink-2); pointer-events: none; }
-.progress i { flex: 1; height: 1px; background: var(--rule); position: relative; }
-.progress i b { position: absolute; left: 0; top: -1px; height: 3px; width: calc(var(--p, 0) * 100%); background: var(--ink); }
-.pin .progress { position: fixed; opacity: 0; transition: opacity 0.3s ease; }
-.pin.is-pinned .progress { opacity: 1; }
-
 /* finale */
 .finale { padding: 96px var(--gutter) 72px; }
 .finale-inner { max-width: 1100px; margin: 0 auto; }
@@ -181,8 +175,8 @@ b { font-weight: 600; }
   .masthead { padding-top: 110px; }
   .mast-inner { padding: 36px 0 44px; }
   .marker { font-size: 20px; }
-  .marker-left { top: 0; }
-  .marker-right { bottom: 0; right: 0; }
+  .mast-inner { grid-template-columns: 1fr; grid-template-areas: "left" "title" "right"; row-gap: 14px; }
+  .marker-left, .marker-right { justify-self: center; text-align: center; }
   .masthead h1 { font-size: clamp(42px, 13vw, 72px); }
   .viewport { padding: 70px var(--gutter) 36px; gap: 10px; }
   .caption h2 { font-size: clamp(28px, 8vw, 38px); margin-bottom: 6px; }
@@ -213,3 +207,29 @@ b { font-weight: 600; }
 .built-card span:last-child { font-size: 14.5px; line-height: 1.45; color: var(--ink-2); }
 .built-card em { font-style: normal; font-weight: 600; color: var(--blue-deep); font-variant-numeric: tabular-nums; }
 @media (max-width: 860px) { .built-cards { grid-template-columns: 1fr; } }
+
+
+/* ===== masthead: plain statement under the headline ===== */
+.plain { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 36px; max-width: 1040px; margin: 56px auto 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
+.plain div { padding-top: 12px; border-top: 1.5px solid var(--ink); }
+.plain b { display: block; margin-bottom: 6px; font: 400 10.5px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.plain div:first-child { border-top-color: var(--orange); }
+@media (max-width: 860px) {
+  .plain { grid-template-columns: 1fr; gap: 14px; margin-top: 28px; }
+}
+
+/* ===== beat 1: the log line that becomes a person ===== */
+.scene-log { align-items: center; justify-items: center; align-content: center; gap: 22px; padding: 0 6%; }
+.logrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 10px; font: 400 clamp(14px, 1.9vw, 24px)/1.5 var(--mono); color: var(--cream); background: rgba(20, 41, 122, 0.55); border: 1px solid rgba(255, 250, 240, 0.35); border-radius: var(--r); padding: 14px 22px; }
+.lsep { color: rgba(255, 250, 240, 0.45); }
+.lf { position: relative; transition: color 0.3s ease; }
+.lf.lit { color: var(--orange); }
+.logtags { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ltag { font: 400 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream); border: 1px solid rgba(255, 250, 240, 0.5); border-radius: 999px; padding: 6px 10px; opacity: 0; transform: translateY(6px); transition: opacity 0.3s ease, transform 0.3s ease; }
+.ltag.lit { opacity: 1; transform: none; border-color: var(--orange); }
+.canvas[data-beat="1"] .scene-log { opacity: 1; }
+.canvas[data-beat="1"].to-chat .scene-log { opacity: 0; transform: scale(1.06); }
+.canvas[data-beat="1"].to-chat .scene-chat { opacity: 1; }
+.canvas[data-beat="1"]:not(.to-chat) .scene-chat { opacity: 0; }
+.canvas[data-beat="2"] .scene-log { opacity: 0; }
+
