@@ -1,0 +1,560 @@
+{
+  "method": "Within each window where several models served traffic at once, take the observed one-and-done and refusal rates per intent and model, then compute the volume-weighted rates and list-price cost each routing policy would have produced on the same intent volumes. Observational: users chose their model, so cells carry selection bias; proxies are unvalidated. Sizes the prize for a routing experiment.",
+  "min_cell_for_choice": 1000,
+  "near_best_pts": 0.05,
+  "price_assumptions": {
+    "as_of": "2024-12",
+    "assumed_tokens_per_conversation": {
+      "prompt": 1500,
+      "completion": 800
+    },
+    "prices_per_million": {
+      "gpt-4o": {
+        "prompt": 2.5,
+        "completion": 10.0
+      },
+      "gpt-4o-mini": {
+        "prompt": 0.15,
+        "completion": 0.6
+      },
+      "o1": {
+        "prompt": 15.0,
+        "completion": 60.0
+      },
+      "o1-mini": {
+        "prompt": 3.0,
+        "completion": 12.0
+      },
+      "gpt-4": {
+        "prompt": 30.0,
+        "completion": 60.0
+      },
+      "gpt-3.5-turbo": {
+        "prompt": 0.5,
+        "completion": 1.5
+      }
+    }
+  },
+  "eras": {
+    "A": {
+      "start": "2023-04-09",
+      "end": "2024-05-06",
+      "conversations_in_cells": 767646,
+      "models": [
+        "gpt-3.5-turbo",
+        "gpt-4"
+      ],
+      "cells": [
+        {
+          "intent": "coding",
+          "model": "gpt-3.5-turbo",
+          "conversations": 60315,
+          "repeat_rate": 0.10256155185277294,
+          "one_and_done_rate": 0.03786786039956893,
+          "correction_rate": 0.01105860896957639,
+          "refusal_rate": 0.08578297272651911
+        },
+        {
+          "intent": "coding",
+          "model": "gpt-4",
+          "conversations": 29799,
+          "repeat_rate": 0.07862679955703211,
+          "one_and_done_rate": 0.012315849525151851,
+          "correction_rate": 0.0115775697171046,
+          "refusal_rate": 0.03681331588308333
+        },
+        {
+          "intent": "creative_roleplay",
+          "model": "gpt-3.5-turbo",
+          "conversations": 70028,
+          "repeat_rate": 0.04438224710115954,
+          "one_and_done_rate": 0.04358256697321072,
+          "correction_rate": 0.0024418803907008627,
+          "refusal_rate": 0.04126920660307306
+        },
+        {
+          "intent": "creative_roleplay",
+          "model": "gpt-4",
+          "conversations": 26434,
+          "repeat_rate": 0.03155027615949156,
+          "one_and_done_rate": 0.044072028448210634,
+          "correction_rate": 0.004161307407127185,
+          "refusal_rate": 0.09014905046530983
+        },
+        {
+          "intent": "image_prompting",
+          "model": "gpt-3.5-turbo",
+          "conversations": 83084,
+          "repeat_rate": 0.0013359973039333687,
+          "one_and_done_rate": 0.0011795291512204516,
+          "correction_rate": 3.6108035241442394e-05,
+          "refusal_rate": 0.0009508449280246497
+        },
+        {
+          "intent": "image_prompting",
+          "model": "gpt-4",
+          "conversations": 1055,
+          "repeat_rate": 0.03033175355450237,
+          "one_and_done_rate": 0.14597156398104266,
+          "correction_rate": 0.004739336492890996,
+          "refusal_rate": 0.15734597156398103
+        },
+        {
+          "intent": "other",
+          "model": "gpt-3.5-turbo",
+          "conversations": 13268,
+          "repeat_rate": 0.07205305999397045,
+          "one_and_done_rate": 0.310220078384082,
+          "correction_rate": 0.0058034368405185405,
+          "refusal_rate": 0.1787760024118179
+        },
+        {
+          "intent": "other",
+          "model": "gpt-4",
+          "conversations": 8669,
+          "repeat_rate": 0.0276848540777483,
+          "one_and_done_rate": 0.4882916137962856,
+          "correction_rate": 0.0019610104971738377,
+          "refusal_rate": 0.1152382050986273
+        },
+        {
+          "intent": "questions",
+          "model": "gpt-3.5-turbo",
+          "conversations": 236025,
+          "repeat_rate": 0.10717508738481094,
+          "one_and_done_rate": 0.07645800233026162,
+          "correction_rate": 0.005753627793665925,
+          "refusal_rate": 0.08808388941849381
+        },
+        {
+          "intent": "questions",
+          "model": "gpt-4",
+          "conversations": 89715,
+          "repeat_rate": 0.06254249568076688,
+          "one_and_done_rate": 0.04840885024800758,
+          "correction_rate": 0.006030206765869698,
+          "refusal_rate": 0.039502870200078026
+        },
+        {
+          "intent": "translation",
+          "model": "gpt-3.5-turbo",
+          "conversations": 5329,
+          "repeat_rate": 0.10358416213173204,
+          "one_and_done_rate": 0.30455995496340776,
+          "correction_rate": 0.0031900919497091385,
+          "refusal_rate": 0.054982173015575155
+        },
+        {
+          "intent": "translation",
+          "model": "gpt-4",
+          "conversations": 2610,
+          "repeat_rate": 0.10153256704980843,
+          "one_and_done_rate": 0.16130268199233716,
+          "correction_rate": 0.006130268199233717,
+          "refusal_rate": 0.0475095785440613
+        },
+        {
+          "intent": "writing_and_business",
+          "model": "gpt-3.5-turbo",
+          "conversations": 101967,
+          "repeat_rate": 0.09573685604166053,
+          "one_and_done_rate": 0.15158825894652192,
+          "correction_rate": 0.002598880029813567,
+          "refusal_rate": 0.032755695470103076
+        },
+        {
+          "intent": "writing_and_business",
+          "model": "gpt-4",
+          "conversations": 39348,
+          "repeat_rate": 0.06310358849242655,
+          "one_and_done_rate": 0.12081935549456135,
+          "correction_rate": 0.0042950086408457865,
+          "refusal_rate": 0.022949069838365355
+        }
+      ],
+      "policies": {
+        "baseline_actual_mix": {
+          "conversations": 745709,
+          "one_and_done_rate": 0.06941581769832468,
+          "refusal_rate": 0.054690234394381726,
+          "cost_per_1k": 25.021867243120308,
+          "routes": null,
+          "one_and_done_change_pts": 0.0,
+          "cost_change_pct": 0.0
+        },
+        "best_friction": {
+          "conversations": 745709,
+          "one_and_done_rate": 0.05301800640272682,
+          "refusal_rate": 0.03200470932156671,
+          "cost_per_1k": 70.94887677364763,
+          "routes": {
+            "coding": "gpt-4",
+            "creative_roleplay": "gpt-3.5-turbo",
+            "image_prompting": "gpt-3.5-turbo",
+            "questions": "gpt-4",
+            "translation": "gpt-4",
+            "writing_and_business": "gpt-4"
+          },
+          "one_and_done_change_pts": -0.016397811295597864,
+          "cost_change_pct": 1.8354749101770103
+        },
+        "cost_aware": {
+          "conversations": 745709,
+          "one_and_done_rate": 0.07418904268970265,
+          "refusal_rate": 0.06100188671669691,
+          "cost_per_1k": 2.919340520229741,
+          "routes": {
+            "coding": "gpt-3.5-turbo",
+            "creative_roleplay": "gpt-3.5-turbo",
+            "image_prompting": "gpt-3.5-turbo",
+            "questions": "gpt-3.5-turbo",
+            "translation": "gpt-4",
+            "writing_and_business": "gpt-3.5-turbo"
+          },
+          "one_and_done_change_pts": 0.004773224991377972,
+          "cost_change_pct": -0.8833284306137302
+        },
+        "cheapest_only": {
+          "conversations": 745709,
+          "one_and_done_rate": 0.07571419457886763,
+          "refusal_rate": 0.06108144178108442,
+          "cost_per_1k": 1.9500000000000004,
+          "routes": {
+            "coding": "gpt-3.5-turbo",
+            "creative_roleplay": "gpt-3.5-turbo",
+            "image_prompting": "gpt-3.5-turbo",
+            "questions": "gpt-3.5-turbo",
+            "translation": "gpt-3.5-turbo",
+            "writing_and_business": "gpt-3.5-turbo"
+          },
+          "one_and_done_change_pts": 0.006298376880542952,
+          "cost_change_pct": -0.9220681661742831
+        }
+      }
+    },
+    "B": {
+      "start": "2024-09-12",
+      "end": "2025-01-05",
+      "conversations_in_cells": 1103970,
+      "models": [
+        "gpt-4o",
+        "gpt-4o-mini",
+        "o1",
+        "o1-mini"
+      ],
+      "cells": [
+        {
+          "intent": "coding",
+          "model": "gpt-4o",
+          "conversations": 241537,
+          "repeat_rate": 0.00787042978922484,
+          "one_and_done_rate": 0.19532411183379772,
+          "correction_rate": 0.0016146594517610139,
+          "refusal_rate": 0.005340796648132584
+        },
+        {
+          "intent": "coding",
+          "model": "gpt-4o-mini",
+          "conversations": 46774,
+          "repeat_rate": 0.02556976097832129,
+          "one_and_done_rate": 0.42735280283918414,
+          "correction_rate": 0.0050241587206567755,
+          "refusal_rate": 0.011865566340274511
+        },
+        {
+          "intent": "coding",
+          "model": "o1",
+          "conversations": 16343,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.03616227130881723,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.02202777947745212
+        },
+        {
+          "intent": "coding",
+          "model": "o1-mini",
+          "conversations": 23611,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.03151073652111304,
+          "correction_rate": 8.470628097073398e-05,
+          "refusal_rate": 0.009825928592605141
+        },
+        {
+          "intent": "creative_roleplay",
+          "model": "gpt-4o",
+          "conversations": 23470,
+          "repeat_rate": 0.01567959096719216,
+          "one_and_done_rate": 0.12062207072858969,
+          "correction_rate": 0.0027694929697486153,
+          "refusal_rate": 0.056156795909671924
+        },
+        {
+          "intent": "creative_roleplay",
+          "model": "gpt-4o-mini",
+          "conversations": 10103,
+          "repeat_rate": 0.01811343165396417,
+          "one_and_done_rate": 0.3133722656636643,
+          "correction_rate": 0.0021775710185093534,
+          "refusal_rate": 0.11709393249529843
+        },
+        {
+          "intent": "creative_roleplay",
+          "model": "o1",
+          "conversations": 2454,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.0713121434392828,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.044417277913610435
+        },
+        {
+          "intent": "creative_roleplay",
+          "model": "o1-mini",
+          "conversations": 1064,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.09210526315789473,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.05357142857142857
+        },
+        {
+          "intent": "image_prompting",
+          "model": "gpt-4o",
+          "conversations": 2128,
+          "repeat_rate": 0.07048872180451128,
+          "one_and_done_rate": 0.023966165413533833,
+          "correction_rate": 0.0018796992481203006,
+          "refusal_rate": 0.03101503759398496
+        },
+        {
+          "intent": "image_prompting",
+          "model": "gpt-4o-mini",
+          "conversations": 6479,
+          "repeat_rate": 0.012501929310078716,
+          "one_and_done_rate": 0.02268868652569841,
+          "correction_rate": 0.0001543448062972681,
+          "refusal_rate": 0.019756135206050317
+        },
+        {
+          "intent": "image_prompting",
+          "model": "o1",
+          "conversations": 106,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.19811320754716982,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.0660377358490566
+        },
+        {
+          "intent": "image_prompting",
+          "model": "o1-mini",
+          "conversations": 102,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.06862745098039216,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.0196078431372549
+        },
+        {
+          "intent": "other",
+          "model": "gpt-4o",
+          "conversations": 115381,
+          "repeat_rate": 0.00218406843414427,
+          "one_and_done_rate": 0.7944895606729011,
+          "correction_rate": 0.00021667345576828075,
+          "refusal_rate": 0.008831610057115124
+        },
+        {
+          "intent": "other",
+          "model": "gpt-4o-mini",
+          "conversations": 29334,
+          "repeat_rate": 0.004329447058021409,
+          "one_and_done_rate": 0.8915933728778891,
+          "correction_rate": 0.0008863434921933593,
+          "refusal_rate": 0.006238494579668644
+        },
+        {
+          "intent": "other",
+          "model": "o1",
+          "conversations": 3251,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.8615810519840049,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.02030144570901261
+        },
+        {
+          "intent": "other",
+          "model": "o1-mini",
+          "conversations": 5696,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.9073033707865169,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.014922752808988764
+        },
+        {
+          "intent": "questions",
+          "model": "gpt-4o",
+          "conversations": 124405,
+          "repeat_rate": 0.032321852015594225,
+          "one_and_done_rate": 0.172340340018488,
+          "correction_rate": 0.0036332944817330493,
+          "refusal_rate": 0.02493468912021221
+        },
+        {
+          "intent": "questions",
+          "model": "gpt-4o-mini",
+          "conversations": 83138,
+          "repeat_rate": 0.027316028771440255,
+          "one_and_done_rate": 0.44179556881329834,
+          "correction_rate": 0.002874738386778609,
+          "refusal_rate": 0.012509321850417377
+        },
+        {
+          "intent": "questions",
+          "model": "o1",
+          "conversations": 22918,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.12453093638188324,
+          "correction_rate": 8.726764988218868e-05,
+          "refusal_rate": 0.020944235971725282
+        },
+        {
+          "intent": "questions",
+          "model": "o1-mini",
+          "conversations": 20482,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.09911141490088858,
+          "correction_rate": 0.00019529342837613513,
+          "refusal_rate": 0.015037593984962405
+        },
+        {
+          "intent": "translation",
+          "model": "gpt-4o",
+          "conversations": 39751,
+          "repeat_rate": 0.0026414429825664765,
+          "one_and_done_rate": 0.25710045030313705,
+          "correction_rate": 0.00015093959900379866,
+          "refusal_rate": 0.057583457019949186
+        },
+        {
+          "intent": "translation",
+          "model": "gpt-4o-mini",
+          "conversations": 2774,
+          "repeat_rate": 0.021629416005767843,
+          "one_and_done_rate": 0.5180245133381399,
+          "correction_rate": 0.0021629416005767843,
+          "refusal_rate": 0.011896178803172314
+        },
+        {
+          "intent": "translation",
+          "model": "o1",
+          "conversations": 246,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.45528455284552843,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.044715447154471545
+        },
+        {
+          "intent": "translation",
+          "model": "o1-mini",
+          "conversations": 290,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.5344827586206896,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.006896551724137931
+        },
+        {
+          "intent": "writing_and_business",
+          "model": "gpt-4o",
+          "conversations": 233600,
+          "repeat_rate": 0.0058647260273972605,
+          "one_and_done_rate": 0.16935787671232877,
+          "correction_rate": 0.0006378424657534247,
+          "refusal_rate": 0.014366438356164383
+        },
+        {
+          "intent": "writing_and_business",
+          "model": "gpt-4o-mini",
+          "conversations": 39079,
+          "repeat_rate": 0.023209396350981345,
+          "one_and_done_rate": 0.14368330817062872,
+          "correction_rate": 0.0018168325699224647,
+          "refusal_rate": 0.004426930064740654
+        },
+        {
+          "intent": "writing_and_business",
+          "model": "o1",
+          "conversations": 5076,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.0847123719464145,
+          "correction_rate": 0.0,
+          "refusal_rate": 0.029944838455476755
+        },
+        {
+          "intent": "writing_and_business",
+          "model": "o1-mini",
+          "conversations": 4378,
+          "repeat_rate": 0.0,
+          "one_and_done_rate": 0.09502055733211512,
+          "correction_rate": 0.00022841480127912289,
+          "refusal_rate": 0.01644586569209685
+        }
+      ],
+      "policies": {
+        "baseline_actual_mix": {
+          "conversations": 950308,
+          "one_and_done_rate": 0.20624786911190898,
+          "refusal_rate": 0.01717864103006604,
+          "cost_per_1k": 12.598869087706303,
+          "routes": null,
+          "one_and_done_change_pts": 0.0,
+          "cost_change_pct": 0.0
+        },
+        "best_friction": {
+          "conversations": 950308,
+          "one_and_done_rate": 0.07685022679222786,
+          "refusal_rate": 0.020781417534578326,
+          "cost_per_1k": 32.81494644367931,
+          "routes": {
+            "coding": "o1-mini",
+            "creative_roleplay": "o1",
+            "image_prompting": "gpt-4o-mini",
+            "questions": "o1-mini",
+            "translation": "gpt-4o",
+            "writing_and_business": "o1"
+          },
+          "one_and_done_change_pts": -0.12939764231968112,
+          "cost_change_pct": 1.604594604106126
+        },
+        "cost_aware": {
+          "conversations": 950308,
+          "one_and_done_rate": 0.08183517249458074,
+          "refusal_rate": 0.01723196280973254,
+          "cost_per_1k": 13.777542307336148,
+          "routes": {
+            "coding": "o1-mini",
+            "creative_roleplay": "gpt-4o",
+            "image_prompting": "gpt-4o-mini",
+            "questions": "o1-mini",
+            "translation": "gpt-4o",
+            "writing_and_business": "o1-mini"
+          },
+          "one_and_done_change_pts": -0.12441269661732825,
+          "cost_change_pct": 0.09355389054561791
+        },
+        "cheapest_only": {
+          "conversations": 950308,
+          "one_and_done_rate": 0.3428553911775266,
+          "refusal_rate": 0.014008829437637932,
+          "cost_per_1k": 0.705,
+          "routes": {
+            "coding": "gpt-4o-mini",
+            "creative_roleplay": "gpt-4o-mini",
+            "image_prompting": "gpt-4o-mini",
+            "questions": "gpt-4o-mini",
+            "translation": "gpt-4o-mini",
+            "writing_and_business": "gpt-4o-mini"
+          },
+          "one_and_done_change_pts": 0.13660752206561763,
+          "cost_change_pct": -0.9440425965940131
+        }
+      }
+    }
+  }
+}

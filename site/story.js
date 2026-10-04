@@ -195,8 +195,19 @@ function bindStory(circles) {
   }));
 }
 
+async function fillBuilt() {
+  try {
+    const rc = await (await fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url))).json();
+    const p = rc.eras.B.policies;
+    const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+    set("#b-base", pct(p.baseline_actual_mix.one_and_done_rate)); set("#b-ca", pct(p.cost_aware.one_and_done_rate));
+    set("#b-cost", `${p.cost_aware.cost_change_pct >= 0 ? "+" : ""}${Math.round(100 * p.cost_aware.cost_change_pct)}%`);
+  } catch { /* strip keeps its build-time text */ }
+}
+
 (async () => {
   const story = await loadStory();
+  fillBuilt();
   fill(story);
   readout(story);
   const circles = await drawWorld(story);

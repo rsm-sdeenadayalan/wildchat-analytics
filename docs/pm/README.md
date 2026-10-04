@@ -18,11 +18,18 @@ Loupe is a user analytics product for teams that ship a GenAI assistant. The cru
 5. [PRD](04-prd.md). Requirements, success metrics, privacy, and the decision log.
 6. [User research](02-user-research.md). Public evidence on the problem and the assumptions register that would be tested first; no interviews were possible in the v1 window.
 
+## Built from the data
+
+Two pieces that act on what the dashboard exposes, each checked against the aggregates on every build.
+
+7. [Intent-aware model routing](10-routing-counterfactual.md), 4 minutes. A routing rule sized from the one window where four models served the same people: 20.6% to 8.2% single-turn exits for 9% more cost, the selection-bias caveat, and the experiment that would settle it.
+8. [Usage-weighted evaluation mix](11-usage-weighted-eval.md), 3 minutes. The observed intent mix as weights for a team's own eval set, with a scorer that refuses to hide what the set does not cover.
+
 ## The rest
 
-7. [Roadmap](05-roadmap.md) with the cut list.
-8. [Dashboard design](06-dashboard-design.md).
-9. [Strategy memo](08-strategy-memo.md) for a company building an AI assistant.
+9. [Roadmap](05-roadmap.md) with the cut list.
+10. [Dashboard design](06-dashboard-design.md).
+11. [Strategy memo](08-strategy-memo.md) for a company building an AI assistant.
 
 ## Research kits
 

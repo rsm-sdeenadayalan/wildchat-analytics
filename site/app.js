@@ -7,6 +7,7 @@ export const AGGREGATES = [
   "intent_weekly", "intent_by_model", "intent_by_language",
   "friction_by_intent_model", "friction_weekly", "data_quality_weekly",
   "intensity_weekly_model", "intent_weekly_model", "friction_weekly_model", "data_quality_weekly_model",
+  "friction_by_intent_model_era",
 ];
 
 const $ = (sel) => document.querySelector(sel);
@@ -825,6 +826,21 @@ export async function renderFriction(conn, meta) {
           });
     },
   });
+  // Built from the data: the routing counterfactual for the four-model window.
+  try {
+    const rc = await (await fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url))).json();
+    const era = rc.eras?.B;
+    if (era && !FILTER.model) {
+      const pol = era.policies;
+      const row = (name, label) => { const p = pol[name]; return `<tr><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${name === "baseline_actual_mix" ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${name === "baseline_actual_mix" ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`; };
+      const card = el(`<div class="card built"><p class="eyebrow">Built from the data</p><h2>If requests had been routed by intent</h2>
+        <p class="so">In the one window where four models served the same people (${era.start} to ${era.end}), a cost-aware rule would have cut single-turn exits among real requests from <b>${fmtPct(pol.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(pol.cost_aware.one_and_done_rate)}</b> for ${(pol.cost_aware.cost_change_pct >= 0 ? "+" : "")}${Math.round(100 * pol.cost_aware.cost_change_pct)}% cost.</p>
+        <div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>one-and-done</th><th>change</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
+        ${row("baseline_actual_mix", "Baseline, actual mix")}${row("best_friction", "Best friction")}${row("cost_aware", "Cost-aware (recommended)")}${row("cheapest_only", "Cheapest only")}</tbody></table></div>
+        <p class="note">Observational: users chose their model, so cells carry selection bias, and the one-and-done proxy is unvalidated. Cost uses late-2024 list prices on an assumed conversation; gpt-4o conversations in these logs have no token counts. "Other" is excluded from routing. <a href="${new URL("docs/10-routing-counterfactual.html", import.meta.url).href}">Read the sizing and the experiment design →</a></p></div>`);
+      view.append(card);
+    }
+  } catch (e) { console.warn("routing counterfactual unavailable", e); }
   const aggFmt = perIntent.map((r) => ({
     intent: r.intent, n: fmtInt.format(r.n),
     repeat_rate: fmtPct(r.repeat_rate), one_and_done_rate: fmtPct(r.one_and_done_rate),

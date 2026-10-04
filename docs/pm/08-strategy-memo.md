@@ -46,7 +46,8 @@ What is not yet proven, and would decide whether this becomes a product or stays
 
 1. **Applied research or evaluation team.** Run the pending 300-label friction precision check before any friction number leaves internal review. Metric: proxy precision against hand labels. 90-day target: the two highest-volume proxies clear 70% precision, or are dropped.
 2. **Platform team owning model routing.** Add a model-mix dimension to every usage and quality dashboard before drawing a trend line across a model transition. Metric: share of trend charts with a model-mix breakdown. 90-day target: 100% of leadership-facing charts carry it.
-3. **Product lead for the assistant surface.** Once intent labeling exists, prioritize quality work on the intent with the largest volume-weighted, validated friction gap, not the loudest anecdote. Metric: validated friction rate for that intent. 90-day target: a measured reduction from the labeling baseline, sized once it exists.
+3. **Platform team owning model routing, second ask.** Run the intent-aware routing experiment sized in `10-routing-counterfactual.md`: the cost-aware rule would have cut single-turn exits among real requests from 20.6% to 8.2% for about 9% more spend in the four-model window, with the caveat that users chose their model. Metric: one-and-done among non-"other" requests, control versus routed. 90-day target: the experiment has run and been decided by the rule written before it.
+4. **Product lead for the assistant surface.** Once intent labeling exists, prioritize quality work on the intent with the largest volume-weighted, validated friction gap, not the loudest anecdote. Metric: validated friction rate for that intent. 90-day target: a measured reduction from the labeling baseline, sized once it exists.
 
 ## Risks
 

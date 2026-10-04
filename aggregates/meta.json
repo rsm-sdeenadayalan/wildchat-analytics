@@ -2,7 +2,7 @@
   "product": "Loupe",
   "dataset": "allenai/WildChat-4.8M",
   "license": "ODC-By 1.0",
-  "generated_at": "2026-10-02T20:47:34+00:00",
+  "generated_at": "2026-10-04T05:07:47+00:00",
   "conversations": 3199860,
   "shards": 86,
   "date_min": "2023-04-09",
@@ -16,7 +16,7 @@
   "token_coverage_first_week": "2024-09-09",
   "token_coverage_note": "Token usage fields are present for a minority of conversations from that week onward; use conversations_with_tokens to normalize.",
   "taxonomy_version": "v2",
-  "aggregate_bytes": 127371,
+  "aggregate_bytes": 132229,
   "population_caveat": "Conversations come from a free public chatbot hosted by the WildChat researchers, not from ChatGPT's own product. Findings describe this population only.",
   "pseudo_user_caveat": "Pseudo-users are a hash of IP, user agent, and accept-language. They merge people behind shared networks and split one person across devices.",
   "caveats": [

@@ -52,6 +52,9 @@ def check(agg: Path = Path("aggregates")) -> list[str]:
         expect("intent_weekly_model never exceeds intent_weekly per week",
                f"""SELECT count(*) FROM (SELECT week, sum(conversations) AS n FROM {t('intent_weekly_model')} GROUP BY week) a
                    JOIN (SELECT week, sum(conversations) AS n FROM {t('intent_weekly')} GROUP BY week) b USING (week) WHERE a.n > b.n""", 0)
+    expect("era-restricted friction cells never exceed the all-time cell for the same intent and model",
+           f"""SELECT count(*) FROM {t('friction_by_intent_model_era')} e JOIN {t('friction_by_intent_model')} a USING (intent, model)
+               WHERE e.conversations > a.conversations""", 0)
     expect("every rate column is within [0, 1]",
            f"""SELECT count(*) FROM (
                SELECT repeat_rate r FROM {t('friction_weekly')} UNION ALL SELECT one_and_done_rate FROM {t('friction_weekly')}

@@ -143,6 +143,10 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             n_series = await page.evaluate("document.querySelectorAll('#view-overview .card.chart figure svg g[aria-label=\"area\"] path').length")
             if n_series < 2:
                 problems.append(f"model filter: reset did not restore all series ({n_series})")
+            await page.click('.tabs button[data-view="friction"]')
+            await page.wait_for_timeout(1500)
+            if not await page.evaluate("document.querySelectorAll('#view-friction .card.built table tbody tr').length === 4"):
+                problems.append("friction: the routing counterfactual card did not render its four policies")
             # Layout: at common widths no horizontal page scroll, and no KPI number wider than its tile.
             for width in LAYOUT_WIDTHS:
                 await page.set_viewport_size({"width": width, "height": 900})

@@ -1,0 +1,13 @@
+{
+  "_note": "ASSUMPTION, not data. Published list prices in USD per 1M tokens as of late 2024, used only to compare routing policies relative to each other. gpt-4o and gpt-4o-mini conversations in these logs carry no token counts, so a fixed conversation profile is assumed for every model. Edit here and re-run scripts/routing_counterfactual.py to change.",
+  "as_of": "2024-12",
+  "assumed_tokens_per_conversation": {"prompt": 1500, "completion": 800},
+  "prices_per_million": {
+    "gpt-4o": {"prompt": 2.50, "completion": 10.00},
+    "gpt-4o-mini": {"prompt": 0.15, "completion": 0.60},
+    "o1": {"prompt": 15.00, "completion": 60.00},
+    "o1-mini": {"prompt": 3.00, "completion": 12.00},
+    "gpt-4": {"prompt": 30.00, "completion": 60.00},
+    "gpt-3.5-turbo": {"prompt": 0.50, "completion": 1.50}
+  }
+}

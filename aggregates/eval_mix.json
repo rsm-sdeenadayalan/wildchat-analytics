@@ -1,0 +1,233 @@
+{
+  "taxonomy_version": "v2",
+  "classifier_accuracy": 0.7858596134282808,
+  "classifier_rater_agreement": 0.8707,
+  "population_caveat": "Conversations come from a free public chatbot hosted by the WildChat researchers, not from ChatGPT's own product. Findings describe this population only.",
+  "labeled_conversations": 3147208,
+  "weights": {
+    "questions": 0.2702865523981891,
+    "coding": 0.19259324455199656,
+    "other": 0.18139220540873052,
+    "writing_and_business": 0.16627722095266662,
+    "creative_roleplay": 0.06889979944128256,
+    "translation": 0.06728980099186327,
+    "image_prompting": 0.05326117625527134
+  },
+  "weights_excluding_other": {
+    "questions": 0.33017832737977176,
+    "coding": 0.23526925326695464,
+    "writing_and_business": 0.20312196151966616,
+    "creative_roleplay": 0.08416704543557907,
+    "translation": 0.08220029351841321,
+    "image_prompting": 0.06506311887961515
+  },
+  "by_era": {
+    "A": {
+      "start": "2023-04-09",
+      "end": "2024-05-06",
+      "conversations": 777443,
+      "weights": {
+        "questions": 0.4234342582028522,
+        "writing_and_business": 0.1836263237304857,
+        "creative_roleplay": 0.1253326610439608,
+        "coding": 0.11689345714090936,
+        "image_prompting": 0.11186543579400676,
+        "other": 0.02846253680334121,
+        "translation": 0.010385327284444005
+      }
+    },
+    "B": {
+      "start": "2024-09-12",
+      "end": "2025-01-05",
+      "conversations": 1089456,
+      "weights": {
+        "coding": 0.2993971303109075,
+        "writing_and_business": 0.25663266804717216,
+        "questions": 0.22476722327473528,
+        "other": 0.1402846925438017,
+        "translation": 0.03944537457226359,
+        "creative_roleplay": 0.03302198528439882,
+        "image_prompting": 0.006450925966721006
+      }
+    },
+    "C": {
+      "start": "2025-01-06",
+      "end": "2025-07-21",
+      "conversations": 1014550,
+      "weights": {
+        "other": 0.37531417869991623,
+        "questions": 0.1851530235079592,
+        "coding": 0.15436991769750136,
+        "translation": 0.15331329160711646,
+        "writing_and_business": 0.06272337489527377,
+        "creative_roleplay": 0.058692030949682124,
+        "image_prompting": 0.010434182642550884
+      }
+    }
+  },
+  "by_model": {
+    "gpt-3.5-turbo": {
+      "questions": 0.3858210078909666,
+      "image_prompting": 0.19230671753380832,
+      "writing_and_business": 0.1605475522797037,
+      "creative_roleplay": 0.1110296123691237,
+      "coding": 0.10454598988918656,
+      "other": 0.033566051997191274,
+      "translation": 0.012183068040019857
+    },
+    "gpt-4": {
+      "questions": 0.4539543591559986,
+      "writing_and_business": 0.1990993270252492,
+      "coding": 0.15078176390224157,
+      "creative_roleplay": 0.13375499671102564,
+      "other": 0.04386479785457673,
+      "translation": 0.013206496989323484,
+      "image_prompting": 0.00533825836158478
+    },
+    "gpt-4-turbo": {
+      "questions": 0.4653961885656971,
+      "writing_and_business": 0.19754718701559223,
+      "coding": 0.15341478982401752,
+      "creative_roleplay": 0.13558858393361903,
+      "other": 0.025211999635269444,
+      "translation": 0.017461475335096198,
+      "image_prompting": 0.005379775690708489
+    },
+    "gpt-4.1-mini": {
+      "other": 0.460481896335441,
+      "translation": 0.22517395460507303,
+      "questions": 0.12626992419358424,
+      "coding": 0.12217949002956673,
+      "creative_roleplay": 0.03391757521095271,
+      "writing_and_business": 0.028375799111410343,
+      "image_prompting": 0.003601360513971945
+    },
+    "gpt-4o": {
+      "coding": 0.28970898601854894,
+      "writing_and_business": 0.28900698847554035,
+      "questions": 0.19289969985105052,
+      "other": 0.13390715632495287,
+      "translation": 0.04641846253538113,
+      "creative_roleplay": 0.04312897404859083,
+      "image_prompting": 0.004929732745935389
+    },
+    "gpt-4o-mini": {
+      "questions": 0.31246460805496945,
+      "coding": 0.20313473772789248,
+      "other": 0.19166537489362645,
+      "writing_and_business": 0.13874907862310704,
+      "creative_roleplay": 0.07868321401568476,
+      "image_prompting": 0.048401944935669704,
+      "translation": 0.026901041749050152
+    },
+    "o1": {
+      "questions": 0.45477636226534907,
+      "coding": 0.3243044806921459,
+      "writing_and_business": 0.10072627693773069,
+      "other": 0.06451164821208874,
+      "creative_roleplay": 0.04869627336587689,
+      "translation": 0.004881533515894749,
+      "image_prompting": 0.0021034250109139975
+    },
+    "o1-mini": {
+      "coding": 0.42448267802887296,
+      "questions": 0.36822897003038313,
+      "other": 0.10240368193013681,
+      "writing_and_business": 0.07870844794419575,
+      "creative_roleplay": 0.019128777663916005,
+      "translation": 0.005213670603886882,
+      "image_prompting": 0.0018337737986084894
+    }
+  },
+  "by_language": {
+    "Arabic": {
+      "questions": 0.5982329999204054,
+      "other": 0.191172959061845,
+      "writing_and_business": 0.1199225279244382,
+      "translation": 0.040699371202674375,
+      "coding": 0.026929505717545304,
+      "creative_roleplay": 0.014605608766018413,
+      "image_prompting": 0.008437027407073307
+    },
+    "Chinese": {
+      "coding": 0.356759037299837,
+      "questions": 0.34147856937386134,
+      "writing_and_business": 0.2343503691629111,
+      "creative_roleplay": 0.03449995205676479,
+      "other": 0.02028957714066545,
+      "translation": 0.01192827692012657,
+      "image_prompting": 0.0006942180458337329
+    },
+    "English": {
+      "coding": 0.21533115216910204,
+      "other": 0.19786828080794788,
+      "questions": 0.17538115545879215,
+      "writing_and_business": 0.14905825143998708,
+      "creative_roleplay": 0.10633893378152869,
+      "image_prompting": 0.09602246559283206,
+      "translation": 0.059999760749810095
+    },
+    "French": {
+      "translation": 0.5261765678386421,
+      "questions": 0.20943574631497736,
+      "coding": 0.15156015244769036,
+      "writing_and_business": 0.05998132109729852,
+      "other": 0.04210874369877079,
+      "creative_roleplay": 0.0055630645002233345,
+      "image_prompting": 0.005174404102397513
+    },
+    "Indonesian": {
+      "questions": 0.5609522956059384,
+      "other": 0.1994354332825522,
+      "creative_roleplay": 0.10807420019715028,
+      "writing_and_business": 0.08095110075574274,
+      "coding": 0.03705529169280401,
+      "translation": 0.012725154583744062,
+      "image_prompting": 0.0008065238820682857
+    },
+    "Portuguese": {
+      "coding": 0.4542484225084277,
+      "questions": 0.3455441265450774,
+      "other": 0.0968450168553894,
+      "writing_and_business": 0.06016077448353358,
+      "creative_roleplay": 0.04048750972426312,
+      "translation": 0.0021782349381969054,
+      "image_prompting": 0.000535914945111937
+    },
+    "Russian": {
+      "questions": 0.3491215196533152,
+      "writing_and_business": 0.34078391737162,
+      "other": 0.14534453874589834,
+      "coding": 0.1343486507815637,
+      "creative_roleplay": 0.024597449707173216,
+      "translation": 0.005803923740429479
+    },
+    "Spanish": {
+      "questions": 0.5364459346186086,
+      "writing_and_business": 0.17124895222129086,
+      "coding": 0.14658843252305112,
+      "other": 0.08224643755238893,
+      "creative_roleplay": 0.060033528918692375,
+      "translation": 0.0029002514668901927,
+      "image_prompting": 0.0005364626990779547
+    },
+    "Vietnamese": {
+      "questions": 0.4231359312672599,
+      "writing_and_business": 0.2594157402380784,
+      "other": 0.1452702968505362,
+      "coding": 0.11907066034098866,
+      "translation": 0.051463009732417526,
+      "image_prompting": 0.0008811889756964933,
+      "creative_roleplay": 0.0007631725950228559
+    },
+    "Yoruba": {
+      "other": 0.9742588938192999,
+      "coding": 0.011894767828523457,
+      "questions": 0.008307803011306026,
+      "creative_roleplay": 0.003194470186762028,
+      "writing_and_business": 0.0018861547519106858,
+      "translation": 0.00045791040219796993
+    }
+  },
+  "min_cell": 20
+}

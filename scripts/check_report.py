@@ -7,7 +7,7 @@ from pathlib import Path
 
 import duckdb
 
-REPORT = Path("docs/pm/07-trends-report.md")
+DOCS = Path("docs/pm")  # every PM doc may carry loupe-check blocks; the trends report must
 _BLOCK = re.compile(r"<!--\s*loupe-check\s+id=(?P<id>[\w.-]+)\s*\n(?P<body>.*?)-->", re.S)
 
 
@@ -48,10 +48,14 @@ def run_checks(checks: list[dict], con: duckdb.DuckDBPyConnection) -> list[dict]
 
 
 def main() -> int:
-    if not REPORT.exists():
-        print(f"report check: {REPORT} not found")
+    if not (DOCS / "07-trends-report.md").exists():
+        print(f"report check: {DOCS / '07-trends-report.md'} not found")
         return 1
-    checks = parse_checks(REPORT.read_text())
+    checks = []
+    for md in sorted(DOCS.glob("*.md")):
+        for c in parse_checks(md.read_text()):
+            c["id"] = f"{md.stem.split('-')[0]}/{c['id']}"
+            checks.append(c)
     if not checks:
         print("report check: no loupe-check blocks found")
         return 1

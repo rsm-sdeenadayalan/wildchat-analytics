@@ -19,6 +19,7 @@ METRICS = [
     "intent_weekly", "intent_by_model", "intent_by_language",
     "friction_by_intent_model", "friction_weekly", "data_quality_weekly",
     "intensity_weekly_model", "intent_weekly_model", "friction_weekly_model", "data_quality_weekly_model",
+    "friction_by_intent_model_era",
 ]
 
 

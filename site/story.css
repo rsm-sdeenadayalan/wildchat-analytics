@@ -202,3 +202,14 @@ b { font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .scene, .map-wrap, .map-wrap circle, .qtile, .qtile *, .lens, .panel, .frame { transition: none !important; animation: none !important; }
 }
+
+/* built-from-the-data strip on the finale */
+.built-strip { margin: 0 0 44px; }
+.built-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.built-card { display: grid; gap: 8px; align-content: start; padding: 22px 22px 20px; background: var(--cream); border: 1px solid var(--ink); border-left: 6px solid var(--orange); border-radius: var(--r); box-shadow: 0 3px 0 var(--ink); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.built-card:hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--ink); }
+.built-k { font: 400 10.5px/1 var(--mono); letter-spacing: 0.1em; color: var(--ink-3); }
+.built-card b { font: 700 clamp(20px, 2vw, 26px)/1.1 var(--display); letter-spacing: -0.03em; }
+.built-card span:last-child { font-size: 14.5px; line-height: 1.45; color: var(--ink-2); }
+.built-card em { font-style: normal; font-weight: 600; color: var(--blue-deep); font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) { .built-cards { grid-template-columns: 1fr; } }

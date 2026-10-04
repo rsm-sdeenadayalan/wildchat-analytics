@@ -24,6 +24,7 @@ Labeling and classification ran after the v1 site went live (2026-09-25 to 26) t
 - Instrument the in-market metrics from PRD 6.1: export events, so exporting a number with its caveat counts as an answered question, plus a caveat retention check.
 - Build a second adapter for a common log format, OpenAI-compatible chat completion logs as JSONL, to prove the schema is not WildChat-specific (R12).
 - Run usability test round two with in-market pilot users, not the interview-pool proxy sample used for the v1 launch criteria, on real questions.
+- ~~Act on the findings~~ Shipped 2026-10-03: an intent-aware routing counterfactual sized from the four-model window (`10-routing-counterfactual.md`, Friction view card) and a usage-weighted eval mix with a scorer (`11-usage-weighted-eval.md`, `aggregates/eval_mix.json`). Both are observational; the routing experiment and a design partner for the taxonomy are the next real tests.
 - ~~Story landing page~~ Shipped 2026-10-03: scroll-driven four-beat story at the root with the dashboard at `/app/`, one visual system across all pages, numbers from a build-time `story.json`.
 - ~~Cross-view model filter~~ Shipped 2026-10-02: a picker under the tabs isolates one model family on every view, backed by four weekly aggregates re-cut by model under the same `min_cell` rule; return becomes same-model retention. Countries, languages and quarterly persistence have no per-model cut and carry an "all models" tag.
 
