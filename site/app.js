@@ -852,6 +852,93 @@ export async function renderFriction(conn, meta) {
 }
 registerRenderer("friction", renderFriction);
 
+// ---------- Built from the data ----------
+
+const ERA_LABEL = { A: "Era A · gpt-3.5-turbo and gpt-4 side by side", B: "Era B · gpt-4o, gpt-4o-mini, o1 and o1-mini side by side" };
+
+function policyTable(era) {
+  const pol = era.policies;
+  const row = (name, label) => {
+    const p = pol[name]; const base = name === "baseline_actual_mix";
+    return `<tr${name === "cost_aware" ? ' class="rec"' : ""}><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${base ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>${fmtPct(p.refusal_rate)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${base ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`;
+  };
+  return `<div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>one-and-done</th><th>change</th><th>refusal</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
+    ${row("baseline_actual_mix", "Baseline, actual mix")}${row("best_friction", "Best friction")}${row("cost_aware", "Cost-aware (recommended)")}${row("cheapest_only", "Cheapest only")}</tbody></table></div>`;
+}
+
+export async function renderBuilt(conn, meta) {
+  const view = $("#view-built");
+  view.innerHTML = "";
+  const [rc, mix] = await Promise.all([
+    fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url)).then((r) => r.json()),
+    fetch(new URL("aggregates/eval_mix.json", import.meta.url)).then((r) => r.json()),
+  ]);
+  const B = rc.eras.B, A = rc.eras.A;
+  insight(view, "The data said this. So what would I build?", [
+    `In the one window where four models served the same people, a coding request on gpt-4o-mini ended after one short reply <b>${fmtPct0(B.cells.find((c) => c.intent === "coding" && c.model === "gpt-4o-mini").one_and_done_rate)}</b> of the time; on o1-mini, <b>${fmtPct0(B.cells.find((c) => c.intent === "coding" && c.model === "o1-mini").one_and_done_rate)}</b>. Nothing routed those requests. People chose, and most took the default.`,
+    `A cost-aware routing rule driven by Loupe's intent classifier would have cut single-turn exits among real requests from <b>${fmtPct(B.policies.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(B.policies.cost_aware.one_and_done_rate)}</b> for ${Math.round(100 * B.policies.cost_aware.cost_change_pct)}% more spend. Observational, and sized to justify the experiment below, not to replace it.`,
+    `Evaluation sets weight tasks by what their authors chose. People here ask <b>${esc(Object.keys(mix.weights)[0])}</b> ${fmtPct0(Object.values(mix.weights)[0])} of the time and ${esc(Object.keys(mix.weights)[1])} ${fmtPct0(Object.values(mix.weights)[1])}. Loupe publishes that mix as weights, so a team can score its assistant on what people actually bring it.`,
+  ], { href: new URL("docs/10-routing-counterfactual.html", import.meta.url).href, text: "Read the routing sizing and experiment design" });
+
+  // ---- 1. Routing counterfactual, both eras ----
+  const routing = el(`<div class="card built"><p class="eyebrow">01 · Built from the data</p><h2>If requests had been routed by intent</h2>
+    <p class="so">Four policies applied to the actual intent volumes of each window where several models served the same population. "Other" (probe traffic) is excluded from routing; a model is eligible for an intent only with at least ${fmtInt.format(rc.min_cell_for_choice)} conversations on it.</p>
+    <div class="era-tabs" role="tablist"><button type="button" class="chip" data-era="B" aria-pressed="true">${ERA_LABEL.B}</button><button type="button" class="chip" data-era="A" aria-pressed="false">${ERA_LABEL.A}</button></div>
+    <p class="so era-so"></p><div class="era-table"></div>
+    <details class="def"><summary>Assumptions and limits</summary><p>Observational: users chose their model, so cells carry selection bias; heavier, more deliberate users likely picked the reasoning models. The one-and-done proxy (one turn, reply under 200 characters) is unvalidated against hand labels. Cost uses published list prices as of ${esc(rc.price_assumptions.as_of)} on an assumed conversation of ${fmtInt.format(rc.price_assumptions.assumed_tokens_per_conversation.prompt)} prompt and ${fmtInt.format(rc.price_assumptions.assumed_tokens_per_conversation.completion)} completion tokens, because gpt-4o conversations in these logs carry no token counts; reasoning models also bill hidden tokens, so their true cost is higher than shown. Prices live in <code>loupe/model_prices.json</code>.</p></details>
+    <div class="exp"><h3>The experiment that would settle it</h3><ul>
+      <li><b>Split.</b> Pseudo-user, 50/50 on first visit. Control: the default model. Treatment: the cost-aware rule, decided by the classifier on the first message.</li>
+      <li><b>Primary metric.</b> One-and-done among non-"other" requests, measured exactly as this dashboard measures it.</li>
+      <li><b>Guardrails.</b> Refusal rate, cost per 1k conversations against the estimate, week-over-week return.</li>
+      <li><b>Decision rule, written before the run.</b> Ship if one-and-done falls at least 6 points with cost within +15%. Revisit routes under 3 points. Kill if refusals rise more than 1 point without a friction gain.</li></ul></div></div>`);
+  view.append(routing);
+  const showEra = (k) => {
+    const e = rc.eras[k];
+    const p = e.policies;
+    routing.querySelector(".era-so").innerHTML = k === "B"
+      ? `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. The cost-aware rule: <b>${fmtPct(p.baseline_actual_mix.one_and_done_rate)} → ${fmtPct(p.cost_aware.one_and_done_rate)}</b> one-and-done for <b>${p.cost_aware.cost_change_pct >= 0 ? "+" : ""}${Math.round(100 * p.cost_aware.cost_change_pct)}%</b> cost.`
+      : `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. A null result worth stating: the best policy gains only ${fmtPts(-p.best_friction.one_and_done_change_pts).replace("+", "")} for +${Math.round(100 * p.best_friction.cost_change_pct)}% cost. Routing pays when models differ by intent, not as a rule in itself.`;
+    routing.querySelector(".era-table").innerHTML = policyTable(e);
+    routing.querySelectorAll(".era-tabs .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === k)));
+  };
+  routing.querySelector(".era-tabs").addEventListener("click", (ev) => { const b = ev.target.closest("[data-era]"); if (b) showEra(b.dataset.era); });
+  showEra("B");
+
+  // ---- 2. Usage-weighted eval: live scorer ----
+  const intents = Object.keys(mix.weights);
+  // Starter scores: an assistant good at the rare things and weak at the common ones, so the gap between the two means is visible.
+  const defaults = { questions: 0.55, coding: 0.60, writing_and_business: 0.80, creative_roleplay: 0.95, translation: 0.90, image_prompting: "", other: "" };
+  const evalCard = el(`<div class="card built"><p class="eyebrow">02 · Built from the data</p><h2>Judge an assistant by what people actually bring it</h2>
+    <p class="so">The observed intent mix as weights. Enter your own per-intent eval scores (any scale, leave blank for intents your set does not test) and the usage-weighted score updates. Weights come from <b>${fmtInt.format(mix.labeled_conversations)}</b> classified conversations; the classifier is ${fmtPct(mix.classifier_accuracy)} accurate against a ${fmtPct(mix.classifier_rater_agreement)} rater ceiling.</p>
+    <div class="controls"><label>Weights from <select id="mix-src"><option value="all">all conversations</option><option value="noother">all, excluding "other"</option>${Object.keys(mix.by_era).map((k) => `<option value="era:${k}">era ${k} (${mix.by_era[k].start} to ${mix.by_era[k].end})</option>`).join("")}${Object.keys(mix.by_model).map((m) => `<option value="model:${esc(m)}">${esc(m)} only</option>`).join("")}</select></label></div>
+    <div class="tablewrap"><table class="grid eval"><thead><tr><th>intent</th><th>weight</th><th>your score</th><th>weighted</th></tr></thead><tbody>
+      ${intents.map((i) => `<tr data-intent="${esc(i)}"><td>${esc(i)}</td><td class="w"></td><td><input type="number" step="0.01" min="0" placeholder="not tested" value="${defaults[i] ?? ""}" aria-label="score for ${esc(i)}"></td><td class="wx"></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="eval-out"><div class="tile"><b id="ev-weighted">–</b><span>usage-weighted score</span></div><div class="tile"><b id="ev-plain">–</b><span>unweighted mean</span></div><div class="tile"><b id="ev-cover">–</b><span>share of real usage your set covers</span><small id="ev-missing"></small></div></div>
+    <details class="def"><summary>How to use this on your own eval set</summary><p>Label each prompt with one of the seven intents, score it however you already do, and run <code>scripts/eval_weighted_score.py results.csv</code> with intent and score columns, or type per-intent means here. The scorer never hides what the set does not cover: intents with weight but no score are listed and excluded, and the weighted score is renormalised over the covered weight. <a href="${new URL("docs/11-usage-weighted-eval.html", import.meta.url).href}">Read the method →</a></p></details></div>`);
+  view.append(evalCard);
+  const weightsFor = (src) => src === "all" ? mix.weights : src === "noother" ? mix.weights_excluding_other : src.startsWith("era:") ? mix.by_era[src.slice(4)].weights : mix.by_model[src.slice(6)];
+  const recompute = () => {
+    const w = weightsFor(evalCard.querySelector("#mix-src").value);
+    let cover = 0, acc = 0, n = 0, plain = 0; const missing = [];
+    evalCard.querySelectorAll("tbody tr").forEach((tr) => {
+      const i = tr.dataset.intent, wt = w[i] ?? 0, v = tr.querySelector("input").value;
+      tr.querySelector(".w").textContent = wt ? fmtPct(wt) : "–";
+      tr.classList.toggle("muted", !wt);
+      if (v !== "" && wt) { const x = Number(v); cover += wt; acc += wt * x; plain += x; n++; tr.querySelector(".wx").textContent = (wt * x).toFixed(3); }
+      else { tr.querySelector(".wx").textContent = "–"; if (wt && v === "") missing.push(i); }
+    });
+    $("#ev-weighted").textContent = cover ? (acc / cover).toFixed(2) : "–";
+    $("#ev-plain").textContent = n ? (plain / n).toFixed(2) : "–";
+    $("#ev-cover").textContent = fmtPct0(cover);
+    $("#ev-missing").textContent = missing.length ? `not tested: ${missing.join(", ")}` : "every intent with weight is covered";
+  };
+  evalCard.addEventListener("input", recompute);
+  evalCard.addEventListener("change", recompute);
+  recompute();
+}
+registerRenderer("built", renderBuilt);
+
 // ---------- Query ----------
 
 export async function renderQuery(conn) {

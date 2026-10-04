@@ -13,7 +13,8 @@ import sys
 import threading
 from pathlib import Path
 
-TABS = ["overview", "intensity", "intent", "friction", "quality", "query"]
+TABS = ["overview", "intensity", "intent", "friction", "quality", "built", "query"]
+ANALYTIC_TABS = ["overview", "intensity", "intent", "friction", "quality"]
 
 
 class _QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -90,7 +91,7 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                     problems.append(f"view {tab}: rendered nothing")
             # Product surface: every analytic view opens with an insight card, and every chart has a clickable legend
             # whose chips isolate a series (the drawn series count must drop).
-            for tab in TABS[:-1]:
+            for tab in ANALYTIC_TABS:
                 n_insight = await page.evaluate(f"document.querySelectorAll('#view-{tab} .card.insight').length")
                 if n_insight != 1:
                     problems.append(f"view {tab}: expected one insight card, found {n_insight}")
@@ -147,6 +148,31 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             await page.wait_for_timeout(1500)
             if not await page.evaluate("document.querySelectorAll('#view-friction .card.built table tbody tr').length === 4"):
                 problems.append("friction: the routing counterfactual card did not render its four policies")
+            # Built-from-the-data view: both artifacts render, era toggle swaps the table, the eval scorer computes live.
+            await page.click('.tabs button[data-view="built"]')
+            await page.wait_for_timeout(1500)
+            if await page.evaluate("document.querySelectorAll('#view-built .card.built').length") != 2:
+                problems.append("built: expected two built-from-the-data cards")
+            before = await page.evaluate("document.querySelector('#view-built .era-so').textContent")
+            await page.click('#view-built .era-tabs [data-era="A"]')
+            await page.wait_for_timeout(200)
+            after = await page.evaluate("document.querySelector('#view-built .era-so').textContent")
+            if before == after or "null result" not in after:
+                problems.append("built: era toggle did not switch to the era A null result")
+            await page.set_viewport_size({"width": 390, "height": 844})
+            await page.wait_for_timeout(300)
+            sw, cw = await page.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+            if sw > cw:
+                problems.append(f"built: horizontal overflow on a phone ({sw} > {cw})")
+            await page.set_viewport_size({"width": 1280, "height": 900})
+            await page.wait_for_timeout(300)
+            w0 = await page.evaluate("document.querySelector('#ev-weighted').textContent")
+            await page.fill('#view-built tr[data-intent="coding"] input', "1")
+            await page.wait_for_timeout(200)
+            w1 = await page.evaluate("document.querySelector('#ev-weighted').textContent")
+            if w0 == "–" or w0 == w1:
+                problems.append(f"built: eval scorer did not recompute ({w0!r} -> {w1!r})")
+            await page.fill('#view-built tr[data-intent="coding"] input', "0.4")
             # Layout: at common widths no horizontal page scroll, and no KPI number wider than its tile.
             for width in LAYOUT_WIDTHS:
                 await page.set_viewport_size({"width": width, "height": 900})

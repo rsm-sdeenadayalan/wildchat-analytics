@@ -9,7 +9,7 @@
 - Five-stage pipeline (flatten, sample, label, classify, metrics) under `loupe/stages/`, 70-plus unit tests, CI on every push. 2026-09-20.
 - Full flatten of all 86 WildChat-4.8M shards, 3,199,860 conversations, cached content-free. 2026-09-20.
 - Committed aggregate set under `aggregates/*.parquet`, about 80 KB, regenerable from one command. 2026-09-20.
-- Public dashboard, five views (Overview, Intensity, Intent, Friction, Data quality) plus a Query panel, over DuckDB-WASM: `https://loupe.shankard.com/`. 2026-09-20.
+- Public dashboard, five analytic views (Overview, Intensity, Intent, Friction, Data quality), a Built-from-the-data view carrying the routing counterfactual and a live usage-weighted scorer (added 2026-10-03), plus a Query panel, over DuckDB-WASM: `https://loupe.shankard.com/`. 2026-09-20.
 - Case-study renderer built and tested; PM artifacts published under `/docs/` on the live site. 2026-09-21.
 - Seven PM artifacts plus this memo and retrospective: `docs/pm/01-opportunity-brief.md` through `docs/pm/09-retro.md`. 2026-09-20.
 - Research kits for interviews, usability testing, and friction labeling under `docs/pm/research/`, unused. 2026-09-20.
