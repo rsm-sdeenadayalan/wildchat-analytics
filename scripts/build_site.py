@@ -1,6 +1,7 @@
 """Assemble dist/: site files, aggregates, and docs/pm/*.md rendered to HTML."""
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import sys
@@ -29,6 +30,48 @@ def _default_template_path() -> Path:
     if template.exists():
         return template
     return Path(__file__).resolve().parent.parent / "site" / TEMPLATE_NAME
+
+
+def story_numbers(aggregates_dir: Path) -> dict | None:
+    """The handful of numbers the story page tells, computed from the published aggregates at build time.
+
+    The story page must paint instantly, so it does not load DuckDB; it reads this file instead. Every
+    value here is derived from the same parquet files the dashboard queries, so the two cannot disagree.
+    """
+    import duckdb
+
+    meta_path = aggregates_dir / "meta.json"
+    if not meta_path.exists() or not (aggregates_dir / "intensity_weekly.parquet").exists():
+        return None
+    meta = json.loads(meta_path.read_text())
+    con = duckdb.connect()
+    t = lambda name: f"'{aggregates_dir / name}.parquet'"  # noqa: E731
+    through = meta["complete_weeks_through"]
+    total, d0, d1 = con.execute(f"SELECT sum(conversations), min(date), max(date) FROM {t('volume_daily_model')}").fetchone()
+    peak = con.execute(f"SELECT max(pseudo_users) FROM {t('intensity_weekly')}").fetchone()[0]
+    ret = con.execute(f"SELECT week, return_rate FROM {t('intensity_weekly')} WHERE return_rate IS NOT NULL AND week <= DATE '{through}' ORDER BY week DESC LIMIT 1").fetchone()
+    top10 = con.execute(f"SELECT top10_share FROM {t('intensity_weekly')} WHERE week <= DATE '{through}' ORDER BY week DESC LIMIT 1").fetchone()
+    countries = con.execute(f"SELECT country, sum(conversations) FROM {t('volume_weekly_country')} WHERE country NOT IN ('not recorded', 'small cells') GROUP BY 1 ORDER BY 2 DESC").fetchall()
+    weekly = con.execute(f"SELECT date_trunc('week', date)::DATE, sum(conversations) FROM {t('volume_daily_model')} WHERE date_trunc('week', date) <= DATE '{through}' GROUP BY 1 ORDER BY 1").fetchall()
+    intents = []
+    if meta.get("intent_coverage") != "none" and (aggregates_dir / "intent_by_model.parquet").exists():
+        labeled = con.execute(f"SELECT sum(conversations) FROM {t('intent_by_model')}").fetchone()[0] or 1
+        intents = [{"intent": i, "share": n / labeled} for i, n in con.execute(f"SELECT intent, sum(conversations) FROM {t('intent_by_model')} GROUP BY 1 ORDER BY 2 DESC LIMIT 3").fetchall()]
+    oad = con.execute(f"""SELECT sum(one_and_done_rate * conversations) / sum(conversations) FROM (
+        SELECT * FROM {t('friction_weekly')} WHERE week <= DATE '{through}' ORDER BY week DESC LIMIT 12)""").fetchone()[0]
+    return {
+        "conversations": int(total), "date_min": str(d0), "date_max": str(d1), "complete_weeks_through": through,
+        "peak_weekly_pseudo_users": int(peak),
+        "return_rate": float(ret[1]) if ret else None, "return_week": str(ret[0]) if ret else None,
+        "top10_share": float(top10[0]) if top10 and top10[0] is not None else None,
+        "n_countries": len(countries), "countries": [{"country": c, "n": int(n)} for c, n in countries[:60]],
+        "largest_country": countries[0][0] if countries else None,
+        "largest_country_share": (countries[0][1] / total) if countries else None,
+        "intents": intents, "one_and_done_recent": float(oad) if oad is not None else None,
+        "weekly": [[str(w), int(n)] for w, n in weekly],
+        "min_cell": meta["min_cell"], "taxonomy_version": meta.get("taxonomy_version"),
+        "classifier_accuracy": meta.get("classifier_accuracy"), "classifier_rater_agreement": meta.get("classifier_rater_agreement"),
+    }
 
 
 def rewrite_links(body_html: str) -> str:
@@ -102,8 +145,12 @@ def build(
     out_dir.mkdir(parents=True)
 
     for p in site_dir.iterdir():
-        if p.is_file() and p.name != TEMPLATE_NAME:
+        if p.name == TEMPLATE_NAME:
+            continue
+        if p.is_file():
             shutil.copy2(p, out_dir / p.name)
+        elif p.is_dir():
+            shutil.copytree(p, out_dir / p.name)
 
     (out_dir / "aggregates").mkdir()
     copied = []
@@ -111,6 +158,10 @@ def build(
         if p.suffix in (".parquet", ".json"):
             shutil.copy2(p, out_dir / "aggregates" / p.name)
             copied.append(p.name)
+    story = story_numbers(aggregates_dir)
+    if story is not None:
+        (out_dir / "aggregates" / "story.json").write_text(json.dumps(story, separators=(",", ":")))
+        copied.append("story.json")
 
     template_path = site_dir / TEMPLATE_NAME
     (out_dir / "docs").mkdir()

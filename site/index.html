@@ -3,71 +3,117 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Loupe — user analytics for GenAI assistants</title>
-  <meta name="description" content="Who uses an AI assistant, how intensely, for what, and where it fails them. Demonstrated on 3.2M real conversations from WildChat." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2713%27 cy=%2713%27 r=%279%27 fill=%27none%27 stroke=%27%232b5cd9%27 stroke-width=%273%27/%3E%3Cline x1=%2720%27 y1=%2720%27 x2=%2729%27 y2=%2729%27 stroke=%27%232b5cd9%27 stroke-width=%273%27 stroke-linecap=%27round%27/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css" />
+  <title>Loupe — see who your assistant serves</title>
+  <meta name="description" content="A PM who owns an AI assistant usually can't answer four questions. Loupe answers them from logs alone. A product case study on 3.2 million real conversations." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%3E%3Ccircle%20cx=%2710%27%20cy=%2710%27%20r=%277%27%20fill=%27none%27%20stroke=%27%231e3aa6%27%20stroke-width=%272.6%27/%3E%3Cpath%20d=%27M15.2%2015.2%20L21%2021%27%20stroke=%27%231e3aa6%27%20stroke-width=%273.2%27%20stroke-linecap=%27round%27/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;600&family=Instrument+Serif:ital@1&display=swap" />
+  <link rel="stylesheet" href="story.css" />
 </head>
 <body>
-  <header class="top">
-    <div class="wrap">
-      <a class="brand" href="./">Loupe</a>
-      <span class="tag">user analytics for GenAI assistants</span>
-      <a class="docs-link" href="docs/">Case study →</a>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="readout" id="readout" aria-hidden="true"><span id="r1">3,199,860 conversations</span><span id="r2">Apr 2023 – Jul 2025 · aggregates only</span><a class="readout-site" href="https://shankard.com">shankard.com ↗</a></div>
+  <nav class="topbar" aria-label="Site">
+    <a class="brand" href="./"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.2 15.2 L21 21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M6.4 8.6 A4.2 4.2 0 0 1 8.6 6.4" fill="none" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.4" stroke-linecap="round"/></svg>Loupe<span class="brand-sub">user analytics for GenAI assistants</span></a>
+    <div class="navlinks">
+      <a href="#story">Story</a><span class="sep" aria-hidden="true">·</span>
+      <a href="app/">Dashboard</a><span class="sep" aria-hidden="true">·</span>
+      <a href="docs/">Case study</a><span class="sep" aria-hidden="true">·</span>
+      <a href="https://github.com/rsm-sdeenadayalan/wildchat-analytics">Code</a>
     </div>
+    <a class="cta" href="app/"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
+  </nav>
+
+  <header class="masthead" id="masthead">
+    <div class="mast-inner">
+      <span class="marker marker-left">for teams shipping<br />GenAI assistants</span>
+      <h1>See who your<br />assistant serves</h1>
+      <span class="marker marker-right">→ not another dashboard.<br />a loupe.</span>
+    </div>
+    <p class="mast-sub">A product case study by Shankar Deenadayalan. Scroll to follow one conversation out to the whole world, and back in through the glass.</p>
+    <p class="scroll-cue" aria-hidden="true">scroll ↓</p>
   </header>
 
-  <section class="intro wrap" id="intro" aria-label="About this project">
-    <div class="intro-grid">
-      <div class="intro-text">
-        <p class="eyebrow">A product case study by Shankar Deenadayalan</p>
-        <h1>See who your assistant serves.</h1>
-        <p class="thesis">A PM who owns an AI assistant usually can't answer four questions without an engineer writing a one-off script.</p>
-        <ol class="questions" id="questions" aria-label="The four questions"></ol>
-        <p class="intro-foot">Loupe answers them from logs alone, serving no transcript content. This is a working demo on <b id="intro-n">3.2 million</b> real conversations from the public WildChat dataset, standing in for a team's own logs.</p>
-        <div class="intro-actions">
-          <button type="button" class="run" id="intro-explore">Explore the dashboard</button>
-          <a class="btn-secondary" href="docs/">Read the case study →</a>
+  <section class="pin" id="story" aria-label="The story">
+    <div class="viewport">
+      <div class="captions" id="captions">
+        <div class="caption is-active" data-beat="1">
+          <p class="kicker"><span class="num">①</span> someone, somewhere</p>
+          <h2>A question is asked.</h2>
+          <p class="body">One conversation with an assistant. The logs keep its shape, never its words. In these logs it happened three million times.</p>
+        </div>
+        <div class="caption" data-beat="2">
+          <p class="kicker"><span class="num">②</span> <b id="s-users">…</b> of them, in one week</p>
+          <h2>The world lights up.</h2>
+          <p class="body">Pseudo-users from <b id="s-countries">…</b> countries, on whichever model the assistant was running that week. Each dot is a real count from the logs.</p>
+        </div>
+        <div class="caption" data-beat="3">
+          <p class="kicker"><span class="num">③</span> the product owner's view</p>
+          <h2>Four blank tiles.</h2>
+          <p class="body">Who uses it. How often they come back. What they ask for. Where it fails them. Today each answer means asking an engineer for a one-off script.</p>
+        </div>
+        <div class="caption" data-beat="4">
+          <p class="kicker"><span class="num">④</span> the loupe</p>
+          <h2>Answers, from the logs alone.</h2>
+          <p class="body">Loupe reads the structure of <b id="s-total">…</b> conversations and never the content. Four questions, four numbers, one page.</p>
+          <div class="panel-actions">
+            <a class="cta" href="app/"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
+            <a class="btn-outline" href="docs/">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
+          </div>
         </div>
       </div>
-      <figure class="loupe" aria-label="All conversations by week">
-        <div class="lens"><div class="glass" id="lens-chart"></div></div>
-        <figcaption id="lens-caption">Weekly conversations, all models</figcaption>
+
+      <figure class="frame" id="frame">
+        <div class="canvas" id="stage" data-beat="1">
+          <div class="light" aria-hidden="true"></div>
+          <div class="scene scene-chat" aria-hidden="true">
+            <div class="chatwin">
+              <div class="chat-head"><span class="chat-dot"></span><span class="chat-title">Assistant</span><span class="chat-meta">one conversation · illustrative</span></div>
+              <div class="chat-body">
+                <div class="msg user"><span class="msg-text" id="u-text"></span><i class="caret" id="u-caret"></i></div>
+                <div class="msg bot" id="bot-msg"><span class="typing" id="b-typing"><i></i><i></i><i></i></span><span class="msg-text" id="b-text"></span><i class="caret" id="b-caret"></i></div>
+              </div>
+              <div class="chat-compose"><span>Reply…</span><span class="compose-btn">↑</span></div>
+            </div>
+          </div>
+          <div class="scene scene-map" aria-hidden="true"><div class="map-wrap" id="story-map"></div></div>
+          <div class="scene scene-tiles" aria-hidden="true">
+            <div class="qtile" data-i="0"><span class="qmark">?</span><span class="qlabel">who</span><span class="qanswer"></span></div>
+            <div class="qtile" data-i="1"><span class="qmark">?</span><span class="qlabel">how often</span><span class="qanswer"></span></div>
+            <div class="qtile" data-i="2"><span class="qmark">?</span><span class="qlabel">for what</span><span class="qanswer"></span></div>
+            <div class="qtile" data-i="3"><span class="qmark">?</span><span class="qlabel">where it fails</span><span class="qanswer"></span></div>
+          </div>
+          <div class="lens" aria-hidden="true">
+            <svg class="lens-svg" viewBox="0 0 120 120"><defs><radialGradient id="glassg" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#fffdf7"/><stop offset="0.7" stop-color="#f3ebd9"/><stop offset="1" stop-color="#e3d8c0"/></radialGradient></defs>
+              <line x1="86" y1="86" x2="112" y2="112" stroke="#1c1c1e" stroke-width="11" stroke-linecap="round"/>
+              <circle cx="50" cy="50" r="46" fill="url(#glassg)" stroke="#1c1c1e" stroke-width="4"/>
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#1c1c1e" stroke-opacity="0.18" stroke-width="1"/>
+              <path d="M22 36 A32 32 0 0 1 40 19" fill="none" stroke="#fff" stroke-opacity="0.8" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="glass" id="lens-chart"></div>
+          </div>
+        </div>
+        <figcaption class="frame-caption" id="frame-caption">fig. 1 — one conversation. the logs keep its shape, never its words</figcaption>
       </figure>
     </div>
-    <button type="button" class="intro-toggle" id="intro-toggle" hidden aria-expanded="false">About this project <span aria-hidden="true">▾</span></button>
+    <div class="progress" aria-hidden="true"><span id="progress-label">01 / 04</span><i><b id="progress-bar"></b></i></div>
   </section>
 
-  <div class="tabs-wrap"><nav class="tabs" aria-label="Views">
-    <button data-view="overview" class="active">Overview</button>
-    <button data-view="intensity">Intensity</button>
-    <button data-view="intent">Intent</button>
-    <button data-view="friction">Friction</button>
-    <button data-view="quality">Data quality</button>
-    <button data-view="query">Query</button>
-  </nav></div>
-  <div class="picker-wrap wrap">
-    <div class="model-picker" id="model-picker" role="group" aria-label="Model"></div>
-    <p class="scope-banner" id="scope-banner" hidden></p>
-  </div>
+  <section class="finale" id="finale" aria-label="The four questions, answered">
+    <div class="finale-inner">
+      <p class="marker finale-marker">the four questions, answered from the logs</p>
+      <ol class="ledger" id="ledger"></ol>
+      <div class="finale-cta">
+        <a class="cta big" href="app/"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
+        <a class="btn-outline" href="docs/">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
+      </div>
+      <p class="fine">Data: <a href="https://huggingface.co/datasets/allenai/WildChat-4.8M">WildChat-4.8M</a> (Zhao et al., ICLR 2024; Deng et al., EMNLP 2024 Demos), licensed <a href="https://opendatacommons.org/licenses/by/1-0/">ODC-By 1.0</a>. Aggregates only; no transcript content is served. The chatbot behind these logs was run by researchers, not ChatGPT itself.</p>
+      <p class="fine">A product case study by Shankar Deenadayalan · <a href="https://shankard.com">shankard.com</a> · <a href="https://github.com/rsm-sdeenadayalan/wildchat-analytics">source</a></p>
+    </div>
+  </section>
 
-  <main class="wrap">
-    <p id="status" class="status">Loading DuckDB and aggregates…</p>
-    <div id="coverage-banner" class="banner" hidden></div>
-    <section id="view-overview"></section>
-    <section id="view-intensity" hidden></section>
-    <section id="view-intent" hidden></section>
-    <section id="view-friction" hidden></section>
-    <section id="view-quality" hidden></section>
-    <section id="view-query" hidden></section>
-  </main>
-
-  <footer class="wrap foot">
-    <p id="caveat-population"></p>
-    <p id="caveat-users"></p>
-    <p class="attrib">Data: <a href="https://huggingface.co/datasets/allenai/WildChat-4.8M">WildChat-4.8M</a> (Zhao et al., ICLR 2024; Deng et al., EMNLP 2024 Demos), licensed <a href="https://opendatacommons.org/licenses/by/1-0/">ODC-By 1.0</a>. Aggregates only; no transcript content is served. <span id="generated"></span></p>
-  </footer>
-
-  <script type="module" src="app.js"></script>
+  <script type="module" src="story.js"></script>
 </body>
 </html>

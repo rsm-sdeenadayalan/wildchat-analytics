@@ -71,7 +71,7 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             page.on("pageerror", lambda e: problems.append(f"pageerror: {e}"))
             page.on("console", lambda m: problems.append(f"console.error: {m.text[:200]}") if m.type == "error" else None)
             page.on("requestfailed", lambda r: problems.append(f"requestfailed: {r.url}"))
-            await page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+            await page.goto(f"http://127.0.0.1:{port}/app/", wait_until="load")
             try:
                 await page.wait_for_function("document.querySelector('#status').hidden && document.querySelectorAll('.tile').length > 0",
                                              timeout=timeout_s * 1000)
@@ -108,23 +108,6 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 problems.append(f"legend isolate did not reduce drawn series: {before} -> {after}")
             await page.click('#view-overview .card.chart .legend .chip-all')
             await page.wait_for_timeout(300)
-            # Intro: four live-answered questions and a sparkline in the loupe; "Explore" folds it away and the choice persists.
-            nq = await page.evaluate("document.querySelectorAll('#questions button[data-view]').length")
-            if nq != 4:
-                problems.append(f"intro: expected 4 questions, found {nq}")
-            empty = await page.evaluate("[...document.querySelectorAll('#questions .a')].filter(a => !/\\d/.test(a.textContent)).length")
-            if empty:
-                problems.append(f"intro: {empty} question(s) have no numeric answer")
-            if not await page.evaluate("!!document.querySelector('#lens-chart svg path')"):
-                problems.append("intro: loupe sparkline did not render")
-            await page.click('#intro-explore')
-            await page.wait_for_timeout(300)
-            if not await page.evaluate("document.querySelector('#intro').classList.contains('collapsed') && !document.querySelector('#intro-toggle').hidden"):
-                problems.append("intro: Explore did not collapse the intro")
-            await page.click('#intro-toggle')
-            await page.wait_for_timeout(200)
-            if await page.evaluate("document.querySelector('#intro').classList.contains('collapsed')"):
-                problems.append("intro: toggle did not re-open the intro")
             # Tiles must equal the same quantities computed straight from the published aggregates.
             await page.click('.tabs button[data-view="overview"]')
             await page.wait_for_timeout(500)
@@ -172,6 +155,33 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                     "[...document.querySelectorAll('.tile b')].filter(b => b.scrollWidth > b.clientWidth + 1 || b.getClientRects().length > 1).map(b => b.textContent)")
                 if clipped:
                     problems.append(f"KPI numbers wrap or clip at {width}px: {clipped[:3]}")
+            # The story page: paints beat 1 without the database, carries the live numbers, pins and scrolls to beat 4
+            # with all four tiles answered, and hands off to the dashboard.
+            story = await browser.new_page()
+            story.on("pageerror", lambda e: problems.append(f"story pageerror: {e}"))
+            story.on("console", lambda m: problems.append(f"story console.error: {m.text[:200]}") if m.type == "error" else None)
+            await story.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded")
+            if await story.evaluate("document.querySelector('#stage')?.dataset.beat") != "1":
+                problems.append("story: first paint should show beat 1")
+            try:
+                await story.wait_for_function("document.querySelectorAll('#story-map circle').length > 20 && document.querySelectorAll('#ledger a').length === 4", timeout=timeout_s * 1000)
+            except Exception:
+                problems.append("story: map dots or ledger did not render")
+            if not await story.evaluate("/\\d/.test(document.querySelector('#s-users')?.textContent || '')"):
+                problems.append("story: live numbers did not fill in")
+            if not await story.evaluate("!!document.querySelector('#lens-chart svg path')"):
+                problems.append("story: loupe sparkline did not render")
+            await story.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await story.wait_for_timeout(1500)
+            beat, answered = await story.evaluate("[document.querySelector('#stage').dataset.beat, document.querySelectorAll('.qtile.answered').length]")
+            if beat != "4" or answered != 4:
+                problems.append(f"story: at the end expected beat 4 with 4 answers, got beat {beat} with {answered}")
+            hrefs = await story.evaluate("[...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href'))")
+            if not any(h in ("app/", "./app/") for h in hrefs):
+                problems.append("story: no link to the dashboard at app/")
+            sw, cw = await story.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+            if sw > cw:
+                problems.append(f"story: horizontal overflow {sw} > {cw}")
             await browser.close()
     finally:
         httpd.shutdown()

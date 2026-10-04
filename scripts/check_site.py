@@ -7,7 +7,8 @@ import sys
 from pathlib import Path
 
 ALLOWED_PREFIX = "https://cdn.jsdelivr.net/npm/"
-ALLOWED_LINKS = ("https://huggingface.co/", "https://opendatacommons.org/", "https://github.com/", "https://arxiv.org/", "https://openreview.net/")
+ALLOWED_LINKS = ("https://huggingface.co/", "https://opendatacommons.org/", "https://github.com/", "https://arxiv.org/", "https://openreview.net/",
+                 "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://shankard.com", "https://loupe.shankard.com")
 _URL = re.compile(r"https://[^\s\"'`)]+")
 _AGG = re.compile(r"AGGREGATES\s*=\s*(\[[^\]]*\])", re.S)
 _ABS = re.compile(r'(?:href|src)="/(?!/)')
@@ -16,9 +17,10 @@ _ABS = re.compile(r'(?:href|src)="/(?!/)')
 def check(site_dir: Path, aggregates_dir: Path, metrics_names: list[str]) -> list[str]:
     problems: list[str] = []
     app_js = (site_dir / "app.js").read_text()
-    index_html = (site_dir / "index.html").read_text()
+    sources = [(str(f.relative_to(site_dir)), f.read_text()) for f in sorted(site_dir.rglob("*"))
+               if f.is_file() and f.suffix in (".js", ".html") and f.name != "doc_template.html"]
 
-    for fname, text in (("app.js", app_js), ("index.html", index_html)):
+    for fname, text in sources:
         for url in _URL.findall(text):
             if url.startswith(ALLOWED_LINKS):
                 continue

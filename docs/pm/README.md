@@ -4,7 +4,7 @@
 **Date:** 2026-09-20
 **Status:** Final
 
-Loupe is a user analytics product for teams that ship a GenAI assistant. The crux: a PM who owns an assistant usually cannot answer who uses it, how intensely, for what, and where it fails them without an engineer writing a one-off script. Loupe answers those four questions from logs alone, and the [live dashboard](https://loupe.shankard.com/) demonstrates it on 3.2 million real conversations from the public WildChat dataset, standing in for a team's own logs. This folder is the record of the product work behind it, in the order it was done. Every document is dated and carries a status. Numbers in the trends report are reproducible from the committed aggregates by running `uv run python scripts/check_report.py`.
+Loupe is a user analytics product for teams that ship a GenAI assistant. The crux: a PM who owns an assistant usually cannot answer who uses it, how intensely, for what, and where it fails them without an engineer writing a one-off script. Loupe answers those four questions from logs alone, and the [live dashboard](https://loupe.shankard.com/app/) demonstrates it on 3.2 million real conversations from the public WildChat dataset, standing in for a team's own logs. This folder is the record of the product work behind it, in the order it was done. Every document is dated and carries a status. Numbers in the trends report are reproducible from the committed aggregates by running `uv run python scripts/check_report.py`.
 
 ## If you have ten minutes
 

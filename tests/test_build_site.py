@@ -16,6 +16,7 @@ def test_build_copies_site_aggregates_and_renders_docs(tmp_path):
     (site / "app.js").write_text("// js")
     (site / "styles.css").write_text("body{}")
     (site / "doc_template.html").write_text(Path("site/doc_template.html").read_text())
+    (site / "app").mkdir(); (site / "app" / "index.html").write_text("<p>dashboard</p>")   # the docs' Dashboard link points here
     agg = tmp_path / "aggregates"; agg.mkdir()
     (agg / "x.parquet").write_bytes(b"pq")
     (agg / "meta.json").write_text("{}")
@@ -25,6 +26,7 @@ def test_build_copies_site_aggregates_and_renders_docs(tmp_path):
     out = tmp_path / "dist"
     result = build(site, agg, docs, out)
     assert (out / "index.html").read_text() == "<p>app</p>"
+    assert (out / "app" / "index.html").read_text() == "<p>dashboard</p>"   # subfolders are copied
     assert not (out / "doc_template.html").exists()
     assert (out / "aggregates" / "x.parquet").exists() and (out / "aggregates" / "meta.json").exists()
     assert (out / "docs" / "index.html").exists() and (out / "docs" / "01-opportunity-brief.html").exists()

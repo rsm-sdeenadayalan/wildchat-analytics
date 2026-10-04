@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loupe dashboard — user analytics for GenAI assistants</title>
+  <meta name="description" content="Who uses an AI assistant, how intensely, for what, and where it fails them. Demonstrated on 3.2M real conversations from WildChat." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%3E%3Ccircle%20cx=%2710%27%20cy=%2710%27%20r=%277%27%20fill=%27none%27%20stroke=%27%231e3aa6%27%20stroke-width=%272.6%27/%3E%3Cpath%20d=%27M15.2%2015.2%20L21%2021%27%20stroke=%27%231e3aa6%27%20stroke-width=%273.2%27%20stroke-linecap=%27round%27/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;600&family=Instrument+Serif:ital@1&display=swap" />
+<link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="../"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.2 15.2 L21 21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M6.4 8.6 A4.2 4.2 0 0 1 8.6 6.4" fill="none" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.4" stroke-linecap="round"/></svg>Loupe</a>
+      <span class="tag">user analytics for GenAI assistants</span>
+      <a class="docs-link" href="../">← Story</a>
+      <a class="docs-link" href="../docs/">Case study →</a>
+    </div>
+  </header>
+
+  <div class="tabs-wrap"><nav class="tabs" aria-label="Views">
+    <button data-view="overview" class="active">Overview</button>
+    <button data-view="intensity">Intensity</button>
+    <button data-view="intent">Intent</button>
+    <button data-view="friction">Friction</button>
+    <button data-view="quality">Data quality</button>
+    <button data-view="query">Query</button>
+  </nav></div>
+  <div class="picker-wrap wrap">
+    <div class="model-picker" id="model-picker" role="group" aria-label="Model"></div>
+    <p class="scope-banner" id="scope-banner" hidden></p>
+  </div>
+
+  <main class="wrap">
+    <p id="status" class="status">Loading DuckDB and aggregates…</p>
+    <div id="coverage-banner" class="banner" hidden></div>
+    <section id="view-overview"></section>
+    <section id="view-intensity" hidden></section>
+    <section id="view-intent" hidden></section>
+    <section id="view-friction" hidden></section>
+    <section id="view-quality" hidden></section>
+    <section id="view-query" hidden></section>
+  </main>
+
+  <footer class="wrap foot">
+    <p id="caveat-population"></p>
+    <p id="caveat-users"></p>
+    <p class="attrib">Data: <a href="https://huggingface.co/datasets/allenai/WildChat-4.8M">WildChat-4.8M</a> (Zhao et al., ICLR 2024; Deng et al., EMNLP 2024 Demos), licensed <a href="https://opendatacommons.org/licenses/by/1-0/">ODC-By 1.0</a>. Aggregates only; no transcript content is served. <span id="generated"></span></p>
+  </footer>
+
+  <script type="module" src="../app.js"></script>
+</body>
+</html>
