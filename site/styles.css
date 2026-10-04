@@ -22,7 +22,9 @@ html, body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .wrap { max-width: var(--maxw); margin: 0 auto; padding-inline: 22px; }
-body { background-image: radial-gradient(rgba(28, 28, 30, 0.14) 1px, transparent 1.2px); background-size: 18px 18px; background-attachment: fixed; }
+/* The dot grid sits on the root so it covers the whole viewport even while the page is still short (e.g. the dashboard loading). */
+html { background-image: radial-gradient(rgba(28, 28, 30, 0.14) 1px, transparent 1.2px); background-size: 18px 18px; background-attachment: fixed; min-height: 100%; }
+body { min-height: 100vh; min-height: 100svh; background: transparent; }
 h1, h2, h3 { font-family: var(--display); }
 
 /* Top bar: boxed card, like the story page */
@@ -96,7 +98,7 @@ table.grid tbody tr:hover td { background: var(--paper-2); }
 
 /* Footer */
 .foot { border-top: 1px solid var(--ink); margin-top: 48px; padding-block: 28px 48px; color: var(--muted); font: 400 11.5px/1.6 var(--mono); }
-.foot p { margin: 0 0 8px; max-width: 820px; }
+.foot p { margin: 0 0 8px; max-width: none; text-wrap: pretty; }
 
 /* Docs */
 .docnav { max-width: 760px; margin: 0 auto; padding: 22px 22px 0; display: flex; gap: 6px 14px; flex-wrap: wrap; font: 400 11.5px/1.4 var(--mono); }
