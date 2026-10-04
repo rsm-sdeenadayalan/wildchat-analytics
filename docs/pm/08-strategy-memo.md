@@ -26,6 +26,22 @@ On where quality investment pays: the friction proxies most likely to matter, on
 
 On pricing: this dataset carries no price or plan signal — a free public chatbot — so it cannot say what people would pay. The only pricing-adjacent evidence is model mix (F3) and token coverage (F7), which bound cost, not willingness to pay. Any pricing decision should wait for the in-market metrics defined in the PRD.
 
+## Where Loupe sits against what teams already use
+
+"Doesn't every team already log requests?" Yes, and that is the premise, not the product. Logs are storage. Loupe is the reading: a fixed set of definitions and a labeled classifier that turn logs into four answers a product owner can defend. Three kinds of tool sit near it, and none does that job.
+
+| Group | Examples | What it is good at | What it does not do | Loupe's position |
+|---|---|---|---|---|
+| General analytics and BI workbenches | Hex, Mode, Looker, Metabase, Amplitude, Mixpanel | Querying, charting and sharing any table; product funnels on event streams; AI-assisted SQL in Hex and Mode | Knows nothing about assistant logs. Someone still has to decide that a "user" is a hash of IP, agent and language, that return rate is undefined in the week before a collection gap, that intent needs a taxonomy with a measured label ceiling, and that one-and-done is a friction proxy worth validating. Every team re-derives those in a private notebook, differently. | Upstream of them. Loupe's aggregates are tables; Hex or Looker could be the screen tomorrow. The product is the metric layer, not the chart. |
+| LLM observability and evaluation | LangSmith, Langfuse, Helicone, Arize Phoenix, Braintrust, DeepEval, promptfoo | Tracing individual calls, latency and cost, prompt versioning, developer-written evals and datasets, debugging a single bad response | Built for the engineer who owns the prompt. Units are traces and spans, not users and weeks. No pseudo-user retention, no intent mix over time, no suppression floor for publishing, no reconciliation between views. A PM opens them and sees a log viewer. | Adjacent and complementary. These tools answer "why did this call fail"; Loupe answers "who uses this, how often, for what, and where does it fail them." Their trace stores are an ideal input to Loupe's flatten stage. |
+| In-house scripts and one-off pulls | A data engineer's SQL, a notebook per question, a weekend of reading transcripts | Flexible; answers the exact question asked | Not repeatable, not comparable week to week, defined differently each time, and gated on an engineer's time. This is the status quo the opportunity brief describes, and the results-actionability gap the 2026 study documents. | The thing Loupe replaces. |
+
+Two tools deserve a specific note. **WildVis**, the dataset authors' own visualizer, is a search-and-browse tool for researchers reading conversations; it serves content, which Loupe deliberately never does. **Amplitude and Mixpanel** could compute retention on assistant events if a team instruments them as product events, but they cannot classify intent or score friction, and their retention assumes a stable user identifier that chat logs often lack.
+
+What is defensible is not the dashboard. It is the set of decisions made once and tested: the pseudo-user definition and its documented collection break, the return-rate rule, the seven-class taxonomy with an inter-rater ceiling the classifier gate is tied to, the friction proxies with a precision gate, the minimum-cell publication floor, and a reconciliation check that fails the build if any two views disagree. A team that adopts those definitions gets comparable numbers across quarters and across model handoffs, whichever tool draws the charts.
+
+What is not yet proven, and would decide whether this becomes a product or stays an internal layer: whether teams will accept shared definitions over their own, whether an intent taxonomy transfers from a public chatbot to a vertical assistant without relabeling, and whether the friction proxies clear their precision gate on a different population. Those are the first three questions a design partner should answer.
+
 ## Recommendations
 
 1. **Applied research or evaluation team.** Run the pending 300-label friction precision check before any friction number leaves internal review. Metric: proxy precision against hand labels. 90-day target: the two highest-volume proxies clear 70% precision, or are dropped.
