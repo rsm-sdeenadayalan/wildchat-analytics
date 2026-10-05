@@ -79,7 +79,7 @@ def story_numbers(aggregates_dir: Path) -> dict | None:
     }
 
 
-_ASSET_REF = re.compile(r'((?:href|src)=")((?:\.\./)?(?:styles\.css|story\.css|story\.js|app\.js))(")')
+_ASSET_REF = re.compile(r'((?:href|src)=")((?:\.\./)?(?:styles\.css|story\.css|story\.js|app\.js|embed\.js))(")')
 
 
 def asset_hash(site_dir: Path, name: str) -> str:
@@ -89,8 +89,18 @@ def asset_hash(site_dir: Path, name: str) -> str:
 
 
 def bust_assets(html: str, site_dir: Path) -> str:
-    """Append a content hash to every local stylesheet and script URL so a changed asset is never served stale."""
-    return _ASSET_REF.sub(lambda m: f"{m.group(1)}{m.group(2)}?v={asset_hash(site_dir, m.group(2).removeprefix('../'))}{m.group(3)}", html)
+    """Append a content hash to every local stylesheet and script URL so a changed asset is never served stale.
+
+    A reference to an asset that is not in site_dir is left as it is (a test's minimal site, for instance).
+    """
+
+    def bust(m: re.Match) -> str:
+        name = m.group(2).removeprefix("../")
+        if not (site_dir / name).exists():
+            return m.group(0)
+        return f"{m.group(1)}{m.group(2)}?v={asset_hash(site_dir, name)}{m.group(3)}"
+
+    return _ASSET_REF.sub(bust, html)
 
 
 def rewrite_links(body_html: str) -> str:
