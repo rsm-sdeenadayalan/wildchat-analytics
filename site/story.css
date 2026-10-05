@@ -64,7 +64,7 @@ b { font-weight: 600; }
 .mast-inner { display: grid; grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr); grid-template-areas: "left title right"; column-gap: 28px; align-items: center; text-align: center; }
 .masthead h1 { grid-area: title; }
 .masthead h1 { margin: 0; font: 700 clamp(56px, 8.6vw, 124px)/0.96 var(--display); letter-spacing: -0.045em; color: var(--ink); }
-.mast-sub { margin: 40px auto 0; text-align: center; color: var(--ink-3); font: 400 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.mast-sub { margin: 44px auto 0; text-align: center; color: var(--ink-3); font: 400 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
 
 /* the pinned story */
 .pin { position: relative; }
@@ -233,3 +233,15 @@ b { font-weight: 600; }
 .canvas[data-beat="1"]:not(.to-chat) .scene-chat { opacity: 0; }
 .canvas[data-beat="2"] .scene-log { opacity: 0; }
 
+
+/* author card: who made this, with a way to reach them */
+.author { display: inline-flex; align-items: center; gap: 16px; margin: 12px auto 0; padding: 12px 14px 12px 12px; background: var(--cream); border: 1px solid var(--ink); border-radius: calc(var(--r) + 8px); box-shadow: 0 3px 0 var(--ink); }
+.masthead .author { display: flex; width: max-content; max-width: 100%; }
+.author-mark { width: 44px; height: 44px; border-radius: 50%; background: var(--blue-deep); color: var(--cream); display: grid; place-items: center; font: 800 15px/1 var(--display); letter-spacing: -0.02em; flex: none; }
+.author-text { display: grid; gap: 2px; text-align: left; }
+.author-text b { font: 700 16px/1.1 var(--display); letter-spacing: -0.02em; color: var(--ink); }
+.author-text span { font: 400 11px/1.3 var(--mono); letter-spacing: 0.04em; color: var(--ink-3); }
+.author-links { display: inline-flex; gap: 8px; margin-left: 6px; }
+.author-links .btn-outline { padding: 8px 12px; font-size: 11.5px; }
+.author-finale { margin: 0 0 18px; }
+@media (max-width: 640px) { .author { flex-wrap: wrap; gap: 10px 12px; } .author-links { margin-left: 0; width: 100%; } .author-links .btn-outline { flex: 1; justify-content: center; } }

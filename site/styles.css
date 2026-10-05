@@ -223,3 +223,8 @@ table.grid.eval tr.muted td { color: var(--muted-2); }
 .card.contract .facts li b { color: var(--fg); }
 .card.contract .facts li::before { background: var(--accent); }
 .card.contract code { font-family: var(--mono); font-size: 0.86em; background: var(--paper-2); padding: 1px 5px; }
+
+.docs-link.author-link { color: var(--muted); }
+@media (max-width: 760px) { .docs-link.author-link { display: none; } .top .wrap { flex-wrap: wrap; row-gap: 4px; } }
+.docs-link.author-link:hover { color: var(--fg); }
+.foot .attrib a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
