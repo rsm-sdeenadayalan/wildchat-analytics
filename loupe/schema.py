@@ -30,6 +30,7 @@ TURNS = pa.schema([
     pa.field("conv_id", pa.int64(), nullable=False),
     pa.field("idx", pa.int32()),
     pa.field("role", pa.string()),
+    pa.field("attributed_to", pa.string(), nullable=True),  # assistant turn: its responder; user turn: the responder it reacts to
     pa.field("language", pa.string()),
     pa.field("content_len", pa.int32()),
     pa.field("is_empty", pa.bool_()),

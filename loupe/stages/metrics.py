@@ -19,7 +19,7 @@ METRICS = [
     "intent_weekly", "intent_by_model", "intent_by_language",
     "friction_by_intent_model", "friction_weekly", "data_quality_weekly",
     "intensity_weekly_model", "intent_weekly_model", "friction_weekly_model", "data_quality_weekly_model",
-    "friction_by_intent_model_era",
+    "friction_by_intent_model_era", "friction_by_responder",
 ]
 
 
@@ -34,6 +34,15 @@ _MODEL_FAMILY_SQL = (
 def register(con: duckdb.DuckDBPyConnection, flat_dir: Path) -> str:
     con.execute(f"CREATE OR REPLACE VIEW conversations AS SELECT *, {_MODEL_FAMILY_SQL} "
                 f"FROM read_parquet('{flat_dir}/conversations/*.parquet')")
+    # Turns flattened before 2026-10-04 lack attributed_to; expose it as NULL so the responder cut can fall back to the model.
+    turns_dir = flat_dir / "turns"
+    if turns_dir.exists() and any(turns_dir.glob("*.parquet")):
+        turn_cols = {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{turns_dir}/*.parquet') LIMIT 0").fetchall()}
+        extra = "" if "attributed_to" in turn_cols else ", NULL::VARCHAR AS attributed_to"
+        con.execute(f"CREATE OR REPLACE VIEW turns AS SELECT *{extra} FROM read_parquet('{turns_dir}/*.parquet')")
+    else:
+        con.execute("CREATE OR REPLACE VIEW turns AS SELECT NULL::BIGINT AS conv_id, NULL::INTEGER AS idx, NULL::VARCHAR AS role, NULL::VARCHAR AS attributed_to, "
+                    "NULL::BOOLEAN AS repeats_prev_user, NULL::BOOLEAN AS is_correction, NULL::BOOLEAN AS is_refusal WHERE false")
     intent_dir = flat_dir / "intent"
     if intent_dir.exists() and any(intent_dir.glob("*.parquet")):
         con.execute(f"CREATE OR REPLACE VIEW intent AS SELECT * FROM read_parquet('{intent_dir}/*.parquet')")

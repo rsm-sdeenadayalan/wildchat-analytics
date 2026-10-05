@@ -110,3 +110,34 @@ def test_model_cuts_have_model_column_and_match_totals(tmp_path, mini_shard_path
     bad = con.execute(f"SELECT count(*) FROM '{out / 'intensity_weekly_model'}.parquet' "
                       "WHERE return_rate IS NOT NULL AND (return_rate < 0 OR return_rate > 1)").fetchone()[0]
     assert bad == 0
+
+
+def test_friction_by_responder_charges_user_turns_to_the_prior_reply(tmp_path, mini_shard_path):
+    import duckdb
+
+    flat = tmp_path / "flat"
+    flatten.run(local_paths=[mini_shard_path], out_dir=flat)
+    out = tmp_path / "agg"
+    metrics.run(flat_dir=flat, out_dir=out, min_cell=1)
+    rows = duckdb.sql(f"SELECT responder, assistant_turns, corrections, repeats FROM '{out / 'friction_by_responder.parquet'}' ORDER BY responder").fetchall()
+    assert rows and all(r[1] >= 1 for r in rows)
+    # conversation 1001 (gpt-4o) has one correction and one repeat on its second user turn
+    by = {r[0]: r for r in rows}
+    assert by["gpt-4o"][2] >= 1 and by["gpt-4o"][3] >= 1
+    # the first user turn is never charged to anyone
+    first_turn_flags = duckdb.sql(f"SELECT count(*) FROM '{flat / 'turns' / 'mini_wildchat.parquet'}' WHERE role='user' AND idx=1 AND attributed_to IS NOT NULL").fetchone()[0]
+    assert first_turn_flags == 0
+
+
+def test_register_exposes_attributed_to_for_legacy_turns(tmp_path, mini_shard_path):
+    import duckdb
+    import pyarrow.parquet as pq
+
+    flat = tmp_path / "flat"
+    flatten.run(local_paths=[mini_shard_path], out_dir=flat)
+    legacy = pq.read_table(flat / "turns" / "mini_wildchat.parquet").drop(["attributed_to"])
+    pq.write_table(legacy, flat / "turns" / "mini_wildchat.parquet")
+    con = duckdb.connect()
+    metrics.register(con, flat)
+    assert con.execute("SELECT count(*) FROM turns WHERE attributed_to IS NULL").fetchone()[0] == legacy.num_rows
+    assert metrics.run_sql(con, "friction_by_responder", min_cell=1).num_rows >= 1   # falls back to the conversation's model

@@ -94,6 +94,19 @@ Seven classes (`loupe/taxonomy.json`, version `v2`, revised 2026-09-26):
 
 **Classifier accuracy.** Held-out accuracy 78.6% on 1,966 conversations (macro F1 0.805), gate 78.4%, passed without override. Per-class F1: image_prompting 0.93, coding 0.84, translation 0.83, other 0.80, creative_roleplay 0.75, questions 0.76, writing_and_business 0.72. The model is a character plus word n-gram TF-IDF with logistic regression; a multilingual sentence-embedding model (multilingual-e5-small) was tested and scored lower (78% on the seven-class taxonomy), which supports the label-ceiling reading. Calibration: on the labeled sample itself the seven class shares differ from the classifier's full-corpus shares by at most three points, with the classifier over-calling "other" by about three points.
 
+## Attribution: who is answerable for friction
+
+Friction is read from the user's side of a conversation: a repeated request or a correction is something the person did in reaction to the reply they had just received. Loupe therefore attributes each friction event to the responder that produced that reply, turn by turn (`loupe/attribution.py`), and rolls up from there. The `turns` table carries `attributed_to`: on an assistant turn, its producer; on a user turn, the producer of the reply it reacts to. The first user turn reacts to nothing and is attributed to no one. `friction_by_responder.sql` publishes repeats and corrections per 1,000 replies by responder.
+
+In WildChat one model answers every turn, so per-responder equals per-model and the aggregate is a consistency check on the by-model cut. The design exists for the case an outside reader raised: an orchestrator that hands turns to several sub-assistants, where the user sees only the final reply and blame cannot be read from the text. The adapter contract is a single optional field, `responder`, logged on each assistant message. With it, friction splits by sub-assistant with no further code. Without it, every reply is charged to the conversation's default model and Loupe reports at that level rather than infer a culprit from content.
+
+**Inferred versus reported failure.** These logs carry no explicit feedback: no thumbs-down, no rating, no regenerate click. Every friction signal here is therefore inferred from conversation structure, and the validation below is the test of whether those inferences hold. On a team's own logs that do carry feedback events, those events are the primary friction signal, attributed per turn in exactly the same way, and the structural proxies become supporting evidence. The flatten adapter is where a team maps such events in.
+
+<!-- loupe-check id=responder-families
+sql: SELECT count(*) FROM 'aggregates/friction_by_responder.parquet' r WHERE r.responder NOT IN (SELECT DISTINCT model FROM 'aggregates/volume_daily_model.parquet')
+expect: 0
+-->
+
 ## Friction proxy validation
 
 Four proxies, each computed from conversation structure alone (`loupe/text.py`), with exact rules:

@@ -55,6 +55,10 @@ def check(agg: Path = Path("aggregates")) -> list[str]:
     expect("era-restricted friction cells never exceed the all-time cell for the same intent and model",
            f"""SELECT count(*) FROM {t('friction_by_intent_model_era')} e JOIN {t('friction_by_intent_model')} a USING (intent, model)
                WHERE e.conversations > a.conversations""", 0)
+    expect("responder cut: every responder is a known model family",
+           f"""SELECT count(*) FROM {t('friction_by_responder')} r WHERE r.responder NOT IN (SELECT DISTINCT model FROM {t('volume_daily_model')})""", 0)
+    expect("responder cut: rates within [0, 1]",
+           f"SELECT count(*) FROM {t('friction_by_responder')} WHERE correction_rate < 0 OR correction_rate > 1 OR repeat_rate < 0 OR repeat_rate > 1", 0)
     expect("every rate column is within [0, 1]",
            f"""SELECT count(*) FROM (
                SELECT repeat_rate r FROM {t('friction_weekly')} UNION ALL SELECT one_and_done_rate FROM {t('friction_weekly')}

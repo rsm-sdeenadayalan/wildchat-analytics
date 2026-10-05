@@ -148,6 +148,8 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             await page.wait_for_timeout(1500)
             if not await page.evaluate("document.querySelectorAll('#view-friction .card.built table tbody tr').length === 4"):
                 problems.append("friction: the routing counterfactual card did not render its four policies")
+            if not await page.evaluate("document.querySelectorAll('#view-friction .card.contract li').length === 4 && document.querySelectorAll('#view-friction .card.chart').length >= 4"):
+                problems.append("friction: the per-responder chart or the attribution contract card did not render")
             # Built-from-the-data view: both artifacts render, era toggle swaps the table, the eval scorer computes live.
             await page.click('.tabs button[data-view="built"]')
             await page.wait_for_timeout(1500)

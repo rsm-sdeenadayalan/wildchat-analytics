@@ -13,6 +13,7 @@ import duckdb
 import pyarrow as pa
 
 from loupe import schema, text
+from loupe.attribution import Message, attribute_turns
 
 
 def _q(path: str) -> str:
@@ -87,7 +88,6 @@ def flatten_shard(path: str | Path, shard: str, con: duckdb.DuckDBPyConnection |
 
         (_, model, ts, turn, language, country, state, hashed_ip, redacted, ua, al, *_rest) = group[0]
         conv_id = int(group[0][14])  # tid of first message
-        prev_user: str | None = None
         user_texts: list[str] = []
         last_assistant_len = 0
         has_empty = False
@@ -95,32 +95,29 @@ def flatten_shard(path: str | Path, shard: str, con: duckdb.DuckDBPyConnection |
         p_tok = c_tok = 0
         any_usage = False
 
-        for r in group:
+        # WildChat logs no per-message producer, so every assistant turn is attributed to the conversation's model.
+        flags = attribute_turns([Message(role=r[12], content=r[13] or "") for r in group], default_responder=model)
+        for r, fl in zip(group, flags):
             idx, role, content, tid, turn_language, turn_redacted, pt, ct = r[11], r[12], r[13], r[14], r[15], r[16], r[17], r[18]
             content = content or ""
             is_empty = content.strip() == ""
-            rep = corr = ref = False
             if role == "user":
                 if is_empty:
                     has_empty = True
-                rep = text.is_repeat(prev_user, content)
-                corr = text.is_correction(content)
-                repeated |= rep
-                corrected |= corr
-                prev_user = content
+                repeated |= fl.repeats_prev_user
+                corrected |= fl.is_correction
                 user_texts.append(content)
             else:
-                ref = text.is_refusal(content)
-                refused |= ref
+                refused |= fl.is_refusal
                 last_assistant_len = len(content)
                 if pt is not None or ct is not None:
                     any_usage = True
                     p_tok += int(pt or 0)
                     c_tok += int(ct or 0)
             turn_out.append({
-                "conv_id": conv_id, "idx": int(idx), "role": role, "language": turn_language,
+                "conv_id": conv_id, "idx": int(idx), "role": role, "attributed_to": fl.attributed_to, "language": turn_language,
                 "content_len": len(content), "is_empty": is_empty, "redacted": bool(turn_redacted),
-                "repeats_prev_user": rep, "is_correction": corr, "is_refusal": ref, "shard": shard,
+                "repeats_prev_user": fl.repeats_prev_user, "is_correction": fl.is_correction, "is_refusal": fl.is_refusal, "shard": shard,
             })
 
         n_turns = int(turn)

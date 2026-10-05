@@ -7,7 +7,7 @@ export const AGGREGATES = [
   "intent_weekly", "intent_by_model", "intent_by_language",
   "friction_by_intent_model", "friction_weekly", "data_quality_weekly",
   "intensity_weekly_model", "intent_weekly_model", "friction_weekly_model", "data_quality_weekly_model",
-  "friction_by_intent_model_era",
+  "friction_by_intent_model_era", "friction_by_responder",
 ];
 
 const $ = (sel) => document.querySelector(sel);
@@ -748,7 +748,7 @@ export async function renderFriction(conn, meta) {
   const signals = ["repeat_rate", "correction_rate"];
   const labels = { repeat_rate: "repeated request", correction_rate: "correction follow-up", one_and_done_rate: "ended in one turn" };
   const colors = palette();
-  const color = { "repeated request": colors[0], "correction follow-up": colors[1], "ended in one turn": css("--muted-2") };
+  const color = { "repeated request": colors[0], "correction follow-up": colors[1], "ended in one turn": css("--c7") };
   const long = weekly.flatMap((r) => signals.map((s) => ({ week: r.week, signal: labels[s], rate: r[s] })));
   const depth = weekly.map((r) => ({ week: r.week, signal: labels.one_and_done_rate, rate: r.one_and_done_rate }));
   const avg = (rows, k) => (rows.length ? sum(rows, (r) => r[k]) / rows.length : null);
@@ -806,7 +806,8 @@ export async function renderFriction(conn, meta) {
       const { rows, bridges } = bridged(depth, { value: "rate" });
       return Plot.plot({
         width: w, height: 220, marginLeft: 50, y: { label: "share of conversations", grid: true, percent: true }, x: { label: null },
-        marks: [...timeMarks(), bridgeMark(bridges, { value: "rate", stroke: color["ended in one turn"] }),
+        marks: [...timeMarks(), Plot.areaY(rows, { x: "week", y: "rate", fill: color["ended in one turn"], fillOpacity: 0.12 }),
+          bridgeMark(bridges, { value: "rate", stroke: color["ended in one turn"] }),
           Plot.lineY(rows, { x: "week", y: "rate", stroke: color["ended in one turn"], strokeWidth: 1.75, tip: TIP })],
       });
     },
@@ -858,6 +859,35 @@ export async function renderFriction(conn, meta) {
       view.append(card);
     }
   } catch (e) { console.warn("routing counterfactual unavailable", e); }
+  // Attribution: friction charged to the responder whose reply the user reacted to, turn by turn.
+  if (!FILTER.model) {
+    const resp = await q(conn, `SELECT responder, assistant_turns, corrections, repeats, correction_rate, repeat_rate FROM friction_by_responder ORDER BY assistant_turns DESC`).catch(() => []);
+    if (resp.length) {
+      const per1k = resp.flatMap((r) => [{ responder: r.responder, signal: "repeated request", per1k: 1000 * r.repeat_rate, n: r.assistant_turns }, { responder: r.responder, signal: "correction follow-up", per1k: 1000 * r.correction_rate, n: r.assistant_turns }]);
+      const order = resp.map((r) => r.responder);
+      const worst = [...resp].sort((a, b) => (b.repeat_rate + b.correction_rate) - (a.repeat_rate + a.correction_rate))[0];
+      chart(view, {
+        title: "Who is answerable: friction per 1,000 replies, by responder",
+        so: `${esc(worst.responder)} draws the most friction per reply: ${(1000 * worst.repeat_rate).toFixed(1)} repeats and ${(1000 * worst.correction_rate).toFixed(1)} corrections per 1,000 of its replies. In these logs one model answers a whole conversation, so this equals the by-model view; the point is the unit.`,
+        note: "Loupe charges a repeated request or a correction to the responder that produced the reply the user reacted to, turn by turn (loupe/attribution.py), not to the conversation as a whole. The first user turn reacts to nothing and is charged to no one. For an assistant built from several sub-assistants, the team logs one field per assistant message, `responder`, and this chart splits by sub-assistant with no further code. When that field is absent, every reply is charged to the conversation's model and Loupe says so rather than guess which sub-assistant was at fault.",
+        series: [{ key: "repeated request", color: colors[0] }, { key: "correction follow-up", color: colors[1] }],
+        draw: ({ isOn, hover, w }) => Plot.plot({
+          width: w, height: 40 + 30 * order.length, marginLeft: 110,
+          color: { domain: ["repeated request", "correction follow-up"], range: [colors[0], colors[1]] },
+          x: { label: "per 1,000 replies", grid: true }, y: { label: null, domain: order },
+          marks: [Plot.barX(per1k.filter((d) => isOn(d.signal)), { y: "responder", x: "per1k", fill: "signal", fillOpacity: (d) => dim(hover, d.signal), tip: { format: { y: false } }, channels: { responder: "responder", replies: "n" }, rx: 3, inset: 1 }), Plot.ruleX([0])],
+        }),
+      });
+      view.append(el(`<div class="card contract"><p class="eyebrow">The contract</p><h2>What Loupe can and cannot attribute</h2>
+        <ul class="facts dark-list">
+          <li><b>Single assistant.</b> Every reply has one producer, the model. Friction is attributed per turn and rolls up to per model, which is what every chart on this page shows.</li>
+          <li><b>Orchestrator with sub-assistants.</b> The user only ever sees the final reply, so blame cannot be read from the text. If the orchestrator logs <code>responder</code> on each assistant message, Loupe attributes each repeat and correction to the sub-assistant whose reply triggered it. The adapter contract is that one field.</li>
+          <li><b>No field logged.</b> Loupe reports at conversation level, charges the conversation's default model, and states that it cannot attribute further. It never infers a sub-assistant from content.</li>
+          <li><b>Explicit feedback.</b> These logs have no thumbs-down or ratings, so friction is inferred from what users did. On logs that carry feedback events, the same per-turn attribution applies to them directly and the structural proxies become supporting evidence.</li>
+        </ul></div>`));
+    }
+  }
+
   const aggFmt = perIntent.map((r) => ({
     intent: r.intent, n: fmtInt.format(r.n),
     repeated_request: fmtPct(r.repeat_rate), correction_followup: fmtPct(r.correction_rate, 2), ended_in_one_turn: fmtPct(r.one_and_done_rate),

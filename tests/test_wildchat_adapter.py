@@ -67,3 +67,6 @@ def test_turn_rows(mini_shard_path):
     assert c1[0]["content_len"] == len("Write a python function that reverses a list")
     c3 = [t for t in turns if t["conv_id"] == 3001 and t["role"] == "user"][0]
     assert c3["is_empty"] is True
+    # WildChat has no per-message producer: assistant turns carry the conversation's model, user turns the reply they react to
+    assert c1[1]["attributed_to"] == c1[3]["attributed_to"] and c1[1]["attributed_to"] is not None
+    assert c1[0]["attributed_to"] is None and c1[2]["attributed_to"] == c1[1]["attributed_to"]

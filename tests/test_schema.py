@@ -11,5 +11,6 @@ def test_conversations_schema_fields():
 
 
 def test_turns_and_intent_schema_fields():
-    assert schema.TURNS.names[:3] == ["conv_id", "idx", "role"]
+    assert schema.TURNS.names[:4] == ["conv_id", "idx", "role", "attributed_to"]
+    assert schema.TURNS.field("attributed_to").nullable
     assert schema.INTENT.names == ["conv_id", "intent", "proba_max", "shard"]
