@@ -90,9 +90,22 @@ tolerance: 0.005
 
 ## What this is and is not
 
+**Its metric was validated after it was written, and did not hold as a failure measure.** On 2026-10-04 the friction precision check found that one-and-done, the measure these policies are chosen on, is 41% precise as a failure signal: most flagged conversations got what they came for. It is a sound measure of engagement depth, so the result above should be read as "routing by intent would have led far more conversations to continue past one turn", not "would have fixed most failures". The two signals that did survive validation, repeated requests (0.78) and corrections (0.96), move the same way under every policy: the cost-aware rule cuts repeats from 1.33% to 0.08% and corrections from 0.17% to 0.03% of routable conversations in era B. The experiment below now uses repeated requests as its primary metric.
+
+<!-- loupe-check id=eraB-costaware-repeat
+sql: SELECT round(eras.B.policies.cost_aware.repeat_rate, 4) FROM read_json_auto('aggregates/routing_counterfactual.json')
+expect: 0.0008
+tolerance: 0.00005
+-->
+<!-- loupe-check id=eraB-baseline-repeat
+sql: SELECT round(eras.B.policies.baseline_actual_mix.repeat_rate, 4) FROM read_json_auto('aggregates/routing_counterfactual.json')
+expect: 0.0133
+tolerance: 0.00005
+-->
+
 **It is observational.** Users chose their model. The people who picked o1-mini for coding were, very likely, heavier and more deliberate users than the people who took the default, and some of o1-mini's 3% is them, not the model. The gap is too large to be only selection, but the counterfactual sizes a prize; it does not claim it.
 
-**The friction proxy is unvalidated.** One-and-done is a structural rule (one turn, short reply) and its precision against hand labels is still pending (metrics framework). A short, correct answer that satisfied the person counts as friction here. That cuts in the same direction for every model, so the comparison is fairer than the level.
+**The depth measure is not a failure measure.** One-and-done is a structural rule (one turn, short reply); validation found a short, correct answer that satisfied the person counts here 59% of the time. That cuts in the same direction for every model, so the comparison between models is fairer than the level, and the validated signals agree with its direction.
 
 **Cost is an assumption, not a measurement.** gpt-4o and gpt-4o-mini conversations in these logs carry no token counts, so every model is priced on the same assumed conversation (1,500 prompt and 800 completion tokens) at late-2024 list prices. The numbers are in `loupe/model_prices.json`; change them and re-run `scripts/routing_counterfactual.py`. Reasoning models bill hidden reasoning tokens, so their true cost is higher than shown and the cost-aware rule is, if anything, optimistic about o1-mini.
 
@@ -104,10 +117,10 @@ expect: "2024-12"
 ## The experiment that would settle it
 
 - **Unit and split.** Pseudo-user, randomized 50/50 on first visit in the window. Control: the default model. Treatment: the cost-aware rule, decided by the classifier on the first message.
-- **Primary metric.** One-and-done rate among non-"other" requests, measured as Loupe measures it, so the result lands on the same dashboard that motivated the test.
+- **Primary metric.** Repeated-request rate among non-"other" requests, the validated friction signal, with share ending after one turn as the depth check; both measured as Loupe measures them, so the result lands on the same dashboard that motivated the test.
 - **Guardrails.** Refusal rate (reasoning models refuse slightly more), cost per 1k conversations against the +9% estimate, and week-over-week return as the long-run check.
 - **Size.** With a baseline of 20.6% and a hoped-for 8%, a few thousand conversations per arm detect the effect; a two-week run at this traffic is far more than enough, which leaves room to read it by intent.
-- **Decision rule, written before the run.** Ship if one-and-done falls by at least 6 points with cost within +15%. Revisit routes if the gain is under 3 points. Kill if refusals rise more than 1 point without a friction gain.
+- **Decision rule, written before the run.** Ship if repeated requests fall by at least a third and one-turn share by at least 6 points, with cost within +15%. Revisit routes if neither moves. Kill if corrections rise without a repeat gain.
 
 ## Where it lives
 

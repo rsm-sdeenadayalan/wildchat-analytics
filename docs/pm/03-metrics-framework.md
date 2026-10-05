@@ -105,16 +105,47 @@ Four proxies, each computed from conversation structure alone (`loupe/text.py`),
 
 **Labeling procedure.** 300 conversations are exported by `scripts/export_friction_sample.py` (random sample, 1-6 turns, no empty user input, seed 11) to a local, gitignored CSV under `samples/`. Each row is hand-labeled per `docs/pm/research/friction-labeling-guide.md` for `got_what_they_came_for`, `is_repeat`, `is_correction`, and `is_refusal`. The labeled columns (text columns dropped) are committed to `docs/pm/research/friction_labels.csv`. `scripts/friction_precision.py` joins those labels against the corresponding proxy flags in the flat conversation table and computes, per proxy, predicted count, true positives, and precision; `one_and_done` has no directly corresponding human label, so it is judged instead against the outcome column (`got_what_they_came_for == 0`, i.e., did abandoning after one short reply actually track with not getting what they came for).
 
-**Precision table.** Labeling has not run yet; the table below carries the four proxies with the column pending until `docs/pm/research/friction_labels.csv` is populated and `scripts/friction_precision.py` is run (its output overwrites this table with the real numbers, per the labeling guide).
+**Precision table (2026-10-04, model-labeled).** No human labeler was available in the project window, so the first validation pass used the same approach the intent work did: a model labels, a second model checks agreement, and the result is reported as a model's judgment rather than ground truth. 399 conversations from one shard were sampled, stratified so each proxy had about 75 fired cases plus 100 with nothing fired; 377 parsed. The labeler was claude-sonnet-5 at temperature 0 following the labeling guide verbatim; gemini-3.5-flash relabeled a 53-conversation slice and agreed on 94% to 100% of the behavior labels and 83% of the outcome label. Labels (no conversation text) are in `docs/pm/research/friction_labels.csv`; the full result is `docs/pm/research/friction_precision.json`.
 
-| proxy | predicted | true positives | precision |
-|---|---|---|---|
-| repeated_request | pending | pending | pending |
-| correction_followup | pending | pending | pending |
-| assistant_refusal | pending | pending | pending |
-| one_and_done | pending | pending | pending |
+| proxy | flagged | labeler agreed | precision | recall on sample | verdict |
+|---|---|---|---|---|---|
+| correction_followup | 72 | 69 | **0.96** | 0.76 | keep |
+| repeated_request | 78 | 61 | **0.78** | 0.60 | keep |
+| assistant_refusal | 116 | 52 | **0.45** | 0.73 | **dropped from the dashboard** |
+| one_and_done (as a failure signal) | 76 | 31 | **0.41** | n/a | **reframed as depth, not friction** |
 
-A proxy scoring under 0.70 precision against the hand labels is **dropped from the dashboard entirely**, not shipped with a softened label or a caveat. The 0.70 gate is the design spec's shipping threshold (Section 6.2, Section 13).
+<!-- loupe-check id=precision-correction
+sql: SELECT round(correction_followup.precision, 2) FROM read_json_auto('docs/pm/research/friction_precision.json')
+expect: 0.96
+tolerance: 0.005
+-->
+<!-- loupe-check id=precision-repeat
+sql: SELECT round(repeated_request.precision, 2) FROM read_json_auto('docs/pm/research/friction_precision.json')
+expect: 0.78
+tolerance: 0.005
+-->
+<!-- loupe-check id=precision-refusal
+sql: SELECT round(assistant_refusal.precision, 2) FROM read_json_auto('docs/pm/research/friction_precision.json')
+expect: 0.45
+tolerance: 0.005
+-->
+<!-- loupe-check id=precision-oad
+sql: SELECT round(one_and_done.precision, 2) FROM read_json_auto('docs/pm/research/friction_precision.json')
+expect: 0.41
+tolerance: 0.005
+-->
+<!-- loupe-check id=precision-n
+sql: SELECT n_labels FROM read_json_auto('docs/pm/research/friction_precision.json')
+expect: 377
+-->
+
+**Why refusal failed.** 49 of the 64 false positives begin "As an AI language model, I…" and then answer the question in full ("…I don't have an accent, but here are some tips"). That is a verbal habit of the 2023 models, not a refusal. Removing the "as an AI" clause raises precision to 0.66 at the cost of recall (0.58); requiring a short reply as well reaches 0.69 to 0.72 but catches under half of real refusals. No pattern variant clears the gate with usable recall, so refusal needs a different detector (a model judgment on the reply, or a reply-length-and-pattern rule validated on a larger sample) before it returns. Refusal rates stay in the aggregates for anyone who wants them; the dashboard does not show them.
+
+**Why one_and_done failed as a failure signal.** 59% of the conversations it flags ended with the person getting what they came for: short factual questions answered correctly, greetings and tests answered sensibly, a one-shot code fix. Among real requests only (excluding "other") the figure is 60%, so the problem is not junk traffic. The rule measures brevity well and failure badly. It stays on the dashboard as "ended in one turn", an engagement-depth measure, and is no longer called friction. The routing counterfactual (`10-routing-counterfactual.md`), which chose policies on this measure, now reports the two validated signals alongside it; both move in the same direction under every policy.
+
+**What holds.** Conversations flagged by any proxy really are worse: 41% of flagged conversations ended without the person getting what they wanted, against 25% of unflagged ones, so the signals point the right way even where two of them fire too often.
+
+A proxy scoring under 0.70 precision is **dropped from the dashboard entirely**, not shipped with a softened label or a caveat. The 0.70 gate is the design spec's shipping threshold (Section 6.2, Section 13). This rule was applied on 2026-10-04 to assistant_refusal, and one_and_done was reclassified rather than softened. A human relabel of the same 377 conversations is the next step and the labels file is laid out for it.
 
 ## Queries
 

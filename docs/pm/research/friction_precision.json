@@ -1,0 +1,80 @@
+{
+  "method": "Model-labeled validation, 2026-10-04. 399 conversations from shard train-00000 (1-6 turns, no empty user input), stratified: 75 per fired proxy plus 100 with no proxy fired; 377 parsed. Labeler claude-sonnet-5 via the UCSD TritonAI gateway following docs/pm/research/friction-labeling-guide.md, temperature 0. A 53-conversation slice was relabeled by gemini-3.5-flash for agreement. Precision = of conversations the proxy flagged, the share the labeler agreed showed that behavior (for one_and_done: the share where the person did not get what they came for). Labels are a model's judgment, not human ground truth.",
+  "labeler": "claude-sonnet-5",
+  "second_rater": "gemini-3.5-flash",
+  "gate": 0.7,
+  "repeated_request": {
+    "predicted": 78,
+    "true_positives": 61,
+    "precision": 0.782051282051282
+  },
+  "correction_followup": {
+    "predicted": 72,
+    "true_positives": 69,
+    "precision": 0.9583333333333334
+  },
+  "assistant_refusal": {
+    "predicted": 116,
+    "true_positives": 52,
+    "precision": 0.4482758620689655
+  },
+  "one_and_done": {
+    "predicted": 76,
+    "true_positives": 31,
+    "precision": 0.40789473684210525
+  },
+  "friction_vs_outcome": 0.4134275618374558,
+  "n_labels": 377,
+  "recall_on_stratified_sample": {
+    "repeated_request": {
+      "model_positive": 102,
+      "caught": 61,
+      "recall": 0.5980392156862745
+    },
+    "correction_followup": {
+      "model_positive": 91,
+      "caught": 69,
+      "recall": 0.7582417582417582
+    },
+    "assistant_refusal": {
+      "model_positive": 71,
+      "caught": 52,
+      "recall": 0.7323943661971831
+    }
+  },
+  "got_what_they_came_for_by_stratum": {
+    "assistant_refusal": {
+      "n": 73,
+      "got_it": 0.547945205479452
+    },
+    "none": {
+      "n": 94,
+      "got_it": 0.7446808510638298
+    },
+    "correction_followup": {
+      "n": 71,
+      "got_it": 0.5211267605633803
+    },
+    "one_and_done": {
+      "n": 69,
+      "got_it": 0.6521739130434783
+    },
+    "repeated_request": {
+      "n": 70,
+      "got_it": 0.6285714285714286
+    }
+  },
+  "rater_agreement": {
+    "n": 53,
+    "got_what_they_came_for": 0.8301886792452831,
+    "is_repeat": 0.9433962264150944,
+    "is_correction": 1.0,
+    "is_refusal": 0.9811320754716981
+  },
+  "verdict": {
+    "repeated_request": "keep",
+    "correction_followup": "keep",
+    "assistant_refusal": "drop",
+    "one_and_done": "reframe"
+  }
+}

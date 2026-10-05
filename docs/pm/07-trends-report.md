@@ -179,7 +179,7 @@ tolerance: 0.0005
 
 A 100% one-turn rate for an entire model family is unusually clean and is at least as likely to reflect how those conversations were collected (a capped or single-shot logging window for reasoning models) as it is to reflect that every user got a complete answer in one message. **Implication for a product owner:** do not read "o1 satisfies people in one turn" from this number alone; check whether the collection pipeline capped these sessions before trusting it as a satisfaction signal. **What would falsify this:** a depth_by_model row for o1 or o1-mini with a bucket above "1" would directly falsify the 100% figure. Live view: dashboard Intensity tab, model filter (`#intensity`).
 
-### F5: Structural friction proxies move in opposite directions across the model transitions; none are validated yet
+### F5: Structural friction proxies move in opposite directions across the model transitions; two of four survived validation
 
 Comparing the first eight weeks of the window to the last eight, one_and_done_rate (a conversation with exactly one short turn) rises from 8.3% to 46.8%, while assistant_refusal patterns fall from 11.3% to 0.6%. correction_followup stays low throughout, averaging 0.4% across the whole window.
 
@@ -209,7 +209,7 @@ expect: 0.004
 tolerance: 0.0005
 -->
 
-These proxies are structural pattern matches, not hand-validated signals: per the metrics framework, each needs 0.70 precision against 300 hand labels before it can be trusted, and that labeling has not run. The one_and_done rise lines up closely with F4's reasoning-model and gpt-4.1-mini one-turn behavior, so it is plausibly the same collection effect, not real new abandonment. **Implication for a product owner:** do not brief "friction is dropping" or "abandonment is rising" from these numbers until the precision check runs; treat this as a hypothesis, not a result. **What would falsify this:** a one_and_done precision under 0.70 in the 300-label check would mean this trend should be dropped from the dashboard, not just caveated. Live view: dashboard Friction tab (`#friction`).
+Validation on 2026-10-04 (377 model-labeled conversations, metrics framework) changes how this finding should be read. The rise in one_and_done is real but is a rise in short, mostly satisfied conversations, not in failure: 59% of flagged conversations got what they came for. The fall in refusal patterns is partly an artifact: the pattern fired on the 2023 models' "As an AI language model…" opener 55% of the time, and that habit faded with the model handoffs. Repeated-request and correction rates, the two signals that cleared the 0.70 gate, are the ones to trend. These proxies are structural pattern matches, not hand-validated signals: per the metrics framework, each needs 0.70 precision before it can be trusted, and the first (model-labeled) pass of that check has not run. The one_and_done rise lines up closely with F4's reasoning-model and gpt-4.1-mini one-turn behavior, so it is plausibly the same collection effect, not real new abandonment. **Implication for a product owner:** do not brief "friction is dropping" or "abandonment is rising" from these numbers until the precision check runs; treat this as a hypothesis, not a result. **What would falsify this:** a one_and_done precision under 0.70 in the 300-label check would mean this trend should be dropped from the dashboard, not just caveated. Live view: dashboard Friction tab (`#friction`).
 
 ### F6: Geography and language are usable but not clean; one label is likely a detector artifact
 
@@ -380,7 +380,7 @@ expect: 15.1
 
 Implication: the cheap tier carried a distinct, prompt-generation workload that the premium tier did not; a product owner sizing model tiers should look at intent mix per tier, not just volume. What would falsify it: an intent-by-model table where image prompting is spread evenly across families. Live view: [Intent tab](https://loupe.shankard.com/app/#intent).
 
-### F11: Friction differs by what people are doing: creative and question conversations draw the most refusals, coding the most single-turn exits among real requests
+### F11: Friction differs by what people are doing: questions draw the most repeated requests, coding the most one-turn conversations; refusal-pattern differences did not survive validation and are reported for the record only. Original title: creative and question conversations draw the most refusals, coding the most single-turn exits among real requests
 
 Excluding the "other" class, one-turn exits are highest for coding (23.7%) and lowest for image prompting (0.8%), which runs as long multi-turn prompt-refinement sessions. Refusal patterns are most frequent in creative and roleplay conversations (4.3%) and questions (3.8%), and rarest in image prompting (0.6%). Repeated requests are most common for questions (5.4%). These are structural proxies, still unvalidated against hand labels (F5); the ordering across intents is more trustworthy than any single rate.
 
@@ -438,7 +438,7 @@ The biases that matter for the findings above, drawn from `03-metrics-framework.
 1. Before trusting any retention or week-over-week return chart, confirm which side of the 2024 Q3/Q4 boundary it covers; never compare across it without saying so (F1).
 2. Treat the comparable-era return rate, roughly 13%, as the current baseline for return-rate goals, not a number pulled from the post-break period (F2).
 3. When comparing model families on any metric, control for era first; a difference between gpt-3.5-turbo and gpt-4.1-mini may be population drift, not model quality (F3, F4).
-4. Hold the friction dashboard's one_and_done, correction, and refusal trends out of any external-facing deck until the 300-label precision check runs and clears the 0.70 gate (F5).
+4. Use repeated-request and correction rates as the friction signals; read one_and_done as engagement depth, not failure; do not cite refusal-pattern rates externally, the proxy was dropped on 2026-10-04 (F5). Original: hold the friction dashboard's one_and_done, correction, and refusal trends out of any external-facing deck until the 300-label precision check runs and clears the 0.70 gate (F5).
 5. Scope any cost, token-budget, or geography/language sizing work to the windows where the underlying data actually has coverage: 2024-09-09 to 2024-12-30 for tokens, and the majority of conversations that carry a usable country for geography (F6, F7).
 6. Report junk traffic (the "other" class) as its own line and exclude it from engagement denominators before comparing 2025 to earlier periods (F9).
-7. Set quality targets per intent, starting with refusals in creative conversations and single-turn exits in coding (F11); size model tiers by intent mix, not volume (F10).
+7. Set quality targets per intent, starting with repeated requests in questions and one-turn share in coding (F11); size model tiers by intent mix, not volume (F10).

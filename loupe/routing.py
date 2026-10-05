@@ -40,19 +40,22 @@ def policies_for(cells: list[dict], prices: dict) -> dict:
         c["cost"] = cost_per_conversation(prices, c["model"])
 
     def summarize(choice: dict[str, str] | None) -> dict:
-        tot = oad = ref = cost = 0.0
+        tot = oad = ref = cost = corr = rep = 0.0
         for i in intents:
             group = by_intent[i]
             n_i = sum(c["conversations"] for c in group)
             if choice is None:  # baseline: actual mix
                 for c in group:
                     tot += c["conversations"]; oad += c["conversations"] * c["one_and_done_rate"]; ref += c["conversations"] * c["refusal_rate"]
+                    corr += c["conversations"] * c["correction_rate"]; rep += c["conversations"] * c["repeat_rate"]
                     cost += c["conversations"] * (c["cost"] or 0)
             else:
                 m = choice[i]
                 cell = next(c for c in group if c["model"] == m)
                 tot += n_i; oad += n_i * cell["one_and_done_rate"]; ref += n_i * cell["refusal_rate"]; cost += n_i * (cell["cost"] or 0)
-        return {"conversations": int(tot), "one_and_done_rate": oad / tot, "refusal_rate": ref / tot, "cost_per_1k": 1000 * cost / tot, "routes": choice}
+                corr += n_i * cell["correction_rate"]; rep += n_i * cell["repeat_rate"]
+        return {"conversations": int(tot), "one_and_done_rate": oad / tot, "refusal_rate": ref / tot, "correction_rate": corr / tot, "repeat_rate": rep / tot,
+                "cost_per_1k": 1000 * cost / tot, "routes": choice}
 
     eligible = {i: [c for c in by_intent[i] if c["conversations"] >= MIN_CELL_FOR_CHOICE and c["cost"] is not None] or by_intent[i] for i in intents}
     best = {i: min(eligible[i], key=lambda c: c["one_and_done_rate"])["model"] for i in intents}
@@ -80,6 +83,7 @@ def run(agg_dir: Path = Path("aggregates"), prices_path: Path = PRICES_PATH, out
     con = duckdb.connect()
     eras = con.execute(f"SELECT era, min(era_start), max(era_end), sum(conversations) FROM '{agg_dir / 'friction_by_intent_model_era.parquet'}' GROUP BY era ORDER BY era").fetchall()
     result = {
+        "metric_note": "Policies are chosen on one_and_done_rate (share of conversations that end after one short turn). The 2026-10-04 validation found that signal is engagement depth, not failure: 60% of flagged real requests got what they came for. Read the gains as 'more conversations continue', and use correction_rate and repeat_rate, the two validated proxies, as the friction check.",
         "method": "Within each window where several models served traffic at once, take the observed one-and-done and refusal rates per intent and model, then compute the volume-weighted rates and list-price cost each routing policy would have produced on the same intent volumes. Observational: users chose their model, so cells carry selection bias; proxies are unvalidated. Sizes the prize for a routing experiment.",
         "min_cell_for_choice": MIN_CELL_FOR_CHOICE, "near_best_pts": NEAR_BEST_PTS,
         "price_assumptions": {"as_of": prices["as_of"], "assumed_tokens_per_conversation": prices["assumed_tokens_per_conversation"], "prices_per_million": prices["prices_per_million"]},

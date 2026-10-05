@@ -42,9 +42,19 @@
 | Intent labeling (9,829 of 10,000 via the UCSD TritonAI gateway, claude-sonnet-5) | Ran; 98.3% labeled, 1.7% unparseable | 2026-09-25 |
 | Inter-rater study (348 conversations, second model gemini-3.5-flash) | 83.6% agreement on ten classes, 87.1% on seven | 2026-09-26 |
 | Intent classifier gate (90% of rater agreement = 78.4%, taxonomy v2) | Passed at 78.6% held-out, no override | 2026-09-26 |
-| 300-label friction precision, 70% gate | Not run; same missing credential | 2026-09-20 |
+| 300-label friction precision, 70% gate | Ran 2026-10-04 with a model labeler (377 conversations, second-model agreement 83% to 100%): correction 0.96 and repeat 0.78 pass; refusal 0.45 dropped from the dashboard; one-and-done 0.41 as a failure signal, reframed as engagement depth | 2026-10-04 |
 | Five-participant usability test (PRD 6.3) | Not run; no recruits in the window | 2026-09-20 |
 | Actionability survey (PRD 6.3) | Not run; same recruiting gap | 2026-09-20 |
+
+## The headline friction number was wrong
+
+For two weeks the largest number on the site was "51% of recent conversations end after one turn", labelled as friction, with "one-and-done" as the lead signal on the Friction view and the primary metric of the routing counterfactual. The metrics framework had said from the start that no proxy should be trusted before a 300-conversation precision check, and the check had not run because it needed a labeler.
+
+On 2026-10-04 it ran, with a model as the labeler and a second model checking agreement, the same method the intent work used. One-and-done was 41% precise as a failure signal: most of the people it flagged got what they came for. Short question, correct short answer. The refusal pattern was 45% precise: it fired on the 2023 models' habit of opening a complete answer with "As an AI language model". Two of four signals failed the bar I had set.
+
+What changed the same day: refusal left the dashboard; one-and-done was renamed "ended in one turn" and moved out of the friction group into engagement depth; the landing page's fourth question is now answered with repeated requests, the validated signal; the routing counterfactual reports repeats and corrections alongside the depth measure; and the metrics framework carries the table with the model-labeled caveat.
+
+The lesson is the one the intent gate taught a week earlier, in a different form. A proxy that has not been measured against outcomes is a guess, and the more prominent a guess is on a page, the more it costs when it turns out wrong. The framework's rule was right; what was wrong was shipping the number above the fold before the rule had been applied. Next time the validation runs before the number gets a headline, not after.
 
 ## What the numbers said
 

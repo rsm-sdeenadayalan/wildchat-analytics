@@ -1,4 +1,5 @@
 {
+  "metric_note": "Policies are chosen on one_and_done_rate (share of conversations that end after one short turn). The 2026-10-04 validation found that signal is engagement depth, not failure: 60% of flagged real requests got what they came for. Read the gains as 'more conversations continue', and use correction_rate and repeat_rate, the two validated proxies, as the friction check.",
   "method": "Within each window where several models served traffic at once, take the observed one-and-done and refusal rates per intent and model, then compute the volume-weighted rates and list-price cost each routing policy would have produced on the same intent volumes. Observational: users chose their model, so cells carry selection bias; proxies are unvalidated. Sizes the prize for a routing experiment.",
   "min_cell_for_choice": 1000,
   "near_best_pts": 0.05,
@@ -177,6 +178,8 @@
           "conversations": 745709,
           "one_and_done_rate": 0.06941581769832468,
           "refusal_rate": 0.054690234394381726,
+          "correction_rate": 0.004917467805806286,
+          "repeat_rate": 0.07587812404034282,
           "cost_per_1k": 25.021867243120308,
           "routes": null,
           "one_and_done_change_pts": 0.0,
@@ -186,6 +189,8 @@
           "conversations": 745709,
           "one_and_done_rate": 0.05301800640272682,
           "refusal_rate": 0.03200470932156671,
+          "correction_rate": 0.005232315521123339,
+          "repeat_rate": 0.0557524830905605,
           "cost_per_1k": 70.94887677364763,
           "routes": {
             "coding": "gpt-4",
@@ -202,6 +207,8 @@
           "conversations": 745709,
           "one_and_done_rate": 0.07418904268970265,
           "refusal_rate": 0.06100188671669691,
+          "correction_rate": 0.004727364021441249,
+          "repeat_rate": 0.08432535386692729,
           "cost_per_1k": 2.919340520229741,
           "routes": {
             "coding": "gpt-3.5-turbo",
@@ -218,6 +225,8 @@
           "conversations": 745709,
           "one_and_done_rate": 0.07571419457886763,
           "refusal_rate": 0.06108144178108442,
+          "correction_rate": 0.0046960621875556776,
+          "repeat_rate": 0.08434719564884946,
           "cost_per_1k": 1.9500000000000004,
           "routes": {
             "coding": "gpt-3.5-turbo",
@@ -501,6 +510,8 @@
           "conversations": 950308,
           "one_and_done_rate": 0.20624786911190898,
           "refusal_rate": 0.01717864103006604,
+          "correction_rate": 0.0017352268948593508,
+          "repeat_rate": 0.013272539008405696,
           "cost_per_1k": 12.598869087706303,
           "routes": null,
           "one_and_done_change_pts": 0.0,
@@ -510,6 +521,8 @@
           "conversations": 950308,
           "one_and_done_rate": 0.07685022679222786,
           "refusal_rate": 0.020781417534578326,
+          "correction_rate": 8.910141307877389e-05,
+          "repeat_rate": 0.00023565800050156258,
           "cost_per_1k": 32.81494644367931,
           "routes": {
             "coding": "o1-mini",
@@ -526,6 +539,8 @@
           "conversations": 950308,
           "one_and_done_rate": 0.08183517249458074,
           "refusal_rate": 0.01723196280973254,
+          "correction_rate": 0.0002650092417724487,
+          "repeat_rate": 0.0008476403352436928,
           "cost_per_1k": 13.777542307336148,
           "routes": {
             "coding": "o1-mini",
@@ -542,6 +557,8 @@
           "conversations": 950308,
           "one_and_done_rate": 0.3428553911775266,
           "refusal_rate": 0.014008829437637932,
+          "correction_rate": 0.0032184372069446886,
+          "repeat_rate": 0.024739341875688187,
           "cost_per_1k": 0.705,
           "routes": {
             "coding": "gpt-4o-mini",

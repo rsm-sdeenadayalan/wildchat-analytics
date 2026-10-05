@@ -60,14 +60,14 @@ function fill(s) {
     `<b>${fmtInt.format(s.peak_weekly_pseudo_users)}</b>pseudo-users, busiest week`,
     s.return_rate != null ? `<b>${pct(s.return_rate)}</b>came back the next week` : `<b>–</b>return not measurable`,
     top ? `<b>${pct0(top.share)}</b>${esc(top.intent)}, the largest use` : `<b>–</b>no intent labels`,
-    s.one_and_done_recent != null ? `<b>${pct0(s.one_and_done_recent)}</b>end after one turn` : `<b>–</b>no friction data`,
+    s.worst_repeat_rate != null ? `<b>${pct(s.worst_repeat_rate)}</b>of ${esc(s.worst_repeat_intent)} conversations repeat the request` : `<b>–</b>no friction data`,
   ];
   document.querySelectorAll(".qtile .qanswer").forEach((el, i) => (el.innerHTML = answers[i]));
   const rows = [
     ["01", "Who uses it?", "app/#overview", `<b>${fmtInt.format(s.peak_weekly_pseudo_users)}</b> pseudo-users in the busiest week${s.largest_country ? `; ${esc(s.largest_country)} is the largest country at ${pct0(s.largest_country_share)}` : ""}`],
     ["02", "How intensely?", "app/#intensity", s.return_rate != null ? `<b>${pct(s.return_rate)}</b> came back the following week; the top 10% of pseudo-users produce ${pct0(s.top10_share)} of conversations` : "return not yet measurable"],
     ["03", "For what?", "app/#intent", top ? `<b>${esc(top.intent)}</b> ${pct0(top.share)}${second ? `, then ${esc(second.intent)} ${pct0(second.share)}` : ""}, across seven intent classes` : "intent labels not in this build"],
-    ["04", "Where does it fail them?", "app/#friction", s.one_and_done_recent != null ? `<b>${pct0(s.one_and_done_recent)}</b> of recent conversations end after one turn; refusals, corrections and repeats are tracked per intent and model` : "friction proxies not yet computed"],
+    ["04", "Where does it fail them?", "app/#friction", s.worst_repeat_rate != null ? `In <b>${esc(s.worst_repeat_intent)}</b>, ${pct(s.worst_repeat_rate)} of conversations repeat the same request, the highest of any intent; repeats and corrections are the two signals that survived validation, tracked per intent and model` : "friction proxies not yet computed"],
   ];
   const ledger = $("#ledger");
   if (ledger) ledger.innerHTML = rows.map(([n, q, href, a]) => `<li><a href="${href}"><span class="n">${n}</span><span class="q">${q}</span><span class="a">${a}</span><span class="arr" aria-hidden="true">↗</span></a></li>`).join("");
@@ -182,12 +182,12 @@ function bindStory(circles) {
   if (reduced()) { finalFrame(); return; }
 
   gsap.registerPlugin(ScrollTrigger);
-  const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+  const lenis = new Lenis({ lerp: 0.16, smoothWheel: true, wheelMultiplier: 0.9 });  // light smoothing, no glide-and-settle
   lenis.on("scroll", ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
   ScrollTrigger.create({
-    trigger: pin, start: "top top", end: "+=520%", pin: true, scrub: true, anticipatePin: 1,
+    trigger: pin, start: "top top", end: "+=520%", pin: true, scrub: true,  // no anticipatePin: it jumps the page when the pin engages
     onUpdate: (self) => render(self.progress),
   });
   render(0);

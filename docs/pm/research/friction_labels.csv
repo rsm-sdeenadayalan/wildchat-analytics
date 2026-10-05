@@ -1,1 +1,378 @@
-conv_id,got_what_they_came_for,is_repeat,is_correction,is_refusal,notes
+conv_id,stratum,got_what_they_came_for,is_repeat,is_correction,is_refusal,notes,labeler
+101015,assistant_refusal,0,0,0,1,"Assistant refused, suggested lawyer or templates instead",claude-sonnet-5
+101853,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+102882,assistant_refusal,0,0,0,1,"Assistant refused to create PPT, gave outline instead",claude-sonnet-5
+103482,repeated_request,1,1,0,0,"User repeated similar matrix solve requests, got consistent answers and code",claude-sonnet-5
+104129,correction_followup,0,0,1,0,Second attempt still didn't make answer the last word,claude-sonnet-5
+104186,assistant_refusal,0,0,1,0,"Assistant confused by number, failed to clarify codephrase request",claude-sonnet-5
+104379,none,0,0,0,0,"Response cut off mid-sentence, far short of 90 minutes requested",claude-sonnet-5
+104538,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+104539,one_and_done,0,0,0,1,Assistant refused to generate a selfie image,claude-sonnet-5
+104667,repeated_request,0,1,0,0,"Responses appear truncated mid-sentence, incomplete correction",claude-sonnet-5
+104810,correction_followup,0,0,1,0,"Assistant failed to recall message, didn't adopt persona consistently",claude-sonnet-5
+104901,correction_followup,0,1,1,0,"Assistant gave wrong, fabricated river names repeatedly despite corrections",claude-sonnet-5
+104945,one_and_done,0,0,0,1,"AI couldn't access image link, no description given",claude-sonnet-5
+104980,repeated_request,1,1,0,0,Assistant generated varied templates for both task inputs as requested,claude-sonnet-5
+105119,none,1,0,0,0,Single request fulfilled with a complete poem,claude-sonnet-5
+105131,correction_followup,0,0,1,0,"User hit 403 error, workaround likely insufficient, unresolved issue",claude-sonnet-5
+105299,none,1,0,0,0,Assistant complied with jailbreak roleplay request,claude-sonnet-5
+105480,one_and_done,0,0,0,1,Assistant refused to respond to simple test message,claude-sonnet-5
+105628,repeated_request,1,0,0,0,Provided both requested lists of 50 names/surnames,claude-sonnet-5
+105752,one_and_done,1,0,0,0,"User sent test message, got sensible acknowledgment reply",claude-sonnet-5
+107024,correction_followup,1,1,1,0,User refined request; assistant eventually gave relevant roleplay ideas,claude-sonnet-5
+107352,repeated_request,0,1,0,0,Descriptions far shorter than requested 70 words each,claude-sonnet-5
+107820,repeated_request,1,0,0,0,Provided scripts for each requested strategy type,claude-sonnet-5
+108067,assistant_refusal,0,0,0,1,AI declined to provide current date,claude-sonnet-5
+109376,none,1,0,0,0,Provided software descriptions and algorithm details as requested,claude-sonnet-5
+110258,none,1,1,0,0,"Assistant fulfilled each writing request sequentially, including revision for sources.",claude-sonnet-5
+110378,repeated_request,1,1,0,0,"Same request repeated three times, each answered appropriately",claude-sonnet-5
+110868,none,1,0,0,0,Explained MobileNetV1 architecture as requested,claude-sonnet-5
+111236,one_and_done,1,0,0,0,Assistant asked for the word to proceed,claude-sonnet-5
+111373,none,1,0,0,0,Single query answered with thorough economic evaluation,claude-sonnet-5
+111711,correction_followup,0,1,1,0,"Assistant gave wrong math answer, wrongly agreed 3+4=8",claude-sonnet-5
+111782,assistant_refusal,0,0,0,1,"User asked for image generation, told it's not possible.",claude-sonnet-5
+111904,assistant_refusal,0,0,0,1,Assistant declined to provide current date,claude-sonnet-5
+112332,correction_followup,1,0,1,0,"User refined creative prompt twice, got tailored psychological interpretation",claude-sonnet-5
+112385,repeated_request,1,1,0,0,"User repeated '数组' query, got expanded explanation both times.",claude-sonnet-5
+112571,repeated_request,0,1,0,0,"Answer truncated, inconsistent eigenvalues, no diagonalizability proof given",claude-sonnet-5
+112693,correction_followup,1,0,1,0,Rewritten monkey story delivered after corrections accepted,claude-sonnet-5
+112857,none,1,0,0,0,Answered both questions with explanations and steps,claude-sonnet-5
+112932,repeated_request,0,1,0,0,"Likely fabricated software/instructions, unclear if accurate or helpful",claude-sonnet-5
+113224,repeated_request,0,1,0,1,Assistant partly complied with jailbreak but refused image description,claude-sonnet-5
+113304,one_and_done,0,0,0,0,Assistant invented data not in truncated brochure text,claude-sonnet-5
+113746,correction_followup,0,1,1,0,Assistant failed repeatedly to form real joke word,claude-sonnet-5
+113857,assistant_refusal,0,0,0,1,Image request refused; code answer cut off incomplete,claude-sonnet-5
+114400,assistant_refusal,0,0,0,1,Assistant declined to draw an image,claude-sonnet-5
+115558,assistant_refusal,1,0,0,0,"Provided translations in Latin, Greek, and German as requested",claude-sonnet-5
+116495,one_and_done,0,0,0,0,Assistant appeared to comply with jailbreak attempt without refusing,claude-sonnet-5
+116704,one_and_done,1,0,0,0,"Summary given once, additional info added without re-request",claude-sonnet-5
+116877,assistant_refusal,1,0,0,0,Gave balanced answer addressing the question directly,claude-sonnet-5
+117436,assistant_refusal,1,0,0,0,Hypothetical question answered with plausible speculative analysis,claude-sonnet-5
+117445,assistant_refusal,0,0,0,1,"response cut off, partial hedge before answering",claude-sonnet-5
+117917,none,1,0,0,0,"Each query answered with relevant, specific training content.",claude-sonnet-5
+117930,assistant_refusal,1,0,0,0,Provided polite reply draft as requested,claude-sonnet-5
+119536,correction_followup,0,0,1,0,"Answer likely fabricated, unclear if accurate about niche local figure",claude-sonnet-5
+119931,one_and_done,1,0,0,0,Confirmed naming suggestion was suitable,claude-sonnet-5
+120210,none,1,0,0,0,Single question answered with relevant comprehensive list,claude-sonnet-5
+120668,one_and_done,1,0,0,0,Assistant gave a plausible description answering the question,claude-sonnet-5
+120770,one_and_done,1,0,0,0,Answered both questions clearly and accurately,claude-sonnet-5
+120941,correction_followup,0,1,1,1,AI broke character instead of roleplaying scared persona,claude-sonnet-5
+122636,correction_followup,0,0,1,0,Multiple iterations failed to achieve object-fit cover effect,claude-sonnet-5
+122663,one_and_done,1,0,0,0,User asked if AI speaks Chinese; got confirmation.,claude-sonnet-5
+123280,correction_followup,1,0,1,0,Assistant corrected itself with accurate skill description after user correction,claude-sonnet-5
+123424,one_and_done,1,0,0,0,Answered flair choice directly as requested,claude-sonnet-5
+124548,none,1,0,0,0,Answered directly with character description,claude-sonnet-5
+125668,one_and_done,1,0,0,0,"Explained idiom meaning clearly, single question answered fully",claude-sonnet-5
+126177,correction_followup,0,1,1,0,"Final answer still mismatched, falsely claimed precision difference instead of fixing bug",claude-sonnet-5
+126304,correction_followup,1,0,1,0,"User clarified request once; assistant provided detailed, evolving creative writing help.",claude-sonnet-5
+126369,none,1,0,0,0,Provided computed rotation result with matrix steps,claude-sonnet-5
+127498,one_and_done,1,0,0,0,Answered trend question with general explanation and caveat.,claude-sonnet-5
+127955,none,0,0,0,0,User pasted code snippet; assistant gave unrelated generic advice.,claude-sonnet-5
+128571,assistant_refusal,1,1,0,1,First reply misunderstood; later replies gave requested word lists,claude-sonnet-5
+129814,none,0,0,0,1,"Assistant failed to understand slang references, no answers given",claude-sonnet-5
+130552,repeated_request,0,1,0,0,Both emails and letters appear cut off incomplete,claude-sonnet-5
+130590,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+132077,repeated_request,0,1,1,1,"CSS fix never worked; invalid syntax mixing Blogger tags, still broken",claude-sonnet-5
+132732,none,1,0,0,0,"User switched topic to hasen hadith definition, got answer",claude-sonnet-5
+133376,correction_followup,1,0,1,0,Final answers addressed corrections and later questions adequately,claude-sonnet-5
+133459,none,0,0,0,0,Response cut off mid-sentence before completing storyboard,claude-sonnet-5
+134754,assistant_refusal,0,0,0,1,Assistant correctly refused to give private API key,claude-sonnet-5
+135150,assistant_refusal,1,0,0,0,"Answered HTML question, gave generic CSS, greeted back",claude-sonnet-5
+135226,repeated_request,1,0,0,0,"User asked two related parser questions, both answered with examples",claude-sonnet-5
+136030,one_and_done,0,0,0,1,"AI cannot generate images, suggested searching online instead",claude-sonnet-5
+136074,none,1,0,0,0,"Gave relevant list, though answer cut off mid-sentence",claude-sonnet-5
+136761,assistant_refusal,0,0,1,1,"Asked for 2022 scores, refused, only got 2021 data",claude-sonnet-5
+137386,assistant_refusal,1,0,0,1,First reply refused vague prompt; second answered fully.,claude-sonnet-5
+137719,correction_followup,1,0,1,0,"User corrected mistake, assistant then produced satisfactory subtle-typo message",claude-sonnet-5
+137859,assistant_refusal,1,0,0,0,"Two unrelated queries both answered directly, no refusal.",claude-sonnet-5
+138569,one_and_done,0,0,0,1,"Assistant refused, provided no description or example requested",claude-sonnet-5
+138592,repeated_request,1,1,0,0,Provided tutorial and prompts; second/third requests similar variants.,claude-sonnet-5
+138724,correction_followup,1,0,1,0,Assistant corrected MFA meaning and gave relevant niches,claude-sonnet-5
+139144,none,1,1,1,0,User got tips; some extensions unavailable prompting repeat/correction,claude-sonnet-5
+139597,none,0,0,0,0,"Response cut off mid-derivation, answer incomplete, second part unaddressed",claude-sonnet-5
+139851,repeated_request,0,1,1,0,"Assistant repeated same fix, code still truncated/broken",claude-sonnet-5
+139952,correction_followup,0,1,1,0,User wanted specific quantitative estimate; assistant stayed vague,claude-sonnet-5
+140014,one_and_done,0,0,0,1,"Assistant could not recall past prompts, declined request",claude-sonnet-5
+140212,correction_followup,0,1,1,0,Assistant kept giving wrong classification despite repeated corrections,claude-sonnet-5
+140571,correction_followup,0,1,1,0,"Assistant kept guessing wrong terms, never found correct answer",claude-sonnet-5
+141282,correction_followup,1,0,1,0,User clarified premise; assistant retold story accordingly,claude-sonnet-5
+141582,one_and_done,1,0,0,0,Gave general dream interpretation despite initial disclaimer,claude-sonnet-5
+141905,repeated_request,1,0,1,0,User got resume intro fixes and resume parts list,claude-sonnet-5
+142155,repeated_request,1,1,0,0,"User questions answered directly, including repeated sed query",claude-sonnet-5
+142226,repeated_request,1,1,0,0,"User repeated identical prompt three times, got article each time",claude-sonnet-5
+143346,one_and_done,1,0,0,0,"User vented tiredness, got supportive generic reply",claude-sonnet-5
+143760,none,0,0,0,0,"Conversation cut off mid-clarification, no final prompt delivered",claude-sonnet-5
+144818,one_and_done,0,0,0,1,AI couldn't identify the term asked about,claude-sonnet-5
+144946,assistant_refusal,0,0,0,0,"Code demos cut off incomplete, likely unsatisfying",claude-sonnet-5
+145101,repeated_request,1,1,0,0,"Repeated app request, final answers gave specific app names.",claude-sonnet-5
+145218,assistant_refusal,0,1,1,0,assistant repeated same wrong answer after correction,claude-sonnet-5
+146271,one_and_done,0,0,0,1,"AI deflected explicit request, gave generic advice instead",claude-sonnet-5
+146403,assistant_refusal,0,1,0,1,"AI couldn't produce actual visual slide, only text descriptions",claude-sonnet-5
+146498,one_and_done,1,0,0,0,"Game started as requested, though not in code block",claude-sonnet-5
+146676,repeated_request,0,1,1,0,User said instructions didn't work for Google Sites embedding.,claude-sonnet-5
+148485,one_and_done,1,0,0,0,Answered which laws solve triangle angles,claude-sonnet-5
+149228,none,0,1,0,1,"Responses cut off, generic code, partially refused full app build",claude-sonnet-5
+149463,correction_followup,1,0,1,0,User corrected focus to hazard explanation; assistant provided concise solution,claude-sonnet-5
+150019,none,1,0,0,0,"Provided more compact, readable rewritten code as requested",claude-sonnet-5
+150777,one_and_done,1,0,0,0,Assistant fixed typo in MATLAB code variable naming,claude-sonnet-5
+151546,repeated_request,1,1,0,0,"Gave practical advice, second message slightly refined, got relevant suggestions",claude-sonnet-5
+152996,one_and_done,1,0,0,0,Assistant affirmed user's view on marriage choice,claude-sonnet-5
+153584,assistant_refusal,1,1,0,0,Provided general data despite lacking real-time specific sources,claude-sonnet-5
+154405,none,1,0,0,0,Gave blog concept and categories as requested,claude-sonnet-5
+155902,repeated_request,1,0,1,0,"User refined requests; final name delivered, called more creative",claude-sonnet-5
+156107,repeated_request,1,1,1,0,User corrected reference format; assistant complied with web links,claude-sonnet-5
+157112,correction_followup,1,0,1,0,User clarified request; assistant gave reversed plot narrative.,claude-sonnet-5
+157173,correction_followup,1,0,1,0,"User clarified movie reference, assistant adjusted speech accordingly",claude-sonnet-5
+157321,one_and_done,1,1,0,0,"Continued rhyming meme format as requested, completed set",claude-sonnet-5
+157546,repeated_request,1,1,0,0,Repeated hydrogen request; later osmio queries answered satisfactorily.,claude-sonnet-5
+157625,repeated_request,1,1,0,0,"Answered course integration, table, and research questions requests adequately.",claude-sonnet-5
+157668,assistant_refusal,1,0,0,0,Provided list of friendly Chinese cities as requested,claude-sonnet-5
+157796,one_and_done,0,0,0,1,AI admits not knowing the specific standard,claude-sonnet-5
+158093,assistant_refusal,1,0,0,0,Provided context analysis and appropriateness evaluation as requested,claude-sonnet-5
+158509,none,0,0,0,0,"Response cut off mid-list, only 3 of 10 characters given",claude-sonnet-5
+159007,repeated_request,1,1,0,0,Answered syntax issue and encapsulation differences with example.,claude-sonnet-5
+159130,none,1,0,0,0,Provided full code implementing all requested timeframes.,claude-sonnet-5
+159277,correction_followup,1,0,0,0,Assistant gave friendly relationship advice despite disclaimer,claude-sonnet-5
+160291,repeated_request,1,1,0,0,"Assistant answered each topic request sequentially, no corrections.",claude-sonnet-5
+160390,repeated_request,0,0,1,0,Response cut off before full fix provided,claude-sonnet-5
+160549,repeated_request,1,1,0,0,Mixed topics answered directly; cornichon questions nearly duplicate,claude-sonnet-5
+160811,repeated_request,0,1,0,0,"Both responses truncated mid-code, incomplete program",claude-sonnet-5
+160911,assistant_refusal,1,0,0,0,Provided example trading bot code despite initial disclaimer,claude-sonnet-5
+161445,correction_followup,0,1,1,0,"Confusing exchange about var/let/const, final code pasted incomplete",claude-sonnet-5
+162376,repeated_request,1,1,0,0,"Lists provided for each topic, last cut off",claude-sonnet-5
+163046,assistant_refusal,0,1,0,1,"Assistant refused initially, later gave incomplete code snippet",claude-sonnet-5
+164212,none,1,0,0,0,Provided requested Arendt-style response to the statement,claude-sonnet-5
+164529,assistant_refusal,1,0,1,0,User redirected tone; assistant then gave comedic take.,claude-sonnet-5
+164697,correction_followup,1,0,1,0,"Clarified chatbot identity, answered neural network question, contradicted earlier ML claim",claude-sonnet-5
+165013,correction_followup,0,1,1,0,"User wanted better sound-alike phrase, result questionable",claude-sonnet-5
+165170,none,1,0,0,0,Explained bagging and KMeans with examples; first answer cut off,claude-sonnet-5
+165305,repeated_request,0,1,0,0,"Articles cut off mid-sentence, incomplete responses to similar requests",claude-sonnet-5
+165316,correction_followup,1,0,1,0,"Clarified misunderstanding, then linked ice cream to snow castle context.",claude-sonnet-5
+165819,none,1,0,0,0,Provided concrete steps to update privacy policy in mini program,claude-sonnet-5
+165874,none,1,0,0,0,Single query answered with detailed relevant analysis.,claude-sonnet-5
+166062,one_and_done,1,0,0,0,Single question answered with clear drug information,claude-sonnet-5
+166421,none,1,0,0,0,Provided balanced debate and further elaboration as requested.,claude-sonnet-5
+166707,none,0,1,0,1,"Assistant lacked info on Caneppele, never answered core question",claude-sonnet-5
+167457,correction_followup,1,0,1,0,"User corrected context, assistant adjusted and delivered relevant text",claude-sonnet-5
+167654,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+168160,none,1,0,0,0,Provided detailed essay addressing the request directly.,claude-sonnet-5
+168416,correction_followup,0,0,1,0,"Assistant gave incorrect, inconsistent code; last question unanswered",claude-sonnet-5
+168868,one_and_done,0,0,0,1,Assistant declined to give fortune prediction requested.,claude-sonnet-5
+169215,none,1,0,0,0,Provided step-by-step backup and restore instructions as requested,claude-sonnet-5
+169868,none,0,0,0,0,"Response cut off, missing tax and payment details",claude-sonnet-5
+170174,correction_followup,1,0,1,0,User requested format change; assistant complied with revised test plan,claude-sonnet-5
+170380,repeated_request,1,1,0,0,"Repeated rephrasing of same request, final answer addressed ramp question",claude-sonnet-5
+171443,one_and_done,1,0,0,0,Single legal multiple-choice question answered directly.,claude-sonnet-5
+172090,assistant_refusal,1,0,0,1,Weather query refused; other questions answered reasonably well,claude-sonnet-5
+172468,assistant_refusal,1,0,0,0,Provided relevant list answering the single query asked.,claude-sonnet-5
+172642,correction_followup,1,1,1,0,User pressed philosophical point; assistant eventually answered directly.,claude-sonnet-5
+173470,none,1,0,0,0,Answered surname origin question directly and plausibly.,claude-sonnet-5
+174499,correction_followup,1,0,1,0,"User corrected gas name, assistant updated analysis accordingly",claude-sonnet-5
+174839,repeated_request,0,1,0,0,"Responses truncated, ignored explanation/availability constraints, incomplete lists",claude-sonnet-5
+175491,one_and_done,0,0,0,1,"Assistant refused request, no further compliance shown",claude-sonnet-5
+176289,none,0,0,0,0,"Translation cut off mid-sentence, incomplete response",claude-sonnet-5
+176647,repeated_request,0,1,0,0,"Outputs truncated, never reached 4000-word paper requested",claude-sonnet-5
+176922,assistant_refusal,0,0,0,1,"Assistant failed to provide info, deflected request",claude-sonnet-5
+177607,none,1,0,0,0,Answered basic medical question directly and clearly,claude-sonnet-5
+178570,repeated_request,0,1,0,0,"Explanation cut off incomplete, solo rules truncated mid-sentence",claude-sonnet-5
+179039,one_and_done,0,0,0,1,"AI cannot provide images, suggested search instead",claude-sonnet-5
+179673,none,1,0,0,0,Assistant drafted detailed safety reply addressing father's concerns.,claude-sonnet-5
+179751,none,1,0,0,0,"Gave workaround via Gen1 VM, answer cut off",claude-sonnet-5
+180130,none,0,0,1,0,"ASCII art still malformed, not matching requested letters",claude-sonnet-5
+180276,assistant_refusal,0,1,0,1,"Assistant repeatedly asked for clarification, never fulfilled vague request.",claude-sonnet-5
+180712,none,1,0,1,0,"User asked for informal tone, assistant revised successfully",claude-sonnet-5
+180835,none,1,0,0,0,Provided multiple interesting hedgehog facts as requested,claude-sonnet-5
+180838,one_and_done,1,0,0,0,"Single request to beautify sentence, fulfilled directly",claude-sonnet-5
+181019,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+182546,none,1,0,0,1,Final answer gave viable VM alternative suggestion,claude-sonnet-5
+185029,assistant_refusal,0,0,0,1,"AI refused PPT creation, gave outline instead",claude-sonnet-5
+185471,assistant_refusal,1,0,0,0,Assistant gave general explanations and design steps as asked,claude-sonnet-5
+185487,repeated_request,1,1,0,0,"User asked to continue story twice, got continuations",claude-sonnet-5
+185550,correction_followup,1,0,1,0,Final rewrite matched requested chorus structure and tone,claude-sonnet-5
+185577,assistant_refusal,0,0,0,1,AI declined to give real-time stock price predictions,claude-sonnet-5
+185662,none,1,0,0,0,Assistant provided requested fictional loot list items,claude-sonnet-5
+185740,correction_followup,0,0,1,0,"Second response truncated, likely incomplete refactor delivered.",claude-sonnet-5
+185946,repeated_request,1,0,0,0,"User requested expansions/translations, assistant elaborated each time",claude-sonnet-5
+186076,assistant_refusal,1,1,0,1,AI refused direct connection but gave Java code sample,claude-sonnet-5
+187417,assistant_refusal,1,1,0,1,"First refused 5000-word request, then provided 3000-word article",claude-sonnet-5
+187633,correction_followup,1,0,1,0,User got annotations for each requested function/struct,claude-sonnet-5
+188640,one_and_done,0,0,0,1,Assistant declined to provide requested adult content ranking,claude-sonnet-5
+188769,assistant_refusal,1,1,0,0,Series of questions answered directly with explanations provided.,claude-sonnet-5
+189257,none,0,0,0,0,"Response cut off mid-sentence, incomplete exposition",claude-sonnet-5
+189725,repeated_request,1,1,0,0,Similar ingredient questions answered; final question also answered directly.,claude-sonnet-5
+189777,one_and_done,0,0,0,1,Misinterpreted 'test' as request to take a test,claude-sonnet-5
+190474,none,1,0,0,0,Assistant provided verbose rewrite as requested,claude-sonnet-5
+190559,none,1,1,0,0,Second request refined first with specific case example,claude-sonnet-5
+193059,assistant_refusal,1,0,0,0,Assistant started teaching Python basics as requested,claude-sonnet-5
+193077,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+193362,repeated_request,1,0,0,0,"Iteratively refined math model, each request addressed with new equations.",claude-sonnet-5
+193430,one_and_done,0,0,0,1,"Assistant declined to discuss topic, deflected to other sources",claude-sonnet-5
+194044,none,0,0,0,0,User wanted one-by-one questions; assistant dumped all at once,claude-sonnet-5
+194169,correction_followup,1,0,1,0,User corrected format; final code snippet appears truncated,claude-sonnet-5
+194228,repeated_request,1,0,0,0,User got intro and conclusion as requested,claude-sonnet-5
+194294,correction_followup,0,0,1,0,"Assistant gave unverified animation, user corrected, response cut off",claude-sonnet-5
+194466,none,1,0,0,0,"Correct derivative provided clearly, single-turn math question answered.",claude-sonnet-5
+194587,correction_followup,0,1,1,0,Display formatting issue never properly fixed despite repeated attempts,claude-sonnet-5
+194733,repeated_request,0,1,0,0,"Generic troubleshooting given, unclear if issue resolved",claude-sonnet-5
+195324,assistant_refusal,0,1,0,1,Assistant refused to provide download link for content,claude-sonnet-5
+195460,none,1,1,1,0,User clarified instruction; assistant agreed to comply,claude-sonnet-5
+195540,repeated_request,0,1,0,0,"Code was truncated, incomplete each time, repeated requests",claude-sonnet-5
+196206,none,1,0,0,0,Provided solution and explanation as requested,claude-sonnet-5
+196466,none,1,0,0,0,User got AI music identification tools and confirmation it works,claude-sonnet-5
+196698,none,1,0,0,0,Provided explanations and detailed yearly GDP growth data as requested,claude-sonnet-5
+197688,assistant_refusal,1,0,0,0,Provided example code and usage instructions as requested,claude-sonnet-5
+197978,one_and_done,0,0,0,0,"Vague non-answer, no actual data or comparison given",claude-sonnet-5
+198225,correction_followup,1,0,1,0,User clarified intent; assistant eventually produced corrected tired speech.,claude-sonnet-5
+198766,correction_followup,0,0,1,1,"Initial refusal, later complied partially; final self-hatred query deflected",claude-sonnet-5
+198960,repeated_request,0,1,1,0,"Assistant's math was wrong, inconsistent, never reached correct 129 answer",claude-sonnet-5
+199369,correction_followup,1,0,1,0,Eventually gave historical details after initial generic deflection,claude-sonnet-5
+199790,one_and_done,0,0,0,0,"Gave fabricated incorrect movie title, mismatched description",claude-sonnet-5
+200480,correction_followup,1,1,1,0,"User refined summarization length twice, assistant complied each time",claude-sonnet-5
+200913,none,0,0,0,0,"Response cut off mid-code, incomplete script given",claude-sonnet-5
+202828,assistant_refusal,1,0,0,0,Assistant adapted advice to user's constraints each time.,claude-sonnet-5
+203273,none,0,0,0,0,"Response cut off mid-sentence, incomplete description",claude-sonnet-5
+203367,one_and_done,0,0,0,0,"User wanted lilac color emoji, got purple circle instead",claude-sonnet-5
+203423,none,0,0,0,0,"Misinterpreted U8 as football league, not the car",claude-sonnet-5
+203516,assistant_refusal,1,1,0,1,"First refused code, second provided actual code",claude-sonnet-5
+204403,none,1,1,0,0,Answered legal and preventive questions about asset misappropriation crime,claude-sonnet-5
+204612,assistant_refusal,1,1,0,1,"First reply failed, second explained code correctly",claude-sonnet-5
+204717,one_and_done,1,0,0,0,Single question answered directly as requested,claude-sonnet-5
+204885,one_and_done,1,0,0,0,Provided a single-word answer as requested.,claude-sonnet-5
+205059,one_and_done,1,0,0,0,Single question answered directly and sensibly.,claude-sonnet-5
+205727,correction_followup,0,0,1,0,"Response cut off mid-code, unclear if solution fully works",claude-sonnet-5
+206199,repeated_request,1,1,0,0,Assistant complied with jailbreak-style word/phrase alteration requests,claude-sonnet-5
+206781,assistant_refusal,1,0,1,0,Assistant corrected course after user clarified actual goal,claude-sonnet-5
+207576,correction_followup,1,0,1,0,"Memo format corrected, exit strategies tailored to minority stake",claude-sonnet-5
+208039,repeated_request,1,1,0,1,"First refused to build site, second gave written content instead",claude-sonnet-5
+208111,assistant_refusal,1,0,0,1,"Code provided for each request, initial disclaimer refusal",claude-sonnet-5
+208254,repeated_request,0,1,0,1,"AI cannot hold video meetings, user repeated request",claude-sonnet-5
+208359,one_and_done,1,0,0,0,Assistant described image elements as requested,claude-sonnet-5
+209132,assistant_refusal,1,0,0,0,Answered the architecture question adequately despite disclaimer,claude-sonnet-5
+209389,correction_followup,0,1,1,0,"Assistant's loop actually creates/overwrites archive per file, answer incorrect",claude-sonnet-5
+209546,repeated_request,0,1,0,0,"Generic troubleshooting advice, no concrete code fix given",claude-sonnet-5
+210351,none,1,0,0,0,Explained method with worked example answering the question,claude-sonnet-5
+211334,assistant_refusal,0,0,0,0,"Response cut off mid-article, incomplete answer",claude-sonnet-5
+212057,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+212179,assistant_refusal,1,0,0,0,Three distinct questions answered clearly and informatively.,claude-sonnet-5
+213358,none,0,0,0,0,"Response cut off mid-code, incomplete answer",claude-sonnet-5
+213689,correction_followup,1,0,1,0,User redirected scope; assistant adjusted prediction logic accordingly,claude-sonnet-5
+214288,none,1,0,0,0,Single request fulfilled with full reading reflection essay,claude-sonnet-5
+214542,repeated_request,0,1,0,1,"Assistant redirected sexual roleplay request to safe, non-sexual alternatives each time",claude-sonnet-5
+215710,correction_followup,0,0,1,0,Answer lacked concrete day-by-day numeric example requested,claude-sonnet-5
+216057,one_and_done,0,0,0,1,Assistant declined explicit roleplay request entirely,claude-sonnet-5
+216079,none,1,0,0,0,Provided clear notes on SQL join queries as requested,claude-sonnet-5
+216846,one_and_done,1,0,0,0,Simple test message answered appropriately,claude-sonnet-5
+217936,one_and_done,0,0,0,0,"assistant asked for clarification, no resolution shown",claude-sonnet-5
+218134,assistant_refusal,0,0,0,1,No clear request made; assistant guessed and partially refused.,claude-sonnet-5
+218203,one_and_done,1,0,0,0,Summary request answered adequately in one turn,claude-sonnet-5
+218863,assistant_refusal,0,0,0,1,"AI cannot provide images, redirected to search elsewhere",claude-sonnet-5
+219135,repeated_request,1,0,0,0,Three distinct questions answered with relevant info each time,claude-sonnet-5
+220134,none,0,0,0,0,"Response cut off mid-sentence, incomplete cover letter",claude-sonnet-5
+220304,repeated_request,1,0,0,0,Both intro and ending provided as requested,claude-sonnet-5
+220440,correction_followup,0,0,1,0,"Responses cut off mid-sentence, incomplete lists each time",claude-sonnet-5
+220643,assistant_refusal,1,0,0,0,Correctly answered with reasoning and stated confidence level,claude-sonnet-5
+220648,assistant_refusal,1,0,0,0,Answered feasibility question with reasoning and confidence rating,claude-sonnet-5
+222147,correction_followup,0,0,1,0,"Assistant gave vague dp and unclear m justification, not satisfying",claude-sonnet-5
+222883,repeated_request,1,1,0,0,"Sequential factual queries answered directly, last repeated with more specificity",claude-sonnet-5
+223203,none,1,0,0,0,"Provided three methods, though generic and partly inaccurate",claude-sonnet-5
+224667,repeated_request,1,1,0,0,second request for line-by-line comments fulfilled,claude-sonnet-5
+224865,none,1,0,0,0,Assistant provided requested paper framework and strategies,claude-sonnet-5
+224917,none,1,0,0,0,Generic plausible explanations given for each distinct technical query,claude-sonnet-5
+225493,one_and_done,1,0,0,0,Provided clear steps to purchase using coins,claude-sonnet-5
+225697,correction_followup,1,0,1,0,User corrected context; assistant revised message accordingly.,claude-sonnet-5
+225980,repeated_request,0,0,0,0,Responses cut off before reaching 25 items,claude-sonnet-5
+226765,assistant_refusal,0,1,0,0,Assistant couldn't identify the person or character.,claude-sonnet-5
+227047,none,1,0,0,0,"Scene written matching description, though cut off abruptly",claude-sonnet-5
+227547,assistant_refusal,0,0,0,0,"Response cut off mid-code, incomplete game provided",claude-sonnet-5
+228126,one_and_done,1,0,0,0,Simple sleep schedule question answered directly,claude-sonnet-5
+229434,correction_followup,1,1,1,0,"Assistant adapted each persona request, corrected spider mix-up successfully.",claude-sonnet-5
+229473,assistant_refusal,1,0,0,0,Provided keyword list despite no real-time data access,claude-sonnet-5
+229647,none,1,0,0,0,"User asked for one-liner, got working solution",claude-sonnet-5
+229826,repeated_request,1,0,0,0,Progressive questions on Python operators answered adequately each time.,claude-sonnet-5
+230450,repeated_request,1,1,0,0,User got clear instructions on running both servers simultaneously,claude-sonnet-5
+230462,assistant_refusal,1,0,0,0,User got list and follow-up acknowledged appropriately,claude-sonnet-5
+230916,correction_followup,0,0,1,0,"Assistant misunderstood AI video generation request, gave editing software instead",claude-sonnet-5
+230998,none,1,0,0,0,"Explained bullet train physics, though response seems cut off",claude-sonnet-5
+232667,none,1,0,0,0,Provided requested Chinese history-themed short video script,claude-sonnet-5
+233718,none,1,0,0,1,Location question unanswerable; other topics answered adequately.,claude-sonnet-5
+234186,none,1,0,0,0,Provided concrete iptables/ip6tables rules answering the question directly,claude-sonnet-5
+234509,one_and_done,1,0,0,0,Assistant complied with roleplay request as asked,claude-sonnet-5
+234765,assistant_refusal,1,0,0,0,Provided troubleshooting steps addressing the sysctl error directly.,claude-sonnet-5
+235464,assistant_refusal,0,0,0,1,Assistant refused to provide download link,claude-sonnet-5
+235601,correction_followup,0,1,1,1,Assistant refused final request; held correct Pushkin date despite objections,claude-sonnet-5
+236261,one_and_done,1,0,0,0,Provided resize method to shrink chart size,claude-sonnet-5
+237480,repeated_request,0,1,1,0,"Repeated near-duplicate questions, self-correction, unclear if accurate final answer",claude-sonnet-5
+237848,repeated_request,1,0,1,1,"Typo caused refusal, then corrected and answered; new topic answered",claude-sonnet-5
+237869,repeated_request,0,1,0,0,Essay seems truncated and shorter than requested word count,claude-sonnet-5
+238233,none,1,0,0,0,"Separate topic requests answered, though some responses cut off mid-sentence.",claude-sonnet-5
+238847,correction_followup,0,0,1,0,Assistant's guesses were wrong and unconfirmed by user,claude-sonnet-5
+239077,one_and_done,1,0,0,0,"User set instructions, assistant confirmed understanding correctly",claude-sonnet-5
+239089,repeated_request,0,1,0,1,"Repeated identical requests; assistant gave inconsistent, likely inaccurate probe sequences.",claude-sonnet-5
+239924,none,0,0,0,0,Summary misreads document reference as a province,claude-sonnet-5
+240042,correction_followup,0,0,0,0,"Responses cut off mid-sentence, incomplete explanations provided",claude-sonnet-5
+241322,repeated_request,1,0,0,0,Sequential info requests about Tipue Search answered progressively,claude-sonnet-5
+241400,none,1,0,0,0,Provided relevant LinkedIn topic ideas list as requested,claude-sonnet-5
+241637,assistant_refusal,1,0,0,0,Answered with stats and balanced opinion on best team.,claude-sonnet-5
+242188,none,1,0,0,0,Single request fulfilled with detailed accurate specification list,claude-sonnet-5
+242475,none,1,0,0,0,Single request fulfilled with detailed non-listed guide content.,claude-sonnet-5
+242801,none,1,0,0,0,Provided explanation and requested references on infant eczema,claude-sonnet-5
+243039,none,1,0,0,0,Single query answered with detailed database description,claude-sonnet-5
+243189,none,1,0,0,0,Assistant summarized fighters and gave matchup predictions as requested,claude-sonnet-5
+244435,none,1,0,0,0,Provided multiple relevant quotes as requested,claude-sonnet-5
+245365,correction_followup,1,1,1,0,"Assistant initially gave wrong protagonist, corrected after user pointed out",claude-sonnet-5
+246194,none,1,0,0,0,Provided MQL4 pivot indicator code as requested,claude-sonnet-5
+246235,correction_followup,1,1,1,0,"User clarified request multiple times, final output matched intent",claude-sonnet-5
+246837,none,1,0,1,0,Provided corrected leave note format after feedback,claude-sonnet-5
+247048,none,0,0,0,0,"Response cut off, incomplete 20-page report delivered",claude-sonnet-5
+248250,repeated_request,1,1,0,1,Eventually provided HTML code despite initial refusal,claude-sonnet-5
+248459,assistant_refusal,0,0,0,1,"No real source given; fictional species, vague deflection.",claude-sonnet-5
+248673,none,0,0,0,0,User still unsure if navigation instructions actually work on site,claude-sonnet-5
+248756,assistant_refusal,1,1,1,0,User challenged claims; assistant restated same points repeatedly.,claude-sonnet-5
+248799,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+248911,assistant_refusal,0,0,0,1,"Could not show live stock price, suggested search",claude-sonnet-5
+248968,assistant_refusal,1,1,0,1,"Refused specific NCT tests, provided generic geography quiz instead",claude-sonnet-5
+249173,repeated_request,1,1,0,0,"User repeated taunt, assistant reaffirmed capability both times",claude-sonnet-5
+249622,assistant_refusal,0,0,0,1,"No links provided, no 2023 data given",claude-sonnet-5
+249656,repeated_request,1,1,1,0,User pushed for deeper analysis; assistant eventually provided rewritten code,claude-sonnet-5
+249657,none,0,0,0,0,"Code responses cut off incomplete, missing final output lines",claude-sonnet-5
+249700,assistant_refusal,1,0,0,0,Gave practical tips answering the question directly.,claude-sonnet-5
+250882,correction_followup,0,1,1,0,"Code truncated, incomplete, user said it failed",claude-sonnet-5
+251005,repeated_request,1,1,0,0,Second request repeats first asking for summary conclusion,claude-sonnet-5
+251642,none,1,0,0,0,"Provided justification, ad, and conclusion for snood project",claude-sonnet-5
+251826,assistant_refusal,0,0,0,0,User sent unclear message; assistant asked for clarification,claude-sonnet-5
+252735,repeated_request,1,0,0,0,"Sequential translation requests, each answered directly",claude-sonnet-5
+253693,correction_followup,1,0,1,0,"User corrected theme, assistant gave fitting stealing-themed name options",claude-sonnet-5
+253722,none,1,0,0,0,Provided character comparisons matching each fighter profile request,claude-sonnet-5
+253746,assistant_refusal,1,0,0,0,Role-play game; assistant played along appropriately.,claude-sonnet-5
+253854,none,0,0,0,0,"Story cut off mid-sentence, incomplete response",claude-sonnet-5
+254450,one_and_done,1,0,0,0,Answered vector projection formula correctly,claude-sonnet-5
+255388,one_and_done,1,0,0,0,Simple greeting answered appropriately,claude-sonnet-5
+255596,repeated_request,0,1,0,1,First request refused; later detailed predictions likely fabricated/unverifiable.,claude-sonnet-5
+255831,assistant_refusal,1,1,0,0,User confirmed free resources; assistant answered satisfactorily.,claude-sonnet-5
+256068,none,1,0,0,0,Provided scripts and setup guidance for repeated notifications,claude-sonnet-5
+257127,correction_followup,0,0,1,0,"Dates/facts likely inaccurate, unverified correction given",claude-sonnet-5
+258043,one_and_done,1,0,0,0,Simple factual question answered directly,claude-sonnet-5
+258243,repeated_request,1,0,0,0,Progressive questions answered with relevant technical steps each time.,claude-sonnet-5
+258777,correction_followup,1,0,1,0,Assistant corrected error code explanation after user's correction,claude-sonnet-5
+258787,correction_followup,1,0,1,1,GPT4/3.5 wrongly refused; lawyer bio eventually provided,claude-sonnet-5
+258984,none,1,1,0,0,"Repeated similar wastewater questions, answered with relevant practical treatment methods.",claude-sonnet-5
+259095,correction_followup,0,1,1,0,"Assistant gave generic guesses, no definitive fix for Google Docs issue",claude-sonnet-5
+259467,repeated_request,1,1,0,0,User pasted summaries twice asking how to extract values; assistant answered both.,claude-sonnet-5
+259540,correction_followup,1,0,1,0,User clarified intent; assistant then analyzed sentence structure.,claude-sonnet-5
+259887,assistant_refusal,0,1,0,1,"Assistant refused full code, gave only partial snippets repeatedly.",claude-sonnet-5
+261010,assistant_refusal,1,0,0,0,"Provided lists each time, though truncated and incomplete glossary",claude-sonnet-5
+261114,one_and_done,1,0,0,0,Provided catchy title as requested,claude-sonnet-5
+261159,correction_followup,0,0,1,0,"Answers cut off incomplete, confusing block alternatives, unclear final solution",claude-sonnet-5
+262265,none,1,0,0,0,"Two unrelated questions, both answered directly",claude-sonnet-5
+262282,assistant_refusal,0,0,0,1,"Refused video request, gave unrelated lyrics instead",claude-sonnet-5
+262298,one_and_done,1,0,0,0,"User shared emotional reflection, assistant responded supportively",claude-sonnet-5
+263755,correction_followup,0,1,1,1,"AI refused to give actual yes/no answers, just repeated questions",claude-sonnet-5
+264221,assistant_refusal,0,0,1,1,"Assistant couldn't edit prior text, user didn't get request fulfilled",claude-sonnet-5
+264560,one_and_done,1,0,0,0,Answered question about first 3D film directly,claude-sonnet-5
+265782,none,1,0,0,0,Answered clearly whether açaí is nutritious,claude-sonnet-5
+266246,correction_followup,1,1,0,0,"Generated episodes each time, user kept requesting revisions",claude-sonnet-5
+266617,none,1,0,0,0,Provided popular chord progressions directly answering the question.,claude-sonnet-5
+267271,none,1,0,0,0,Both questions answered clearly with explanation and code example.,claude-sonnet-5
+269319,one_and_done,0,0,0,1,"Gave vague, possibly inaccurate answer about a journalist's identity",claude-sonnet-5
+270151,one_and_done,0,0,0,0,"Story continuation cut off abruptly, incomplete response",claude-sonnet-5
+270213,correction_followup,1,0,1,0,User admitted fabricated name; assistant acknowledged appropriately,claude-sonnet-5

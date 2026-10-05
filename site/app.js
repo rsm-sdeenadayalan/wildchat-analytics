@@ -12,7 +12,7 @@ export const AGGREGATES = [
 
 const $ = (sel) => document.querySelector(sel);
 const fmtInt = new Intl.NumberFormat("en-US");
-const fmtPct = (x) => (x == null ? "–" : (100 * x).toFixed(1) + "%");
+const fmtPct = (x, d = 1) => (x == null ? "–" : (100 * x).toFixed(d) + "%");
 const fmtPct0 = (x) => (x == null ? "–" : Math.round(100 * x) + "%");
 const fmtPts = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(100 * x).toFixed(1)} pts`;
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -742,12 +742,17 @@ export async function renderFriction(conn, meta) {
   view.innerHTML = "";
   const through = completeThrough(meta);
   const weekly = (await q(conn, `SELECT * FROM ${perModel("friction_weekly")} WHERE true${modelWhere()} ORDER BY week`)).filter((r) => r.week <= through);
-  const signals = ["repeat_rate", "one_and_done_rate", "correction_rate", "refusal_rate"];
-  const labels = { repeat_rate: "repeated request", one_and_done_rate: "one-and-done", correction_rate: "correction follow-up", refusal_rate: "assistant refusal" };
+  // Validation (2026-10-04, model-labeled, see metrics framework): repeated request 78% and correction 96% precision are
+  // kept as friction. Assistant refusal (45%) is dropped. One-and-done (41% as a failure signal) is kept only as
+  // engagement depth, labelled "ended in one turn", never as friction.
+  const signals = ["repeat_rate", "correction_rate"];
+  const labels = { repeat_rate: "repeated request", correction_rate: "correction follow-up", one_and_done_rate: "ended in one turn" };
   const colors = palette();
-  const color = Object.fromEntries(signals.map((s, i) => [labels[s], colors[i]]));
+  const color = { "repeated request": colors[0], "correction follow-up": colors[1], "ended in one turn": css("--muted-2") };
   const long = weekly.flatMap((r) => signals.map((s) => ({ week: r.week, signal: labels[s], rate: r[s] })));
+  const depth = weekly.map((r) => ({ week: r.week, signal: labels.one_and_done_rate, rate: r.one_and_done_rate }));
   const avg = (rows, k) => (rows.length ? sum(rows, (r) => r[k]) / rows.length : null);
+  const rep12 = lastVsPrior(weekly, "week", (rows) => avg(rows, "repeat_rate"));
   const oad = lastVsPrior(weekly, "week", (rows) => avg(rows, "one_and_done_rate"));
   const last = weekly.at(-1) || {};
 
@@ -756,7 +761,7 @@ export async function renderFriction(conn, meta) {
     byIntent = await q(conn, `SELECT intent, model, conversations, repeat_rate, one_and_done_rate, correction_rate, refusal_rate FROM friction_by_intent_model WHERE true${modelWhere()}`);
   }
   const big = byIntent.filter((r) => r.conversations >= 1000);
-  const worstRefusal = [...big].sort((a, b) => b.refusal_rate - a.refusal_rate)[0];
+  const worstRepeat = [...big].sort((a, b) => b.repeat_rate - a.repeat_rate)[0];
   const perIntent = await q(conn, `SELECT intent, sum(conversations)::BIGINT AS n,
       sum(conversations*repeat_rate)/sum(conversations) AS repeat_rate,
       sum(conversations*one_and_done_rate)/sum(conversations) AS one_and_done_rate,
@@ -764,24 +769,19 @@ export async function renderFriction(conn, meta) {
       sum(conversations*refusal_rate)/sum(conversations) AS refusal_rate
     FROM friction_by_intent_model WHERE true${modelWhere()} GROUP BY intent ORDER BY n DESC`).catch(() => []);
   const realWork = perIntent.filter((r) => r.intent !== "other");
-  const mostOad = [...realWork].sort((a, b) => b.one_and_done_rate - a.one_and_done_rate)[0];
-  const mostRefused = [...realWork].sort((a, b) => b.refusal_rate - a.refusal_rate)[0];
+  const mostRepeated = [...realWork].sort((a, b) => b.repeat_rate - a.repeat_rate)[0];
+  const mostCorrected = [...realWork].sort((a, b) => b.correction_rate - a.correction_rate)[0];
 
   insight(view, FILTER.model ? `Where does ${esc(FILTER.model)} fail people most?` : "Where does the assistant fail people most?", [
-    worstRefusal ? `Refusals peak in <b>${esc(worstRefusal.intent)}${FILTER.model ? "" : ` on ${esc(worstRefusal.model)}`}</b> at ${fmtPct(worstRefusal.refusal_rate)} of conversations (cells with at least 1,000 conversations).` : byIntent.length ? "No intent × model cell reaches 1,000 conversations, so refusal peaks are not ranked." : "Friction by intent needs intent labels; this build has none.",
-    oad.recent != null ? `One-and-done exits averaged <b>${fmtPct(oad.recent)}</b> of conversations over the last 12 complete weeks${oad.enough ? `, ${describeChange(pctChange(oad.recent, oad.prior))} versus the 12 weeks before` : ""}.` : "",
-    !mostOad ? ""
-      : FILTER.model && worstRefusal && mostRefused.intent === worstRefusal.intent
-        ? `Among real requests, <b>${esc(mostOad.intent)}</b> has the most single-turn exits (${fmtPct(mostOad.one_and_done_rate)}).`
-        : mostOad.intent === mostRefused.intent
-          ? `Among real requests, <b>${esc(mostOad.intent)}</b> both has the most single-turn exits (${fmtPct(mostOad.one_and_done_rate)}) and draws the most refusals (${fmtPct(mostRefused.refusal_rate)}).`
-          : `Among real requests, <b>${esc(mostOad.intent)}</b> has the most single-turn exits (${fmtPct(mostOad.one_and_done_rate)}) and <b>${esc(mostRefused.intent)}</b> draws the most refusals (${fmtPct(mostRefused.refusal_rate)}).`,
-  ].filter(Boolean), { href: finding(11), text: "Read findings F5 and F11 in the trends report" });
+    worstRepeat ? `People repeat themselves most in <b>${esc(worstRepeat.intent)}${FILTER.model ? "" : ` on ${esc(worstRepeat.model)}`}</b>: ${fmtPct(worstRepeat.repeat_rate)} of those conversations re-ask the same thing (cells with at least 1,000 conversations).` : byIntent.length ? "No intent × model cell reaches 1,000 conversations, so peaks are not ranked." : "Friction by intent needs intent labels; this build has none.",
+    rep12.recent != null ? `Repeated requests averaged <b>${fmtPct(rep12.recent)}</b> of conversations over the last 12 complete weeks${rep12.enough ? `, ${describeChange(pctChange(rep12.recent, rep12.prior))} versus the 12 weeks before` : ""}. Corrections are rarer, ${fmtPct(last.correction_rate, 2)} in the latest week, and almost always real when flagged.` : "",
+    mostRepeated ? `Among real requests, <b>${esc(mostRepeated.intent)}</b> draws the most repeats (${fmtPct(mostRepeated.repeat_rate)})${mostCorrected && mostCorrected.intent !== mostRepeated.intent ? ` and <b>${esc(mostCorrected.intent)}</b> the most corrections (${fmtPct(mostCorrected.correction_rate, 2)})` : ""}. Two signals were dropped as failure measures after validation: refusal patterns fired on disclaimers 55% of the time, and 59% of one-turn conversations got what they came for.` : "",
+  ].filter(Boolean), { href: finding(11), text: "Read findings F5 and F11, and the validation in the metrics framework" });
 
   chart(view, {
     title: "Friction signals over time",
-    so: `Latest complete week: one-and-done ${fmtPct(last.one_and_done_rate)}, repeated request ${fmtPct(last.repeat_rate)}, correction ${fmtPct(last.correction_rate)}, refusal ${fmtPct(last.refusal_rate)}.`,
-    note: "Each signal is a proxy computed from transcript structure, not a judgment of the reply. Definitions and validated precision are in the metrics framework.",
+    so: `Latest complete week: repeated request ${fmtPct(last.repeat_rate)}, correction follow-up ${fmtPct(last.correction_rate, 2)}. Both cleared the 70% precision gate in validation (78% and 96%).`,
+    note: "Each signal is a proxy computed from transcript structure, then validated against 377 model-labeled conversations (metrics framework, 2026-10-04). Assistant-refusal patterns were dropped at 45% precision: in these logs they fire on the 2023 models' habit of opening a full answer with \"As an AI language model…\".",
     series: signals.map((s) => ({ key: labels[s], color: color[labels[s]] })),
     caption: CAPTION_RATES,
     draw: ({ isOn, hover, w }) => {
@@ -796,18 +796,35 @@ export async function renderFriction(conn, meta) {
     },
   });
 
+  chart(view, {
+    title: "Conversations that end after one turn",
+    so: `${fmtPct(last.one_and_done_rate)} in the latest complete week${oad.enough ? `, ${describeChange(pctChange(oad.recent, oad.prior))} over 12 weeks` : ""}. This is engagement depth, not failure: in validation, 59% of these people got what they came for.`,
+    note: "Share of conversations with exactly one turn and a reply under 200 characters. Until 2026-10-04 the dashboard called this \"one-and-done\" and counted it as friction. Validation found most such conversations are short questions answered correctly, greetings, or tests, so it is now shown as a measure of how much people engage, separate from the friction signals.",
+    series: [{ key: labels.one_and_done_rate, color: color["ended in one turn"] }],
+    caption: CAPTION_RATES,
+    draw: ({ w }) => {
+      const { rows, bridges } = bridged(depth, { value: "rate" });
+      return Plot.plot({
+        width: w, height: 220, marginLeft: 50, y: { label: "share of conversations", grid: true, percent: true }, x: { label: null },
+        marks: [...timeMarks(), bridgeMark(bridges, { value: "rate", stroke: color["ended in one turn"] }),
+          Plot.lineY(rows, { x: "week", y: "rate", stroke: color["ended in one turn"], strokeWidth: 1.75, tip: TIP })],
+      });
+    },
+  });
+
   if (meta.intent_coverage === "none" || byIntent.length === 0) {
     view.append(el(`<div class="card"><h2>Friction by intent</h2><p class="note">Needs intent labels; not available in this build.</p></div>`));
     return;
   }
-  const heat = byIntent.flatMap((r) => signals.map((s) => ({ intent: r.intent, model: r.model, signal: labels[s], rate: r[s], conversations: r.conversations })));
+  const heatSignals = ["repeat_rate", "correction_rate", "one_and_done_rate"];
+  const heat = byIntent.flatMap((r) => heatSignals.map((s) => ({ intent: r.intent, model: r.model, signal: labels[s], rate: r[s], conversations: r.conversations })));
   const rowKey = (d) => (FILTER.model ? d.intent : `${d.intent} · ${d.model}`);
   const rowOrder = [...byIntent].sort((a, b) => a.intent.localeCompare(b.intent) || b.conversations - a.conversations).map(rowKey);
   chart(view, {
-    title: FILTER.model ? `Friction by intent, ${FILTER.model}` : "Friction by intent and model",
-    so: FILTER.model ? "Darker is worse. Isolate one signal to rank intents on it." : "Darker is worse. Isolate one signal to rank every intent × model pair on it.",
-    note: `Rate of each friction signal for every intent × model pair with at least ${meta.min_cell} conversations. Rows are grouped by intent and ordered by volume.`,
-    series: signals.map((s) => ({ key: labels[s], color: color[labels[s]] })),
+    title: FILTER.model ? `Friction and depth by intent, ${FILTER.model}` : "Friction and depth by intent and model",
+    so: FILTER.model ? "Darker is more. Isolate one signal to rank intents on it." : "Darker is more. Isolate one signal to rank every intent × model pair on it.",
+    note: `Repeated-request and correction rates (validated friction) and the share ending after one turn (depth, not failure) for every intent × model pair with at least ${meta.min_cell} conversations. Rows are grouped by intent and ordered by volume.`,
+    series: heatSignals.map((s) => ({ key: labels[s], color: color[labels[s]] })),
     draw: ({ isOn, w, active }) => {
       const rows = heat.filter((r) => isOn(r.signal));
       const single = active && active.size === 1;
@@ -834,8 +851,8 @@ export async function renderFriction(conn, meta) {
       const pol = era.policies;
       const row = (name, label) => { const p = pol[name]; return `<tr><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${name === "baseline_actual_mix" ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${name === "baseline_actual_mix" ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`; };
       const card = el(`<div class="card built"><p class="eyebrow">Built from the data</p><h2>If requests had been routed by intent</h2>
-        <p class="so">In the one window where four models served the same people (${era.start} to ${era.end}), a cost-aware rule would have cut single-turn exits among real requests from <b>${fmtPct(pol.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(pol.cost_aware.one_and_done_rate)}</b> for ${(pol.cost_aware.cost_change_pct >= 0 ? "+" : "")}${Math.round(100 * pol.cost_aware.cost_change_pct)}% cost.</p>
-        <div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>one-and-done</th><th>change</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
+        <p class="so">In the one window where four models served the same people (${era.start} to ${era.end}), a cost-aware rule would have cut conversations ending after one turn from <b>${fmtPct(pol.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(pol.cost_aware.one_and_done_rate)}</b>, and repeated requests from ${fmtPct(pol.baseline_actual_mix.repeat_rate, 2)} to ${fmtPct(pol.cost_aware.repeat_rate, 2)}, for ${(pol.cost_aware.cost_change_pct >= 0 ? "+" : "")}${Math.round(100 * pol.cost_aware.cost_change_pct)}% cost.</p>
+        <div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>ended in one turn</th><th>change</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
         ${row("baseline_actual_mix", "Baseline, actual mix")}${row("best_friction", "Best friction")}${row("cost_aware", "Cost-aware (recommended)")}${row("cheapest_only", "Cheapest only")}</tbody></table></div>
         <p class="note">Routers that do this already exist (OpenRouter Auto, Martian, Not Diamond); this sizes what one would have been worth here. Observational: users chose their model, so cells carry selection bias, and the one-and-done proxy is unvalidated. Cost uses late-2024 list prices on an assumed conversation; gpt-4o conversations in these logs have no token counts. "Other" is excluded from routing. <a href="${new URL("docs/10-routing-counterfactual.html", import.meta.url).href}">Read the sizing and the experiment design →</a></p></div>`);
       view.append(card);
@@ -843,10 +860,9 @@ export async function renderFriction(conn, meta) {
   } catch (e) { console.warn("routing counterfactual unavailable", e); }
   const aggFmt = perIntent.map((r) => ({
     intent: r.intent, n: fmtInt.format(r.n),
-    repeat_rate: fmtPct(r.repeat_rate), one_and_done_rate: fmtPct(r.one_and_done_rate),
-    correction_rate: fmtPct(r.correction_rate), refusal_rate: fmtPct(r.refusal_rate),
+    repeated_request: fmtPct(r.repeat_rate), correction_followup: fmtPct(r.correction_rate, 2), ended_in_one_turn: fmtPct(r.one_and_done_rate),
   }));
-  const tbl = el(`<div class="card"><h2>Friction by intent, ${FILTER.model ? esc(FILTER.model) : "all models"}</h2><p class="note">Conversation-weighted rates.</p></div>`);
+  const tbl = el(`<div class="card"><h2>Friction and depth by intent, ${FILTER.model ? esc(FILTER.model) : "all models"}</h2><p class="note">Conversation-weighted rates. Refusal rates stay in the aggregates for the Query tab but are not shown: the pattern failed validation.</p></div>`);
   tbl.append(tableEl(aggFmt));
   view.append(tbl);
 }
@@ -860,9 +876,9 @@ function policyTable(era) {
   const pol = era.policies;
   const row = (name, label) => {
     const p = pol[name]; const base = name === "baseline_actual_mix";
-    return `<tr${name === "cost_aware" ? ' class="rec"' : ""}><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${base ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>${fmtPct(p.refusal_rate)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${base ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`;
+    return `<tr${name === "cost_aware" ? ' class="rec"' : ""}><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${base ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>${fmtPct(p.repeat_rate, 2)}</td><td>${fmtPct(p.correction_rate, 2)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${base ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`;
   };
-  return `<div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>one-and-done</th><th>change</th><th>refusal</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
+  return `<div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>ended in one turn</th><th>change</th><th>repeated</th><th>corrected</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
     ${row("baseline_actual_mix", "Baseline, actual mix")}${row("best_friction", "Best friction")}${row("cost_aware", "Cost-aware (recommended)")}${row("cheapest_only", "Cheapest only")}</tbody></table></div>`;
 }
 
@@ -876,28 +892,28 @@ export async function renderBuilt(conn, meta) {
   const B = rc.eras.B, A = rc.eras.A;
   insight(view, "The data said this. So what would I build?", [
     `In the one window where four models served the same people, a coding request on gpt-4o-mini ended after one short reply <b>${fmtPct0(B.cells.find((c) => c.intent === "coding" && c.model === "gpt-4o-mini").one_and_done_rate)}</b> of the time; on o1-mini, <b>${fmtPct0(B.cells.find((c) => c.intent === "coding" && c.model === "o1-mini").one_and_done_rate)}</b>. Nothing routed those requests. People chose, and most took the default.`,
-    `A cost-aware routing rule driven by Loupe's intent classifier would have cut single-turn exits among real requests from <b>${fmtPct(B.policies.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(B.policies.cost_aware.one_and_done_rate)}</b> for ${Math.round(100 * B.policies.cost_aware.cost_change_pct)}% more spend. Observational, and sized to justify the experiment below, not to replace it.`,
+    `A cost-aware routing rule driven by Loupe's intent classifier would have cut conversations ending after one turn from <b>${fmtPct(B.policies.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(B.policies.cost_aware.one_and_done_rate)}</b>, and repeated requests from ${fmtPct(B.policies.baseline_actual_mix.repeat_rate, 2)} to ${fmtPct(B.policies.cost_aware.repeat_rate, 2)}, for ${Math.round(100 * B.policies.cost_aware.cost_change_pct)}% more spend. Observational, and sized to justify the experiment below, not to replace it.`,
     `Evaluation sets weight tasks by what their authors chose. People here ask <b>${esc(Object.keys(mix.weights)[0])}</b> ${fmtPct0(Object.values(mix.weights)[0])} of the time and ${esc(Object.keys(mix.weights)[1])} ${fmtPct0(Object.values(mix.weights)[1])}. Loupe publishes that mix as weights, so a team can score its assistant on what people actually bring it.`,
   ], { href: new URL("docs/10-routing-counterfactual.html", import.meta.url).href, text: "Read the routing sizing and experiment design" });
 
   // ---- 1. Routing counterfactual, both eras ----
   const routing = el(`<div class="card built"><p class="eyebrow">01 · Built from the data</p><h2>If requests had been routed by intent</h2>
-    <p class="so">Four policies applied to the actual intent volumes of each window where several models served the same population. "Other" (probe traffic) is excluded from routing; a model is eligible for an intent only with at least ${fmtInt.format(rc.min_cell_for_choice)} conversations on it.</p>
+    <p class="so">Four policies applied to the actual intent volumes of each window where several models served the same population. "Other" (probe traffic) is excluded from routing; a model is eligible for an intent only with at least ${fmtInt.format(rc.min_cell_for_choice)} conversations on it. Policies are chosen on the share of conversations that end after one turn, which validation showed is depth rather than failure; the two validated friction signals, repeats and corrections, move the same way under every policy.</p>
     <p class="note prior">Routers that do this already exist (OpenRouter Auto, Martian, Not Diamond). What they don't publish is what one would have been worth on real traffic, by intent, measured on what users did next. That is the number here.</p>
     <div class="era-tabs" role="tablist"><button type="button" class="chip" data-era="B" aria-pressed="true">${ERA_LABEL.B}</button><button type="button" class="chip" data-era="A" aria-pressed="false">${ERA_LABEL.A}</button></div>
     <p class="so era-so"></p><div class="era-table"></div>
     <details class="def"><summary>Assumptions and limits</summary><p>Observational: users chose their model, so cells carry selection bias; heavier, more deliberate users likely picked the reasoning models. The one-and-done proxy (one turn, reply under 200 characters) is unvalidated against hand labels. Cost uses published list prices as of ${esc(rc.price_assumptions.as_of)} on an assumed conversation of ${fmtInt.format(rc.price_assumptions.assumed_tokens_per_conversation.prompt)} prompt and ${fmtInt.format(rc.price_assumptions.assumed_tokens_per_conversation.completion)} completion tokens, because gpt-4o conversations in these logs carry no token counts; reasoning models also bill hidden tokens, so their true cost is higher than shown. Prices live in <code>loupe/model_prices.json</code>.</p></details>
     <div class="exp"><h3>The experiment that would settle it</h3><ul>
       <li><b>Split.</b> Pseudo-user, 50/50 on first visit. Control: the default model. Treatment: the cost-aware rule, decided by the classifier on the first message.</li>
-      <li><b>Primary metric.</b> One-and-done among non-"other" requests, measured exactly as this dashboard measures it.</li>
+      <li><b>Primary metric.</b> Repeated-request rate among non-"other" requests, the validated friction signal; share ending after one turn as the depth check, measured exactly as this dashboard measures them.</li>
       <li><b>Guardrails.</b> Refusal rate, cost per 1k conversations against the estimate, week-over-week return.</li>
-      <li><b>Decision rule, written before the run.</b> Ship if one-and-done falls at least 6 points with cost within +15%. Revisit routes under 3 points. Kill if refusals rise more than 1 point without a friction gain.</li></ul></div></div>`);
+      <li><b>Decision rule, written before the run.</b> Ship if repeated requests fall by at least a third and one-turn share by at least 6 points, with cost within +15%. Revisit routes if neither moves. Kill if corrections rise without a repeat gain.</li></ul></div></div>`);
   view.append(routing);
   const showEra = (k) => {
     const e = rc.eras[k];
     const p = e.policies;
     routing.querySelector(".era-so").innerHTML = k === "B"
-      ? `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. The cost-aware rule: <b>${fmtPct(p.baseline_actual_mix.one_and_done_rate)} → ${fmtPct(p.cost_aware.one_and_done_rate)}</b> one-and-done for <b>${p.cost_aware.cost_change_pct >= 0 ? "+" : ""}${Math.round(100 * p.cost_aware.cost_change_pct)}%</b> cost.`
+      ? `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. The cost-aware rule: <b>${fmtPct(p.baseline_actual_mix.one_and_done_rate)} → ${fmtPct(p.cost_aware.one_and_done_rate)}</b> ending in one turn, repeats <b>${fmtPct(p.baseline_actual_mix.repeat_rate, 2)} → ${fmtPct(p.cost_aware.repeat_rate, 2)}</b>, for <b>${p.cost_aware.cost_change_pct >= 0 ? "+" : ""}${Math.round(100 * p.cost_aware.cost_change_pct)}%</b> cost.`
       : `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. A null result worth stating: the best policy gains only ${fmtPts(-p.best_friction.one_and_done_change_pts).replace("+", "")} for +${Math.round(100 * p.best_friction.cost_change_pct)}% cost. Routing pays when models differ by intent, not as a rule in itself.`;
     routing.querySelector(".era-table").innerHTML = policyTable(e);
     routing.querySelectorAll(".era-tabs .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === k)));

@@ -33,7 +33,9 @@ Labeling and classification ran after the v1 site went live (2026-09-25 to 26) t
 - A MotherDuck-hosted copy of the conversation table, so SQL against Loupe's data is shareable as a link rather than a download (R10).
 - Safety and toxicity metrics, once a gated dataset build that retains toxic conversations exists to compute them honestly (R11).
 - LLM-judged quality on a sample, a cheaper step short of judging every response.
-- Threshold alerts (a return-rate drop, a spike in refusals), once export instrumentation exists to trigger them on something real.
+- Refusal detector v2: a model judgment on the assistant reply, or a reply-length-and-pattern rule, validated on a larger stratified sample; the pattern proxy was dropped on 2026-10-04 at 0.45 precision.
+- Human relabel of the 377 model-labeled friction conversations, to replace model agreement with ground truth.
+- Threshold alerts (a return-rate drop, a spike in repeated requests), once export instrumentation exists to trigger them on something real.
 
 ## Cut list
 

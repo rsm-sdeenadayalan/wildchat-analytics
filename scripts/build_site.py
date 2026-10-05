@@ -57,8 +57,11 @@ def story_numbers(aggregates_dir: Path) -> dict | None:
     if meta.get("intent_coverage") != "none" and (aggregates_dir / "intent_by_model.parquet").exists():
         labeled = con.execute(f"SELECT sum(conversations) FROM {t('intent_by_model')}").fetchone()[0] or 1
         intents = [{"intent": i, "share": n / labeled} for i, n in con.execute(f"SELECT intent, sum(conversations) FROM {t('intent_by_model')} GROUP BY 1 ORDER BY 2 DESC LIMIT 3").fetchall()]
-    oad = con.execute(f"""SELECT sum(one_and_done_rate * conversations) / sum(conversations) FROM (
-        SELECT * FROM {t('friction_weekly')} WHERE week <= DATE '{through}' ORDER BY week DESC LIMIT 12)""").fetchone()[0]
+    oad, rep, corr = con.execute(f"""SELECT sum(one_and_done_rate * conversations) / sum(conversations), sum(repeat_rate * conversations) / sum(conversations),
+        sum(correction_rate * conversations) / sum(conversations) FROM (
+        SELECT * FROM {t('friction_weekly')} WHERE week <= DATE '{through}' ORDER BY week DESC LIMIT 12)""").fetchone()
+    worst_repeat = con.execute(f"""SELECT intent, sum(repeat_rate * conversations) / sum(conversations) AS r FROM {t('friction_by_intent_model')}
+        WHERE intent <> 'other' GROUP BY intent ORDER BY r DESC LIMIT 1""").fetchone()
     return {
         "conversations": int(total), "date_min": str(d0), "date_max": str(d1), "complete_weeks_through": through,
         "peak_weekly_pseudo_users": int(peak),
@@ -68,6 +71,8 @@ def story_numbers(aggregates_dir: Path) -> dict | None:
         "largest_country": countries[0][0] if countries else None,
         "largest_country_share": (countries[0][1] / total) if countries else None,
         "intents": intents, "one_and_done_recent": float(oad) if oad is not None else None,
+        "repeat_recent": float(rep) if rep is not None else None, "correction_recent": float(corr) if corr is not None else None,
+        "worst_repeat_intent": worst_repeat[0] if worst_repeat else None, "worst_repeat_rate": float(worst_repeat[1]) if worst_repeat else None,
         "weekly": [[str(w), int(n)] for w, n in weekly],
         "min_cell": meta["min_cell"], "taxonomy_version": meta.get("taxonomy_version"),
         "classifier_accuracy": meta.get("classifier_accuracy"), "classifier_rater_agreement": meta.get("classifier_rater_agreement"),
