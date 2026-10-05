@@ -1018,7 +1018,11 @@ registerRenderer("query", renderQuery);
 function showView(name) {
   document.querySelectorAll("main section").forEach((s) => (s.hidden = s.id !== `view-${name}`));
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
-  location.hash = FILTER.model ? `${name}/${encodeURIComponent(FILTER.model)}` : name;
+  const hash = FILTER.model ? `${name}/${encodeURIComponent(FILTER.model)}` : name;
+  // First paint with no hash: write it without adding a history step, so Back leaves the dashboard
+  // instead of returning to the same page with its hash stripped (which would only re-add it).
+  if (!location.hash) history.replaceState(null, "", `#${hash}`);
+  else location.hash = hash;
 }
 
 function parseHash() {
