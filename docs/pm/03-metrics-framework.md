@@ -94,6 +94,27 @@ Seven classes (`loupe/taxonomy.json`, version `v2`, revised 2026-09-26):
 
 **Classifier accuracy.** Held-out accuracy 78.6% on 1,966 conversations (macro F1 0.805), gate 78.4%, passed without override. Per-class F1: image_prompting 0.93, coding 0.84, translation 0.83, other 0.80, creative_roleplay 0.75, questions 0.76, writing_and_business 0.72. The model is a character plus word n-gram TF-IDF with logistic regression; a multilingual sentence-embedding model (multilingual-e5-small) was tested and scored lower (78% on the seven-class taxonomy), which supports the label-ceiling reading. Calibration: on the labeled sample itself the seven class shares differ from the classifier's full-corpus shares by at most three points, with the classifier over-calling "other" by about three points.
 
+## How this site measures itself
+
+The PRD defines Loupe's own metrics tree and, until 2026-10-05, nothing measured it. The site now runs PostHog (US cloud, free tier) with session replay on, disclosed in every footer. It measures visitors to this site, not the WildChat data, which is never tracked at row level anywhere.
+
+Events, each mapped to the question it answers:
+
+| Event | Fires when | Answers |
+|---|---|---|
+| `$pageview`, `$pageleave` | any page | Where visitors come from (LinkedIn, GitHub, shankard.com, direct) and how long they stay |
+| `story_beat_reached` | each of the four story beats first appears | How far the story carries a reader before they leave |
+| `link_click` | a call to action or outbound link (`nav_open_dashboard`, `beat4_open_dashboard`, `finale_open_dashboard`, `finale_read_docs`, `resume`, `github`, `personal_site`) | Whether the story converts into the dashboard, the docs, or the resume, and from which point |
+| `view_opened` | a dashboard tab opens, with the active model filter | Which of the seven views people use |
+| `model_filter` | the model picker changes | Whether anyone uses the cross-view filter |
+| `series_isolated` | a legend chip isolates or compares a series | Whether the interactive legends get used |
+| `dashboard_loaded`, `dashboard_failed` | DuckDB-WASM finishes or fails, with milliseconds | Load time and failure rate of the fragile part |
+| `query_run` | the Query tab runs SQL | Whether anyone goes past the prepared views |
+| `eval_scorer_used` | a score is typed into the usage-weighted scorer | Whether the second built artifact is tried |
+| `read_depth` | 50% and 90% of a document or the story is scrolled | Which documents are read, not just opened |
+
+Local previews never record. What to do with it: after two weeks, read the funnel from story to dashboard to docs, the per-view usage, and the dashboard load times, and write down what the numbers say should change. That note belongs in the retro.
+
 ## Attribution: who is answerable for friction
 
 Friction is read from the user's side of a conversation: a repeated request or a correction is something the person did in reaction to the reply they had just received. Loupe therefore attributes each friction event to the responder that produced that reply, turn by turn (`loupe/attribution.py`), and rolls up from there. The `turns` table carries `attributed_to`: on an assistant turn, its producer; on a user turn, the producer of the reply it reacts to. The first user turn reacts to nothing and is attributed to no one. `friction_by_responder.sql` publishes repeats and corrections per 1,000 replies by responder.

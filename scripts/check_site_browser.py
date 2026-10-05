@@ -203,6 +203,11 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 problems.append("story: live numbers did not fill in")
             if not await story.evaluate("!!document.querySelector('#lens-chart svg path')"):
                 problems.append("story: loupe sparkline did not render")
+            # Analytics: the tracker helper exists on every page type and never throws (localhost = no-op, elsewhere PostHog).
+            if not await story.evaluate("typeof window.loupeTrack === 'function'"):
+                problems.append("analytics: window.loupeTrack missing on the story page")
+            if not await page.evaluate("typeof window.loupeTrack === 'function'"):
+                problems.append("analytics: window.loupeTrack missing on the dashboard")
             await story.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await story.wait_for_timeout(1500)
             beat, answered = await story.evaluate("[document.querySelector('#stage').dataset.beat, document.querySelectorAll('.qtile.answered').length]")

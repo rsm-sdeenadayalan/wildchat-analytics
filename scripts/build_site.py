@@ -79,7 +79,7 @@ def story_numbers(aggregates_dir: Path) -> dict | None:
     }
 
 
-_ASSET_REF = re.compile(r'((?:href|src)=")((?:\.\./)?(?:styles\.css|story\.css|story\.js|app\.js|embed\.js))(")')
+_ASSET_REF = re.compile(r'((?:href|src)=")((?:\.\./)?(?:styles\.css|story\.css|story\.js|app\.js|embed\.js|analytics\.js))(")')
 
 
 def asset_hash(site_dir: Path, name: str) -> str:

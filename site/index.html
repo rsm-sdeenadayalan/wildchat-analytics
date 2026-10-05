@@ -23,7 +23,7 @@
       <a href="docs/">Case study</a><span class="sep" aria-hidden="true">·</span>
       <a href="https://github.com/rsm-sdeenadayalan/wildchat-analytics">Code</a>
     </div>
-    <a class="cta" href="app/"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
+    <a class="cta" href="app/" data-track="nav_open_dashboard"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
   </nav>
 
   <header class="masthead" id="masthead">
@@ -63,8 +63,8 @@
           <h2>Answers, from the logs alone.</h2>
           <p class="body">Loupe reads the structure of <b id="s-total">…</b> conversations and never the content. Four questions, four numbers, one page.</p>
           <div class="panel-actions">
-            <a class="cta" href="app/"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
-            <a class="btn-outline" href="docs/">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
+            <a class="cta" href="app/" data-track="beat4_open_dashboard"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
+            <a class="btn-outline" href="docs/" data-track="beat4_read_docs">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
           </div>
         </div>
       </div>
@@ -129,14 +129,15 @@
         </div>
       </div>
       <div class="finale-cta">
-        <a class="cta big" href="app/"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
-        <a class="btn-outline" href="docs/">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
+        <a class="cta big" href="app/" data-track="finale_open_dashboard"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
+        <a class="btn-outline" href="docs/" data-track="finale_read_docs">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
       </div>
       <p class="fine">Data: <a href="https://huggingface.co/datasets/allenai/WildChat-4.8M">WildChat-4.8M</a> (Zhao et al., ICLR 2024; Deng et al., EMNLP 2024 Demos), licensed <a href="https://opendatacommons.org/licenses/by/1-0/">ODC-By 1.0</a>. Aggregates only; no transcript content is served. The chatbot behind these logs was run by researchers, not ChatGPT itself.</p>
-      <p class="fine">A product case study by <a href="https://shankard.com">Shankar Deenadayalan</a> · <a href="https://shankard.com/resume.pdf">resume</a> · <a href="https://github.com/rsm-sdeenadayalan/wildchat-analytics">source</a></p>
+      <p class="fine">A product case study by <a href="https://shankard.com">Shankar Deenadayalan</a> · <a href="https://shankard.com/resume.pdf">resume</a> · <a href="https://github.com/rsm-sdeenadayalan/wildchat-analytics">source</a>. This site uses <a href="https://posthog.com">PostHog</a> to understand how it is used; the WildChat data itself is never tracked at row level.</p>
     </div>
   </section>
 
+  <script src="analytics.js" defer></script>
   <script src="embed.js" defer></script>
   <script type="module" src="story.js"></script>
 </body>

@@ -148,6 +148,7 @@ function chart(view, { title, so, note, series, draw, scope, caption }) {
         active = active && active.size === 1 && active.has(s.key) ? null : new Set([s.key]);
       }
       hover = null;
+      window.loupeTrack?.("series_isolated", { chart: title, key: s.key, compare: !!e.shiftKey });
       legend.querySelectorAll(".chip[data-key]").forEach((c) => c.setAttribute("aria-pressed", String(!!active && active.has(c.dataset.key))));
       render();
     });
@@ -980,7 +981,7 @@ export async function renderBuilt(conn, meta) {
     $("#ev-cover").textContent = fmtPct0(cover);
     $("#ev-missing").textContent = missing.length ? `not tested: ${missing.join(", ")}` : "every intent with weight is covered";
   };
-  evalCard.addEventListener("input", recompute);
+  evalCard.addEventListener("input", () => { window.loupeTrack?.("eval_scorer_used", {}); recompute(); });
   evalCard.addEventListener("change", recompute);
   recompute();
 }
@@ -1001,6 +1002,7 @@ FROM intensity_weekly ORDER BY week DESC LIMIT 12</textarea>
     <div class="card"><h2>Available views</h2>${tableEl(cols, 50).outerHTML}</div>`;
   const run = async () => {
     $("#qerr").textContent = "";
+    window.loupeTrack?.("query_run", { chars: $("#sql").value.length });
     try {
       const rows = await q(conn, $("#sql").value);
       $("#qout").replaceChildren(tableEl(rows));
@@ -1052,6 +1054,7 @@ function buildPicker(models, counts, onChange) {
     const b = e.target.closest("button[data-model]");
     if (!b) return;
     FILTER.model = b.dataset.model || null;
+    window.loupeTrack?.("model_filter", { model: FILTER.model || "all" });
     paint();
     onChange();
   });
@@ -1060,9 +1063,11 @@ function buildPicker(models, counts, onChange) {
 }
 
 async function main() {
+  const t0 = performance.now();
   try {
     const { conn, meta } = await boot();
     $("#status").hidden = true;
+    window.loupeTrack?.("dashboard_loaded", { ms: Math.round(performance.now() - t0) });
     $("#caveat-population").textContent = meta.population_caveat;
     $("#caveat-users").textContent = meta.pseudo_user_caveat;
     $("#generated").textContent = `Aggregates generated ${meta.generated_at} from ${fmtInt.format(meta.conversations)} conversations (${meta.date_min} to ${meta.date_max}).`;
@@ -1088,6 +1093,7 @@ async function main() {
     const go = async (name) => {
       current = name;
       showView(name);
+      window.loupeTrack?.("view_opened", { view: name, model: FILTER.model || "all" });
       if (!rendered.has(name) && RENDERERS[name]) { rendered.add(name); await RENDERERS[name](conn, meta); }
     };
     const paint = buildPicker(FILTER.models, counts, () => { rendered = new Set(); go(current); });
@@ -1104,6 +1110,7 @@ async function main() {
     await go(RENDERERS[start.view] ? start.view : "overview");
   } catch (err) {
     $("#status").textContent = `Failed to load: ${err.message}`;
+    window.loupeTrack?.("dashboard_failed", { message: String(err.message).slice(0, 120), ms: Math.round(performance.now() - t0) });
     console.error(err);
   }
 }

@@ -8,7 +8,8 @@ from pathlib import Path
 
 ALLOWED_PREFIX = "https://cdn.jsdelivr.net/npm/"
 ALLOWED_LINKS = ("https://huggingface.co/", "https://opendatacommons.org/", "https://github.com/", "https://arxiv.org/", "https://openreview.net/",
-                 "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://shankard.com", "https://loupe.shankard.com")
+                 "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://shankard.com", "https://loupe.shankard.com",
+                 "https://us.i.posthog.com", "https://posthog.com")
 _URL = re.compile(r"https://[^\s\"'`)]+")
 _AGG = re.compile(r"AGGREGATES\s*=\s*(\[[^\]]*\])", re.S)
 _ABS = re.compile(r'(?:href|src)="/(?!/)')
