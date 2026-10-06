@@ -16,7 +16,7 @@
 
   posthog.init(KEY, {
     api_host: HOST,
-    person_profiles: "identified_only",
+    person_profiles: "always",  // every visitor gets a profile: location, first source, sessions, replays
     capture_pageview: true,
     capture_pageleave: true,
     autocapture: true,
