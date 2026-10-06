@@ -48,10 +48,12 @@
   var stage = document.getElementById("stage");
   if (stage && window.MutationObserver) {
     var seen = {};
-    new MutationObserver(function () {
+    function beat() {
       var b = stage.getAttribute("data-beat");
       if (b && !seen[b]) { seen[b] = true; window.loupeTrack("story_beat_reached", { beat: Number(b) }); }
-    }).observe(stage, { attributes: true, attributeFilter: ["data-beat"] });
+    }
+    beat();  // the page opens on beat 1; record it, or beat 1 is only counted when someone scrolls back up
+    new MutationObserver(beat).observe(stage, { attributes: true, attributeFilter: ["data-beat"] });
   }
 
   /* Reading depth on documents and the story page: 50% and 90% of the page. */
