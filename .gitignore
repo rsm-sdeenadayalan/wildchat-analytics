@@ -5,7 +5,7 @@ __pycache__/
 .pytest_cache/
 # Data: raw shards and content-bearing samples never get committed
 data/
-samples/
+/samples/
 *.parquet
 !aggregates/**/*.parquet
 tests/fixtures/*.parquet
