@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import asyncio
 import http.server
+import math
 import socketserver
 import sys
 import threading
 from pathlib import Path
 
-TABS = ["overview", "intensity", "intent", "friction", "quality", "built", "query"]
+TABS = ["overview", "next", "intent", "friction", "intensity", "quality", "query"]
 ANALYTIC_TABS = ["overview", "intensity", "intent", "friction", "quality"]
 
 
@@ -24,6 +25,7 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
 
 def _serve(directory: Path, port: int):
     handler = lambda *a, **k: _QuietHandler(*a, directory=str(directory), **k)  # noqa: E731
+    socketserver.TCPServer.allow_reuse_address = True  # back-to-back runs otherwise hit the port's TIME_WAIT
     httpd = socketserver.TCPServer(("127.0.0.1", port), handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     return httpd
@@ -146,35 +148,44 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 problems.append(f"model filter: reset did not restore all series ({n_series})")
             await page.click('.tabs button[data-view="friction"]')
             await page.wait_for_timeout(1500)
-            if not await page.evaluate("document.querySelectorAll('#view-friction .card.built table tbody tr').length === 4"):
-                problems.append("friction: the routing counterfactual card did not render its four policies")
-            if not await page.evaluate("document.querySelectorAll('#view-friction .card.contract li').length === 4 && document.querySelectorAll('#view-friction .card.chart').length >= 4"):
-                problems.append("friction: the per-responder chart or the attribution contract card did not render")
-            # Built-from-the-data view: both artifacts render, era toggle swaps the table, the eval scorer computes live.
-            await page.click('.tabs button[data-view="built"]')
+            if await page.evaluate("document.querySelectorAll('#view-friction .card.built, #view-friction .card.contract').length"):
+                problems.append("friction: the withdrawn routing card or the folded contract card is back")
+            if not await page.evaluate("document.querySelectorAll('#view-friction .card.chart').length >= 4"):
+                problems.append("friction: the per-responder chart did not render")
+            # Next steps: fix list with a backlog download, the same-people check, the eval scorer, the withdrawn routing card.
+            await page.click('.tabs button[data-view="next"]')
             await page.wait_for_timeout(1500)
-            if await page.evaluate("document.querySelectorAll('#view-built .card.built').length") != 2:
-                problems.append("built: expected two built-from-the-data cards")
-            before = await page.evaluate("document.querySelector('#view-built .era-so').textContent")
-            await page.click('#view-built .era-tabs [data-era="A"]')
+            if await page.evaluate("document.querySelectorAll('#view-next .card.next').length") != 4:
+                problems.append("next: expected four next-step cards")
+            if await page.evaluate("document.querySelectorAll('#view-next table.fix tbody tr').length") < 4:
+                problems.append("next: fix list has fewer than four intents")
+            if await page.evaluate("document.querySelectorAll('#view-next table.mixcheck .vd').length") != 4:
+                problems.append("next: same-people check should show four verdicts")
+            async with page.expect_download() as dl:
+                await page.click('#fix-csv')
+            if not (await dl.value).suggested_filename.endswith(".csv"):
+                problems.append("next: backlog download is not a csv")
+            await page.click('#view-next .withdrawn summary')
+            before = await page.evaluate("document.querySelector('#view-next .era-so').textContent")
+            await page.click('#view-next .era-tabs [data-era="A"]')
             await page.wait_for_timeout(200)
-            after = await page.evaluate("document.querySelector('#view-built .era-so').textContent")
+            after = await page.evaluate("document.querySelector('#view-next .era-so').textContent")
             if before == after or "null result" not in after:
-                problems.append("built: era toggle did not switch to the era A null result")
+                problems.append("next: era toggle did not switch to the era A null result")
             await page.set_viewport_size({"width": 390, "height": 844})
             await page.wait_for_timeout(300)
             sw, cw = await page.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
             if sw > cw:
-                problems.append(f"built: horizontal overflow on a phone ({sw} > {cw})")
+                problems.append(f"next: horizontal overflow on a phone ({sw} > {cw})")
             await page.set_viewport_size({"width": 1280, "height": 900})
             await page.wait_for_timeout(300)
             w0 = await page.evaluate("document.querySelector('#ev-weighted').textContent")
-            await page.fill('#view-built tr[data-intent="coding"] input', "1")
+            await page.fill('#view-next tr[data-intent="coding"] input', "1")
             await page.wait_for_timeout(200)
             w1 = await page.evaluate("document.querySelector('#ev-weighted').textContent")
             if w0 == "–" or w0 == w1:
-                problems.append(f"built: eval scorer did not recompute ({w0!r} -> {w1!r})")
-            await page.fill('#view-built tr[data-intent="coding"] input', "0.4")
+                problems.append(f"next: eval scorer did not recompute ({w0!r} -> {w1!r})")
+            await page.fill('#view-next tr[data-intent="coding"] input', "0.4")
             # Layout: at common widths no horizontal page scroll, and no KPI number wider than its tile.
             for width in LAYOUT_WIDTHS:
                 await page.set_viewport_size({"width": width, "height": 900})
@@ -211,14 +222,115 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             await story.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await story.wait_for_timeout(1500)
             beat, answered = await story.evaluate("[document.querySelector('#stage').dataset.beat, document.querySelectorAll('.qtile.answered').length]")
-            if beat != "4" or answered != 4:
-                problems.append(f"story: at the end expected beat 4 with 4 answers, got beat {beat} with {answered}")
+            if beat != "5" or answered != 4:
+                problems.append(f"story: at the end expected the WildChat canvas on the finding (beat 5) with 4 answered tiles, got beat {beat} with {answered}")
+            # The finding settles on the same-people numbers, and the sequence ends on its last step with the next-steps link.
+            pin_beat, step, va, gap = await story.evaluate("[document.querySelector('#story').dataset.beat, document.querySelector('#how-stage')?.dataset.step, document.querySelector('#how-va')?.textContent || '', document.querySelector('#how-gapv')?.textContent || '']")
+            if pin_beat != "9" or step != "3" or not va.endswith("%") or "23" in gap:
+                problems.append(f"story: expected to end on beat 9 / step 3 with the gap collapsed, got beat {pin_beat!r}, step {step!r}, value {va!r}, gap {gap!r}")
+            # One gesture, one step: a trackpad-like flick (a burst of wheel events) moves exactly one stop, momentum included.
+            top = await story.evaluate("document.querySelector('#story').closest('.pin-spacer').getBoundingClientRect().top + scrollY")
+            await story.evaluate(f"window.scrollTo(0, {top})")
+            await story.wait_for_timeout(800)
+            await story.mouse.move(400, 400)
+            for _ in range(2):
+                for d in (60, 45, 30, 18, 10, 5):
+                    await story.mouse.wheel(0, d)
+                    await story.wait_for_timeout(16)
+                await story.wait_for_timeout(2000)
+            stop, in_story = await story.evaluate("[document.querySelector('#story').dataset.stop, document.body.classList.contains('in-story')]")
+            if stop != "2" or not in_story:
+                problems.append(f"story: two flicks should land on stop 2 with the frame full screen, got stop {stop!r}, full screen {in_story}")
+            # Real trackpad input: swipes ramp up, then momentum decays for ~1.8 s, longer than a scene. Each swipe must play
+            # exactly one scene, even when it starts while the last one's momentum is still arriving; one hard swipe and one
+            # long steady scroll must each play one scene.
+            def swipe(peak=40):
+                n = int(1.8 / 0.016)
+                return [max(1, round(peak * (i + 1) / 5)) for i in range(5)] + [max(1, round(peak * math.exp(-4.0 * i / n))) for i in range(n)]
+            async def play(deltas):
+                for d in deltas:
+                    await story.mouse.wheel(0, d)
+                    await story.wait_for_timeout(16)
+            stops_at = lambda: story.evaluate("+document.querySelector('#story').dataset.stop")
+            for label, expect, gesture in [
+                ("three swipes 1.6 s apart", 3, [swipe()[:100], swipe()[:100], swipe()]),
+                ("one hard swipe", 1, [swipe(120)]),
+                ("a steady 3 s scroll", 1, [[12, 7, 16, 11, 9, 14, 13, 8, 15, 10] * 19]),
+            ]:
+                await story.evaluate(f"window.scrollTo(0, {top})")
+                await story.wait_for_timeout(1500)
+                s0 = await stops_at()
+                for g in gesture:
+                    await play(g)
+                await story.wait_for_timeout(4500)
+                moved = await stops_at() - s0
+                if moved != expect:
+                    problems.append(f"story: {label} should move {expect} scene(s), moved {moved}")
+            # Past the last scene, a whole trackpad scroll (which starts with tiny deltas) must move the page, not just its first event.
+            span = await story.evaluate("document.querySelector('#story').closest('.pin-spacer').offsetHeight - innerHeight")
+            await story.evaluate(f"window.scrollTo(0, {top} + 0.9963 * {span})")
+            await story.wait_for_timeout(1500)
+            y0 = await story.evaluate("scrollY")
+            for d in (2, 4, 8, 14, 22, 30, 34, 30, 24, 18, 13, 9, 6, 4, 3, 2, 1, 1):
+                await story.mouse.wheel(0, d)
+                await story.wait_for_timeout(16)
+            await story.wait_for_timeout(1200)
+            moved = await story.evaluate("scrollY") - y0
+            if moved < 100:
+                problems.append(f"story: a trackpad scroll past the last scene moved the page only {moved:.0f}px")
             hrefs = await story.evaluate("[...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href'))")
-            if not any(h in ("app/", "./app/") for h in hrefs):
+            if not any(h in ("app/", "./app/", "app/#next") for h in hrefs):
                 problems.append("story: no link to the dashboard at app/")
             sw, cw = await story.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
             if sw > cw:
                 problems.append(f"story: horizontal overflow {sw} > {cw}")
+            # Try page: a sample chat log reaches the user-mix verdict; a sample agent trace singles out the writer sub-agent.
+            tp = await browser.new_page()
+            tp.on("pageerror", lambda e: problems.append(f"try pageerror: {e}"))
+            await tp.goto(f"http://127.0.0.1:{port}/try/", wait_until="load")
+            await tp.click('[data-sample="chat-sample.jsonl"]')
+            try:
+                await tp.wait_for_function("document.querySelector('#cmp .verdict .badge')", timeout=timeout_s * 1000)
+                badge = await tp.evaluate("document.querySelector('#cmp .verdict .badge').textContent")
+                if badge.strip().lower() != "user mix":
+                    problems.append(f"try: chat sample verdict should be 'User mix', got {badge!r}")
+            except Exception:
+                problems.append("try: chat sample never produced a verdict")
+            # The planted prompt change (v1 -> v2) cuts corrections, so the before/after check must call it an improvement.
+            chg = await tp.evaluate("document.querySelector('#chg .verdict .badge')?.textContent || ''")
+            if chg.strip().lower() != "improved":
+                problems.append(f"try: change check on the chat sample should say 'Improved', got {chg!r}")
+            for kind, head, lines in (("jsonl", '{"id"', 10), ("promptfoo", "# Loupe regression cases", 10), ("csv", "theme,responder", 3)):
+                async with tp.expect_download() as dl:
+                    await tp.click(f'[data-export="{kind}"]')
+                body = Path(await (await dl.value).path()).read_text()
+                if not body.startswith(head) or body.count("\n") < lines:
+                    problems.append(f"try: {kind} export looks wrong: {body[:60]!r}")
+            await tp.click('[data-sample="agent-traces.otlp.json"]')
+            await tp.wait_for_timeout(4000)
+            so = await tp.evaluate("document.querySelector('#resp-so')?.textContent || ''")
+            if not so.startswith("writer"):
+                problems.append(f"try: agent sample should single out the writer sub-agent, got {so[:60]!r}")
+            # A personal ChatGPT export switches to the one-person view and the summary copies.
+            await tp.click('[data-sample="chatgpt-export-sample.json"]')
+            try:
+                await tp.wait_for_function("document.querySelector('#compare-card').hidden && /^You push back on/.test(document.querySelector('#resp-so')?.textContent || '')", timeout=timeout_s * 1000)
+            except Exception:
+                problems.append("try: ChatGPT export sample did not switch to the personal view")
+            chg = await tp.evaluate("document.querySelector('#change-card').hidden ? '' : (document.querySelector('#chg .verdict .badge')?.textContent || '')")
+            if not chg or chg.strip().lower() == "too few conversations":
+                problems.append(f"try: personal change check should open on a readable comparison, got {chg!r}")
+            fx = await tp.evaluate("document.querySelector('#fx-card').hidden ? '' : document.querySelector('#fx-so').textContent")
+            if "of your conversations had" not in fx:
+                problems.append(f"try: personal failures card missing or wrong: {fx[:60]!r}")
+            await tp.click("#copy-sum")
+            await tp.wait_for_timeout(300)
+            summ = await tp.evaluate("document.querySelector('#sum-text').textContent")
+            if not summ.startswith("My AI use, read by Loupe") or "loupe.shankard.com/try/" not in summ:
+                problems.append(f"try: copy summary looks wrong: {summ[:80]!r}")
+            sw, cw = await tp.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+            if sw > cw:
+                problems.append(f"try: horizontal overflow {sw} > {cw}")
             await browser.close()
     finally:
         httpd.shutdown()

@@ -100,3 +100,23 @@ def test_build_appends_content_hashes_to_local_assets(tmp_path):
     (site / "story.css").write_text("body{color:red}")
     build(site, agg, docs, out)
     assert (out / "index.html").read_text() != idx
+
+
+def test_build_hashes_a_subfolder_pages_own_assets_and_module_imports(tmp_path):
+    import re
+
+    site = tmp_path / "site"; site.mkdir()
+    (site / "index.html").write_text("<p>x</p>"); (site / "styles.css").write_text("x{}")
+    (site / "doc_template.html").write_text("{{title}}|{{nav}}|{{body}}")
+    (site / "try").mkdir()
+    (site / "try" / "index.html").write_text('<link rel="stylesheet" href="../styles.css" /><link rel="stylesheet" href="try.css" /><script type="module" src="try.js"></script>')
+    (site / "try" / "try.css").write_text("a{}"); (site / "try" / "engine.js").write_text("export const a = 1;")
+    (site / "try" / "try.js").write_text('import { a } from "./engine.js";\nconsole.log(a);')
+    agg = tmp_path / "aggregates"; agg.mkdir(); (agg / "meta.json").write_text("{}")
+    docs = tmp_path / "docs"; docs.mkdir(); (docs / "README.md").write_text("# Guide\n")
+    out = tmp_path / "dist"
+    build(site, agg, docs, out)
+    page = (out / "try" / "index.html").read_text()
+    assert re.search(r'href="try\.css\?v=[0-9a-f]{10}"', page) and re.search(r'src="try\.js\?v=[0-9a-f]{10}"', page)
+    assert re.search(r'href="\.\./styles\.css\?v=[0-9a-f]{10}"', page)
+    assert re.search(r'from "\./engine\.js\?v=[0-9a-f]{10}"', (out / "try" / "try.js").read_text())

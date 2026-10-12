@@ -20,6 +20,7 @@
     <div class="navlinks">
       <a href="#story">Story</a><span class="sep" aria-hidden="true">·</span>
       <a href="app/">Dashboard</a><span class="sep" aria-hidden="true">·</span>
+      <a href="try/" data-track="nav_try">Try your logs</a><span class="sep" aria-hidden="true">·</span>
       <a href="docs/">Case study</a><span class="sep" aria-hidden="true">·</span>
       <a href="https://github.com/rsm-sdeenadayalan/wildchat-analytics">Code</a>
     </div>
@@ -62,9 +63,34 @@
           <p class="kicker"><span class="num">④</span> the loupe</p>
           <h2>Answers, from the logs alone.</h2>
           <p class="body">Loupe reads the structure of <b id="s-total">…</b> conversations and never the content. Four questions, four numbers, one page.</p>
+        </div>
+        <div class="caption" data-beat="5">
+          <p class="kicker"><span class="num">⑤</span> what a dashboard would tell you</p>
+          <h2>The cheap model looks <span class="hl-o" id="w-naive">23 points</span> worse.</h2>
+          <p class="body">On coding, gpt-4o-mini conversations end after one short reply twice as often. The dashboard verdict: <b>drop the cheap model</b>.</p>
+        </div>
+        <div class="caption" data-beat="6">
+          <p class="kicker"><span class="num">⑥</span> what Loupe checks</p>
+          <h2>Same people, and the gap is gone.</h2>
+          <p class="body">For the <b id="w-people">622</b> people who used both models, the gap is <b id="w-matched">0.1 points</b>. It was never the model. It was who chose it.</p>
+        </div>
+        <div class="caption" data-beat="7">
+          <p class="kicker"><span class="num">⑦</span> your turn</p>
+          <h2>Now point it at your logs.</h2>
+          <p class="body">Chat logs, agent traces, even your own ChatGPT or Claude export. Loupe reads them in your browser; <b>nothing is uploaded</b>.</p>
+        </div>
+        <div class="caption" data-beat="8">
+          <p class="kicker"><span class="num">⑧</span> it reads each one</p>
+          <h2>Every conversation, labelled.</h2>
+          <p class="body">What it was for. Whether the person had to correct or repeat themselves. <b>Which model or sub-agent</b> they were reacting to.</p>
+        </div>
+        <div class="caption" data-beat="9">
+          <p class="kicker"><span class="num">⑨</span> it hands you the work</p>
+          <h2>Then, the next step.</h2>
+          <p class="body">A verdict on your last change, your real failures as a test suite, a backlog your team can import.</p>
           <div class="panel-actions">
-            <a class="cta" href="app/" data-track="beat4_open_dashboard"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
-            <a class="btn-outline" href="docs/" data-track="beat4_read_docs">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
+            <a class="cta" href="app/#next" data-track="how_open_dashboard"><i class="lensdot" aria-hidden="true"></i>See the next steps on WildChat</a>
+            <a class="btn-outline" href="try/" data-track="how_try">Try it on your logs <span class="arr" aria-hidden="true">↗</span></a>
           </div>
         </div>
       </div>
@@ -102,6 +128,20 @@
             <div class="qtile" data-i="2"><span class="qmark">?</span><span class="qlabel">for what</span><span class="qanswer"></span></div>
             <div class="qtile" data-i="3"><span class="qmark">?</span><span class="qlabel">where it fails</span><span class="qanswer"></span></div>
           </div>
+          <div class="scene scene-wow" aria-hidden="true">
+            <div class="wow-card">
+              <div class="sep-legend"><span><i class="sw a"></i>gpt-4o-mini</span><span><i class="sw b"></i>gpt-4o</span><span class="sep-what">coding · ended after one short reply</span></div>
+              <div class="wow-body">
+                <div class="wow-bars">
+                  <div class="sep-row"><div class="sep-track"><div class="sep-bar a" id="how-a" style="width:92.6%"></div></div><b id="how-va">42.7%</b></div>
+                  <div class="sep-row"><div class="sep-track"><div class="sep-bar b" id="how-b" style="width:42.3%"></div></div><b id="how-vb">19.5%</b></div>
+                  <span class="sep-mode" id="how-mode">everyone on each model</span>
+                </div>
+                <div class="wow-gap"><span class="wow-k">gap</span><b id="how-gapv">+23</b><span class="wow-u">points</span></div>
+              </div>
+              <span class="stamp" id="how-stamp">same people</span>
+            </div>
+          </div>
           <div class="lens" aria-hidden="true">
             <svg class="lens-svg" viewBox="0 0 120 120"><defs><radialGradient id="glassg" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#fffdf7"/><stop offset="0.7" stop-color="#f3ebd9"/><stop offset="1" stop-color="#e3d8c0"/></radialGradient></defs>
               <line x1="86" y1="86" x2="112" y2="112" stroke="#1c1c1e" stroke-width="11" stroke-linecap="round"/>
@@ -112,8 +152,39 @@
             <div class="glass" id="lens-chart"></div>
           </div>
         </div>
+        <div class="canvas how-canvas" id="how-stage" data-step="1">
+          <div class="light" aria-hidden="true"></div>
+
+          <div class="hscene hs-read" aria-hidden="true">
+            <div class="files">
+              <span class="file" style="--i:0"><i>{ }</i>chat-logs.jsonl</span>
+              <span class="file" style="--i:1"><i>⟡</i>agent-traces.otlp.json</span>
+              <span class="file" style="--i:2"><i>✱</i>conversations.json</span>
+            </div>
+            <div class="tray"><span class="tray-label">your browser</span><span class="tray-lock">nothing leaves this page</span>
+              <div class="stream"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+
+          <div class="hscene hs-label" aria-hidden="true">
+            <div class="convo">
+              <div class="convo-head"><span class="intent-chip">coding</span><span class="convo-meta">conversation 48,212</span></div>
+              <div class="cm user">Why does my SQL query return duplicate rows?</div>
+              <div class="cm bot"><span class="resp">sql-agent</span>Add DISTINCT to the SELECT.</div>
+              <div class="cm user corr">No, that's wrong. I need the join fixed.<span class="flag">correction</span></div>
+              <div class="charge">charged to <b>sql-agent</b>, the reply they reacted to</div>
+            </div>
+          </div>
+
+          <div class="hscene hs-act" aria-hidden="true">
+            <div class="artifact art-verdict" style="--i:0"><span class="art-k">did my change help?</span><span class="badge">improved</span><b>−8.4 pts</b><span>corrections, for the same 380 people</span></div>
+            <div class="artifact art-file" style="--i:1"><span class="art-k">promptfooconfig.yaml</span><b>305</b><span>regression cases from real failures</span><code>npx promptfoo eval</code></div>
+            <div class="artifact art-ticket" style="--i:2"><span class="art-k">backlog.csv</span><b>coding</b><span>94 failures · 16.8% of coding conversations</span><span class="ticket-tag">→ Linear / Jira</span></div>
+          </div>
+        </div>
         <figcaption class="frame-caption" id="frame-caption">fig. 1 — one log line, which is all a team ever sees</figcaption>
       </figure>
+      <p class="scroll-more" id="scroll-more" aria-hidden="true">scroll for the next part <span>↓</span></p>
     </div>
   </section>
 
@@ -122,14 +193,15 @@
       <p class="marker finale-marker">the four questions, answered from the logs</p>
       <ol class="ledger" id="ledger"></ol>
       <div class="built-strip">
-        <p class="marker finale-marker">and then, built from what it found</p>
+        <p class="marker finale-marker">and what it says to do</p>
         <div class="built-cards">
-          <a class="built-card" href="docs/10-routing-counterfactual.html"><span class="built-k">01</span><b>Route requests by intent</b><span>In the one window where four models served the same people, a cost-aware rule would have cut conversations that end after one turn from <em id="b-base">20.6%</em> to <em id="b-ca">8.2%</em> for about <em id="b-cost">+9%</em> cost, and cut repeated requests by a similar share. Routers like OpenRouter Auto already do this; this is what one would have been worth here, and how you'd know.</span></a>
+          <a class="built-card" href="docs/10-routing-counterfactual.html"><span class="built-k">01</span><b>Don't route on usage logs alone</b><span>Comparing models across all users suggested routing by intent would cut one-turn conversations from 20.6% to 8.2%. Comparing the same people on both models showed almost none of that was the model. The doc keeps both numbers and the correction.</span></a>
           <a class="built-card" href="docs/11-usage-weighted-eval.html"><span class="built-k">02</span><b>Judge assistants by real usage</b><span>The observed intent mix, published as weights for a team's own eval set, with a scorer that says plainly which kinds of work the set never tests.</span></a>
         </div>
       </div>
       <div class="finale-cta">
         <a class="cta big" href="app/" data-track="finale_open_dashboard"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
+        <a class="btn-outline" href="try/" data-track="finale_try">Try it on your own logs <span class="arr" aria-hidden="true">↗</span></a>
         <a class="btn-outline" href="docs/" data-track="finale_read_docs">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
       </div>
       <p class="fine">Data: <a href="https://huggingface.co/datasets/allenai/WildChat-4.8M">WildChat-4.8M</a> (Zhao et al., ICLR 2024; Deng et al., EMNLP 2024 Demos), licensed <a href="https://opendatacommons.org/licenses/by/1-0/">ODC-By 1.0</a>. Aggregates only; no transcript content is served. The chatbot behind these logs was run by researchers, not ChatGPT itself.</p>

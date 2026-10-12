@@ -103,6 +103,23 @@ def bust_assets(html: str, site_dir: Path) -> str:
     return _ASSET_REF.sub(bust, html)
 
 
+_LOCAL_REF = re.compile(r'((?:href|src)=")([\w-]+\.(?:css|js))(")')
+_LOCAL_IMPORT = re.compile(r'(from\s+["\'])(\./[\w-]+\.js)(["\'])')
+
+
+def bust_local(text: str, own_dir: Path, pattern: re.Pattern = _LOCAL_REF) -> str:
+    """Hash references to files that sit next to the page or module (a subfolder's own css and js)."""
+
+    def bust(m: re.Match) -> str:
+        f = own_dir / m.group(2)
+        if not f.exists():
+            return m.group(0)
+        import hashlib
+        return f"{m.group(1)}{m.group(2)}?v={hashlib.sha256(f.read_bytes()).hexdigest()[:10]}{m.group(3)}"
+
+    return pattern.sub(bust, text)
+
+
 def rewrite_links(body_html: str) -> str:
     """Point the markdown's repo-relative links at what the site actually serves.
 
@@ -158,7 +175,7 @@ def render_doc(
         tpl = bust_assets(tpl, tpl_path.parent)
     _MD.reset()
     body = rewrite_links(_MD.convert(md_text))
-    nav_html = " · ".join(
+    nav_html = "".join(  # no text separators: in a wrapping row a bare "·" strands on its own line
         f'<a href="{href}"{" class=\"current\"" if href == current else ""}>{label}</a>'
         for href, label in nav
     )
@@ -183,7 +200,12 @@ def build(
         elif p.is_dir():
             shutil.copytree(p, out_dir / p.name)
     for page in list(out_dir.glob("*.html")) + list(out_dir.glob("*/index.html")):
-        page.write_text(bust_assets(page.read_text(), site_dir))
+        html = bust_assets(page.read_text(), site_dir)
+        if page.parent != out_dir:  # a subfolder page also loads its own css and js
+            html = bust_local(html, site_dir / page.parent.name)
+        page.write_text(html)
+    for mod in out_dir.glob("*/*.js"):  # ES module imports between files in the same subfolder
+        mod.write_text(bust_local(mod.read_text(), site_dir / mod.parent.name, _LOCAL_IMPORT))
 
     (out_dir / "aggregates").mkdir()
     copied = []

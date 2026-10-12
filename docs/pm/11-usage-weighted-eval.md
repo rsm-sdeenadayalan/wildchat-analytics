@@ -1,4 +1,4 @@
-# Built from the data, part 2: a usage-weighted evaluation mix
+# What it says to do, part 2: a usage-weighted evaluation mix
 
 **What this is for:** Give a team shipping an assistant a way to score it on the mix of work people actually bring, rather than on whatever a benchmark's authors chose to test, using the observed intent distribution of a real population as the weights.
 **Date:** 2026-10-03
@@ -53,7 +53,7 @@ A worked example, with made-up scores on a five-prompt set:
 
 Unweighted mean 0.76; usage-weighted 0.70; covered weight 62.9%; missing: creative_roleplay, image_prompting, other, translation. The weighted score is lower because the set's weakest result is on the second most common thing people do, and the coverage line says the set is silent on a third of real usage.
 
-## Why this is the honest version of "built from the data"
+## Why this is the honest version of "built on real usage"
 
 The data cannot say how good any assistant is. It can say what people ask for, how often, and how that mix moved as the models and the population changed. Turning that into weights is the one use of the data that needs no assumption beyond the taxonomy and the classifier, both of which carry their measured error in the file. It also closes a loop with the first part of this pair: the routing counterfactual says where to send each intent; the weighted eval says how much each intent should count when judging the result.
 

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Try Loupe on your own logs</title>
+  <meta name="description" content="Drop a chat log or an OpenTelemetry agent trace. Loupe answers who uses your assistant, what for, where it fails, and whether a model gap is real or just user mix. Runs entirely in your browser." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%3E%3Ccircle%20cx=%2710%27%20cy=%2710%27%20r=%277%27%20fill=%27none%27%20stroke=%27%231e3aa6%27%20stroke-width=%272.6%27/%3E%3Cpath%20d=%27M15.2%2015.2%20L21%2021%27%20stroke=%27%231e3aa6%27%20stroke-width=%273.2%27%20stroke-linecap=%27round%27/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;600&family=Instrument+Serif:ital@1&display=swap" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="try.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="../"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.2 15.2 L21 21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M6.4 8.6 A4.2 4.2 0 0 1 8.6 6.4" fill="none" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.4" stroke-linecap="round"/></svg>Loupe</a>
+      <span class="tag">try it on your logs</span>
+      <a class="docs-link" href="../">← Story</a>
+      <a class="docs-link" href="../app/">WildChat dashboard&nbsp;→</a>
+    </div>
+  </header>
+
+  <main class="wrap try">
+    <section class="try-hero">
+      <p class="eyebrow">Your logs, your browser</p>
+      <h1>Point Loupe at your own assistant.</h1>
+      <p class="lede">Drop a chat log or an OpenTelemetry agent trace. Loupe answers who uses it, what for, where it fails, which sub-agent people react to, and whether a gap between two models is real or just different people. <b>The file never leaves this page.</b></p>
+      <p class="personal-hint">No logs of your own? Use your own AI history: export it from <b>ChatGPT</b> (Settings → Data controls → Export data) or <b>Claude</b> (Settings → Privacy → Export data) and drop the zip here. Claude emails a list of links; the one you need is <code>conversations-000.zip</code>.</p>
+      <label class="drop" id="drop" tabindex="0">
+        <input type="file" id="file" accept=".zip,.json,.jsonl,.ndjson,.csv,.txt" multiple hidden />
+        <span class="drop-icon" aria-hidden="true">↥</span>
+        <span class="drop-main">Drop a file here, or <u>choose one</u></span>
+        <span class="drop-sub">ChatGPT or Claude export zip · JSON or JSONL conversations · CSV or JSONL message rows · OTLP JSON with <code>gen_ai.*</code> attributes</span>
+      </label>
+      <div class="samples">
+        <span>No file handy?</span>
+        <button type="button" class="chip" data-sample="chat-sample.jsonl">Sample chat log · two models</button>
+        <button type="button" class="chip" data-sample="agent-traces.otlp.json">Sample agent traces · three sub-agents</button>
+        <button type="button" class="chip" data-sample="chatgpt-export-sample.json">Sample ChatGPT export · one person</button>
+      </div>
+      <details class="def formats"><summary>What fields Loupe looks for</summary>
+        <p><b>Conversations</b>: one object per conversation with a list under <code>messages</code> (or <code>conversation</code>, <code>turns</code>), each with <code>role</code> and <code>content</code>. Optional: <code>user_id</code>, <code>timestamp</code>, <code>model</code>, and <code>responder</code> on assistant messages. <b>Message rows</b>: one row per message with a conversation id and a role. <b>Agent traces</b>: OTLP JSON; spans are grouped by trace, <code>gen_ai.input.messages</code> and <code>gen_ai.output.messages</code> give the turns, <code>gen_ai.agent.name</code> names the responder, <code>user.id</code> the person. <b>Personal exports</b>: the zip from ChatGPT or Claude, or the <code>conversations.json</code> inside it; only that file is opened, and Loupe follows the thread you saw in each conversation. Without a user field each conversation counts as its own person; without timestamps there are no weekly trends; without a model field there is no model comparison. Loupe tells you which applies.</p>
+      </details>
+      <p class="status" id="status" hidden></p>
+    </section>
+
+    <section id="results" hidden>
+      <div class="notes" id="notes"></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="share-bar"><button type="button" class="chip" id="copy-sum">Copy summary</button><span id="copy-ok" role="status"></span></div>
+      <details class="def sum" id="sum-wrap" hidden><summary>What was copied</summary><pre id="sum-text"></pre></details>
+
+      <div class="card chart" id="compare-card">
+        <p class="eyebrow">Model or users?</p>
+        <h2>Is the gap between two models real, or just different people?</h2>
+        <p class="so">Usage logs compare models across whoever chose them. Loupe also compares the same people on both. If the gap disappears, it was user mix.</p>
+        <div class="controls">
+          <label>Model A <select id="cmp-a"></select></label>
+          <label>Model B <select id="cmp-b"></select></label>
+          <label>Signal <select id="cmp-m"><option value="oneTurn">ended in one turn</option><option value="repeat">repeated request</option><option value="correction">correction follow-up</option></select></label>
+          <label>Intent <select id="cmp-i"><option value="">all</option></select></label>
+        </div>
+        <div class="cmp" id="cmp"></div>
+      </div>
+
+      <div class="card chart" id="change-card">
+        <p class="eyebrow">Did my change help?</p>
+        <h2 data-personal="Did a change in how you use it help?">Before and after a change, for the same people</h2>
+        <p class="so" id="change-so" data-team="Pick when you changed a prompt, a model or a feature. Loupe compares the people who used the assistant on both sides, so new or departing users can't fake an effect, then reruns the test at an earlier date as a placebo.">Pick when you changed a prompt, a model or a feature. Loupe compares the people who used the assistant on both sides, so new or departing users can't fake an effect, then reruns the test at an earlier date as a placebo.</p>
+        <div class="controls">
+          <label>Change <select id="chg-at"></select></label>
+          <label id="chg-date-wrap" hidden>Date <input type="date" id="chg-date" /></label>
+          <label>Signal <select id="chg-m"><option value="correction">correction follow-up</option><option value="repeat">repeated request</option><option value="oneTurn">ended in one turn</option></select></label>
+          <label>Intent <select id="chg-i"><option value="">all</option></select></label>
+        </div>
+        <div class="cmp" id="chg"></div>
+        <details class="def"><summary>How to mark a change</summary><p>Loupe lists a change for each new value of <code>prompt_version</code>, <code>app_version</code>, <code>release</code> or <code>version</code> on your conversations (or <code>service.version</code> on OpenTelemetry spans), dated by when it first appears. Without one, pick a date. The comparison holds the person fixed but not the calendar: anything else that changed that week is mixed in, which is what the placebo run checks for. For a clean answer, randomize the change.</p></details>
+      </div>
+
+      <div class="card chart" id="fx-card">
+        <p class="eyebrow">Turn failures into tests</p>
+        <h2 data-personal="Your failed conversations, ready to replay against another model">Every conversation where someone corrected a reply or asked again, ready for your evals and backlog</h2>
+        <p class="so" id="fx-so"></p>
+        <div class="fx-actions">
+          <button type="button" class="chip" data-export="jsonl">Eval cases · JSONL</button>
+          <button type="button" class="chip" data-export="promptfoo">promptfoo config · YAML</button>
+          <button type="button" class="chip" data-export="csv">Backlog · CSV</button>
+        </div>
+        <div id="fx-table"></div>
+        <details class="def"><summary>What's in the files</summary><p><b>Eval cases</b>: one line per conversation, holding the messages up to the reply that failed, that reply, and what the person said next, with its intent and responder. <b>promptfoo config</b>: the same cases as tests, each replaying the conversation and asserting with a rubric that the new reply avoids the problem the person flagged; set the provider to your assistant and run <code>npx promptfoo eval</code>. <b>Backlog</b>: failures grouped by intent and responder with example asks, for import into Linear or Jira. The files hold your users' real messages; they are built in this page and saved only to your machine.</p></details>
+      </div>
+
+      <div class="card chart"><h2 data-personal="What you use it for">What people use it for</h2><p class="so" id="intent-so"></p><figure id="intent-fig"></figure>
+        <details class="def"><summary>What this measures</summary><p>Each conversation's first two user messages are classified into seven intents by Loupe's classifier, running in this page. Its held-out accuracy is <span id="clf-acc"></span> against an 87.1% inter-rater ceiling, the same gate as the production model.</p></details></div>
+
+      <div class="card chart"><h2 data-personal="Where it fails you">Where it fails them</h2><p class="so" id="fail-so"></p><div id="fail-table"></div>
+        <details class="def"><summary>What this measures</summary><p>Repeated request (the same ask again, word overlap 0.6 or more) and correction follow-up ("no, that's wrong") are the two friction signals that cleared Loupe's 70% precision check. One-turn share is shown as engagement depth, not failure.</p></details></div>
+
+      <div class="card chart" id="resp-card"><h2 data-personal="Which model you push back on: friction per 1,000 replies">Who is answerable: friction per 1,000 replies, by responder</h2><p class="so" id="resp-so"></p><figure id="resp-fig"></figure>
+        <details class="def"><summary>What this measures</summary><p>Each repeat or correction is charged to the responder whose reply the person had just read: the model, or the sub-agent named by <code>responder</code> or <code>gen_ai.agent.name</code>.</p></details></div>
+
+      <div class="card chart" id="weekly-card" hidden><h2 data-personal="When you use it">Who comes back</h2><p class="so" id="weekly-so"></p><figure id="weekly-fig"></figure></div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Everything on this page runs in your browser: the file is read locally, nothing is uploaded, and no conversation text is sent anywhere. Site analytics (PostHog) record only that a file was analyzed, its format and size bucket. Personal exports are read the same way: only <code>conversations.json</code> is opened, and it stays on your device. Sample files are synthetic.</p>
+    <p class="attrib">Built by <a href="https://shankard.com">Shankar Deenadayalan</a> (<a href="https://shankard.com/resume.pdf">resume</a>) as a product case study.</p>
+  </footer>
+
+  <script src="../analytics.js" defer></script>
+  <script src="../embed.js" defer></script>
+  <script type="module" src="try.js"></script>
+</body>
+</html>

@@ -107,10 +107,28 @@ function tile(label, value, sub) {
 }
 
 // A view's opening card: the question a product owner would ask, answered from the aggregates.
+// Each answer shows its first sentence; the rest of the evidence waits behind "More".
+function splitLead(html) {
+  const re = /\.(?:<\/b>)?\s+(?=[A-Z<])/g;
+  let m;
+  while ((m = re.exec(html))) {
+    const cut = m.index + m[0].trimEnd().length;
+    const lead = html.slice(0, cut);
+    if (lead.replace(/<[^>]+>/g, "").length >= 40) return [lead, html.slice(cut).trim()];
+  }
+  return [html, ""];
+}
 function insight(view, question, items, link) {
+  const parts = items.map(splitLead);
+  const more = parts.some(([, rest]) => rest);
   const card = el(`<div class="card insight"><p class="eyebrow">The question</p><h2>${question}</h2>
-    <ul class="facts">${items.map((i) => `<li>${i}</li>`).join("")}</ul>
-    ${link ? `<a class="more" href="${link.href}">${link.text} →</a>` : ""}</div>`);
+    <ul class="facts">${parts.map(([lead, rest]) => `<li>${lead}${rest ? `<span class="rest"> ${rest}</span>` : ""}</li>`).join("")}</ul>
+    <div class="insight-foot">${more ? `<button type="button" class="more-toggle" aria-expanded="false">More detail</button>` : ""}${link ? `<a class="more" href="${link.href}">${link.text}&nbsp;→</a>` : ""}</div></div>`);
+  card.querySelector(".more-toggle")?.addEventListener("click", (e) => {
+    const open = card.classList.toggle("expanded");
+    e.currentTarget.setAttribute("aria-expanded", String(open));
+    e.currentTarget.textContent = open ? "Less" : "More detail";
+  });
   view.append(card);
   return card;
 }
@@ -119,10 +137,10 @@ function insight(view, question, items, link) {
 // re-renders the figure whenever the viewer isolates, compares, or hovers a series.
 function chart(view, { title, so, note, series, draw, scope, caption }) {
   const tag = scope === "all" && FILTER.model ? `<span class="scope" title="This chart has no per-model cut">All models</span>` : "";
-  const card = el(`<div class="card chart"><div class="card-head"><h2>${title}${tag}</h2>${so ? `<p class="so">${so}</p>` : ""}</div>
+  const [lead, rest] = so ? splitLead(so) : ["", ""];
+  const card = el(`<div class="card chart"><div class="card-head"><h2>${title}${tag}</h2>${lead ? `<p class="so">${lead}</p>` : ""}</div>
     <div class="legend" role="group" aria-label="Series"></div><figure></figure>
-    ${caption ? `<p class="keys">${caption}</p>` : ""}
-    ${note ? `<details class="def"><summary>What this measures</summary><p>${note}</p></details>` : ""}</div>`);
+    ${note || caption || rest ? `<details class="def"><summary>What this measures</summary>${rest ? `<p>${rest}</p>` : ""}${note ? `<p>${note}</p>` : ""}${caption ? `<p class="keys">${caption}</p>` : ""}</details>` : ""}</div>`);
   view.append(card);
   const legend = card.querySelector(".legend");
   const fig = card.querySelector("figure");
@@ -322,6 +340,8 @@ export async function renderOverview(conn, meta) {
 
   const win = FILTER.model ? DATA.windows.get(FILTER.model) : null;
   const retired = win && win.w1 < DATA.through ? `<b>${esc(FILTER.model)}</b> left the logs after the ${fmtWeek(win.w1)}. ` : "";
+  // The dashboard's point is what to do next; say so before the charts.
+  view.append(el(`<div class="card start"><p><b>Start with what to do.</b> A ranked fix list with a backlog to download, which model gaps are real, and an eval scorer weighted by real usage.</p><a class="chip" href="#next">Open Next steps&nbsp;→</a></div>`));
   insight(view, FILTER.model ? `Is ${esc(FILTER.model)} usage growing, or is it the same power users?` : "Is usage growing, or is it the same power users?", [
     `${retired}<b>${fmtInt.format(sum(recent, (r) => r.conversations))}</b> conversations in the last 12 complete weeks, ${prior.length ? describeChange(change) + " versus the 12 weeks before" : "with no earlier 12-week window to compare against"}.`,
     last.week ? `In the ${fmtWeek(last.week)}, the top 10% of ${FILTER.model ? "its " : ""}pseudo-users produced <b>${fmtPct(last.top10_share)}</b> of conversations; the median pseudo-user had ${(last.convs_per_user_p50 ?? 0).toFixed(1)} conversation${last.convs_per_user_p50 === 1 ? "" : "s"}.` : `No complete week has enough ${esc(FILTER.model)} pseudo-users to report intensity.`,
@@ -819,13 +839,21 @@ export async function renderFriction(conn, meta) {
     return;
   }
   const heatSignals = ["repeat_rate", "correction_rate", "one_and_done_rate"];
+  // Across all models the grid would run to ~70 rows; keep the three busiest models per intent. Picking a model shows all of its intents.
+  const TOP_PER_INTENT = 3;
+  if (!FILTER.model) {
+    const groups = new Map();
+    for (const r of byIntent) groups.set(r.intent, [...(groups.get(r.intent) || []), r]);
+    const keep = new Set([...groups.values()].flatMap((rows) => rows.sort((a, b) => b.conversations - a.conversations).slice(0, TOP_PER_INTENT)));
+    byIntent = byIntent.filter((r) => keep.has(r));
+  }
   const heat = byIntent.flatMap((r) => heatSignals.map((s) => ({ intent: r.intent, model: r.model, signal: labels[s], rate: r[s], conversations: r.conversations })));
   const rowKey = (d) => (FILTER.model ? d.intent : `${d.intent} · ${d.model}`);
   const rowOrder = [...byIntent].sort((a, b) => a.intent.localeCompare(b.intent) || b.conversations - a.conversations).map(rowKey);
   chart(view, {
     title: FILTER.model ? `Friction and depth by intent, ${FILTER.model}` : "Friction and depth by intent and model",
     so: FILTER.model ? "Darker is more. Isolate one signal to rank intents on it." : "Darker is more. Isolate one signal to rank every intent × model pair on it.",
-    note: `Repeated-request and correction rates (validated friction) and the share ending after one turn (depth, not failure) for every intent × model pair with at least ${meta.min_cell} conversations. Rows are grouped by intent and ordered by volume.`,
+    note: `Repeated-request and correction rates (validated friction) and the share ending after one turn (depth, not failure) for intent × model pairs with at least ${meta.min_cell} conversations${FILTER.model ? "" : `, the ${TOP_PER_INTENT} busiest models for each intent`}. Rows are grouped by intent and ordered by volume. Differences between models here mix model quality with who chose each model; Next steps checks them on the same people.`,
     series: heatSignals.map((s) => ({ key: labels[s], color: color[labels[s]] })),
     draw: ({ isOn, w, active }) => {
       const rows = heat.filter((r) => isOn(r.signal));
@@ -845,21 +873,6 @@ export async function renderFriction(conn, meta) {
           });
     },
   });
-  // Built from the data: the routing counterfactual for the four-model window.
-  try {
-    const rc = await (await fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url))).json();
-    const era = rc.eras?.B;
-    if (era && !FILTER.model) {
-      const pol = era.policies;
-      const row = (name, label) => { const p = pol[name]; return `<tr><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${name === "baseline_actual_mix" ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${name === "baseline_actual_mix" ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`; };
-      const card = el(`<div class="card built"><p class="eyebrow">Built from the data</p><h2>If requests had been routed by intent</h2>
-        <p class="so">In the one window where four models served the same people (${era.start} to ${era.end}), a cost-aware rule would have cut conversations ending after one turn from <b>${fmtPct(pol.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(pol.cost_aware.one_and_done_rate)}</b>, and repeated requests from ${fmtPct(pol.baseline_actual_mix.repeat_rate, 2)} to ${fmtPct(pol.cost_aware.repeat_rate, 2)}, for ${(pol.cost_aware.cost_change_pct >= 0 ? "+" : "")}${Math.round(100 * pol.cost_aware.cost_change_pct)}% cost.</p>
-        <div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>ended in one turn</th><th>change</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
-        ${row("baseline_actual_mix", "Baseline, actual mix")}${row("best_friction", "Best friction")}${row("cost_aware", "Cost-aware (recommended)")}${row("cheapest_only", "Cheapest only")}</tbody></table></div>
-        <p class="note">Routers that do this already exist (OpenRouter Auto, Martian, Not Diamond); this sizes what one would have been worth here. Observational: users chose their model, so cells carry selection bias, and the one-and-done proxy is unvalidated. Cost uses late-2024 list prices on an assumed conversation; gpt-4o conversations in these logs have no token counts. "Other" is excluded from routing. <a href="${new URL("docs/10-routing-counterfactual.html", import.meta.url).href}">Read the sizing and the experiment design →</a></p></div>`);
-      view.append(card);
-    }
-  } catch (e) { console.warn("routing counterfactual unavailable", e); }
   // Attribution: friction charged to the responder whose reply the user reacted to, turn by turn.
   if (!FILTER.model) {
     const resp = await q(conn, `SELECT responder, assistant_turns, corrections, repeats, correction_rate, repeat_rate FROM friction_by_responder ORDER BY assistant_turns DESC`).catch(() => []);
@@ -879,27 +892,14 @@ export async function renderFriction(conn, meta) {
           marks: [Plot.barX(per1k.filter((d) => isOn(d.signal)), { y: "responder", x: "per1k", fill: "signal", fillOpacity: (d) => dim(hover, d.signal), tip: { format: { y: false } }, channels: { responder: "responder", replies: "n" }, rx: 3, inset: 1 }), Plot.ruleX([0])],
         }),
       });
-      view.append(el(`<div class="card contract"><p class="eyebrow">The contract</p><h2>What Loupe can and cannot attribute</h2>
-        <ul class="facts dark-list">
-          <li><b>Single assistant.</b> Every reply has one producer, the model. Friction is attributed per turn and rolls up to per model, which is what every chart on this page shows.</li>
-          <li><b>Orchestrator with sub-assistants.</b> The user only ever sees the final reply, so blame cannot be read from the text. If the orchestrator logs <code>responder</code> on each assistant message, Loupe attributes each repeat and correction to the sub-assistant whose reply triggered it. The adapter contract is that one field.</li>
-          <li><b>No field logged.</b> Loupe reports at conversation level, charges the conversation's default model, and states that it cannot attribute further. It never infers a sub-assistant from content.</li>
-          <li><b>Explicit feedback.</b> These logs have no thumbs-down or ratings, so friction is inferred from what users did. On logs that carry feedback events, the same per-turn attribution applies to them directly and the structural proxies become supporting evidence.</li>
-        </ul></div>`));
     }
   }
 
-  const aggFmt = perIntent.map((r) => ({
-    intent: r.intent, n: fmtInt.format(r.n),
-    repeated_request: fmtPct(r.repeat_rate), correction_followup: fmtPct(r.correction_rate, 2), ended_in_one_turn: fmtPct(r.one_and_done_rate),
-  }));
-  const tbl = el(`<div class="card"><h2>Friction and depth by intent, ${FILTER.model ? esc(FILTER.model) : "all models"}</h2><p class="note">Conversation-weighted rates. Refusal rates stay in the aggregates for the Query tab but are not shown: the pattern failed validation.</p></div>`);
-  tbl.append(tableEl(aggFmt));
-  view.append(tbl);
+  view.append(el(`<div class="card nudge"><p>Ranked by how many people each one hits, with a backlog to download: <a href="#next">the fix list in Next steps&nbsp;→</a></p></div>`));
 }
 registerRenderer("friction", renderFriction);
 
-// ---------- Built from the data ----------
+// ---------- Next steps: what the logs say to do ----------
 
 const ERA_LABEL = { A: "Era A · gpt-3.5-turbo and gpt-4 side by side", B: "Era B · gpt-4o, gpt-4o-mini, o1 and o1-mini side by side" };
 
@@ -907,85 +907,138 @@ function policyTable(era) {
   const pol = era.policies;
   const row = (name, label) => {
     const p = pol[name]; const base = name === "baseline_actual_mix";
-    return `<tr${name === "cost_aware" ? ' class="rec"' : ""}><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${base ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>${fmtPct(p.repeat_rate, 2)}</td><td>${fmtPct(p.correction_rate, 2)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${base ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`;
+    return `<tr><td>${label}</td><td>${fmtPct(p.one_and_done_rate)}</td><td>${base ? "" : fmtPts(p.one_and_done_change_pts)}</td><td>${fmtPct(p.repeat_rate, 2)}</td><td>${fmtPct(p.correction_rate, 2)}</td><td>$${p.cost_per_1k.toFixed(2)}</td><td>${base ? "" : (p.cost_change_pct >= 0 ? "+" : "") + Math.round(100 * p.cost_change_pct) + "%"}</td><td class="routes">${p.routes ? Object.entries(p.routes).map(([i, m]) => `${esc(i)}→${esc(m)}`).join(", ") : "as users chose"}</td></tr>`;
   };
   return `<div class="tablewrap"><table class="grid"><thead><tr><th>policy</th><th>ended in one turn</th><th>change</th><th>repeated</th><th>corrected</th><th>cost / 1k</th><th>cost change</th><th>routes</th></tr></thead><tbody>
-    ${row("baseline_actual_mix", "Baseline, actual mix")}${row("best_friction", "Best friction")}${row("cost_aware", "Cost-aware (recommended)")}${row("cheapest_only", "Cheapest only")}</tbody></table></div>`;
+    ${row("baseline_actual_mix", "Baseline, actual mix")}${row("best_friction", "Best friction")}${row("cost_aware", "Cost-aware")}${row("cheapest_only", "Cheapest only")}</tbody></table></div>`;
 }
 
-export async function renderBuilt(conn, meta) {
-  const view = $("#view-built");
+// A same-people comparison reads as one of three things; the interval decides which.
+function mixVerdict(p) {
+  const [lo, hi] = p.matched_ci;
+  if (lo <= 0 && hi >= 0) return { cls: "mix", text: "No real gap: the difference was who used each model" };
+  if (Math.sign(p.matched_gap) !== Math.sign(p.naive_gap)) return { cls: "flip", text: `Reversed: small and the other way for the same people (${fmtPts(p.matched_gap)}, not ${fmtPts(p.naive_gap)})` };
+  return { cls: "real", text: `Real, but ${fmtPts(p.matched_gap)}, not ${fmtPts(p.naive_gap)}` };
+}
+
+const csvCell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
+
+export async function renderNext(conn, meta) {
+  const view = $("#view-next");
   view.innerHTML = "";
-  const [rc, mix] = await Promise.all([
-    fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url)).then((r) => r.json()),
-    fetch(new URL("aggregates/eval_mix.json", import.meta.url)).then((r) => r.json()),
+  const doc = (n) => new URL(`docs/${n}`, import.meta.url).href;
+  const [rc, mix, reveal] = await Promise.all([
+    fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url)).then((r) => r.json()).catch(() => null),
+    fetch(new URL("aggregates/eval_mix.json", import.meta.url)).then((r) => r.json()).catch(() => null),
+    fetch(new URL("aggregates/user_mix_reveal.json", import.meta.url)).then((r) => r.json()).catch(() => null),
   ]);
-  const B = rc.eras.B, A = rc.eras.A;
-  insight(view, "The data said this. So what would I build?", [
-    `In the one window where four models served the same people, a coding request on gpt-4o-mini ended after one short reply <b>${fmtPct0(B.cells.find((c) => c.intent === "coding" && c.model === "gpt-4o-mini").one_and_done_rate)}</b> of the time; on o1-mini, <b>${fmtPct0(B.cells.find((c) => c.intent === "coding" && c.model === "o1-mini").one_and_done_rate)}</b>. Nothing routed those requests. People chose, and most took the default.`,
-    `A cost-aware routing rule driven by Loupe's intent classifier would have cut conversations ending after one turn from <b>${fmtPct(B.policies.baseline_actual_mix.one_and_done_rate)}</b> to <b>${fmtPct(B.policies.cost_aware.one_and_done_rate)}</b>, and repeated requests from ${fmtPct(B.policies.baseline_actual_mix.repeat_rate, 2)} to ${fmtPct(B.policies.cost_aware.repeat_rate, 2)}, for ${Math.round(100 * B.policies.cost_aware.cost_change_pct)}% more spend. Observational, and sized to justify the experiment below, not to replace it.`,
-    `Evaluation sets weight tasks by what their authors chose. People here ask <b>${esc(Object.keys(mix.weights)[0])}</b> ${fmtPct0(Object.values(mix.weights)[0])} of the time and ${esc(Object.keys(mix.weights)[1])} ${fmtPct0(Object.values(mix.weights)[1])}. Loupe publishes that mix as weights, so a team can score its assistant on what people actually bring it.`,
-  ], { href: new URL("docs/10-routing-counterfactual.html", import.meta.url).href, text: "Read the routing sizing and experiment design" });
+  // The fix list ranks intents, not models: per-model gaps in usage logs are mostly user mix (card 02).
+  const fixes = meta.intent_coverage === "none" ? [] : (await q(conn, `SELECT intent, sum(conversations)::BIGINT AS n,
+      sum(conversations*repeat_rate) AS repeats, sum(conversations*correction_rate) AS corrections
+    FROM friction_by_intent_model WHERE true${modelWhere()} GROUP BY intent`).catch(() => []))
+    .filter((r) => r.intent !== "other")
+    .map((r) => ({ ...r, flagged: r.repeats + r.corrections, rate: (r.repeats + r.corrections) / r.n }))
+    .sort((a, b) => b.flagged - a.flagged);
+  const totalFlagged = sum(fixes, (r) => r.flagged);
+  const pairs = reveal?.pairs || [];
+  const mini = pairs.filter((p) => p.model_a === "gpt-4o-mini");
 
-  // ---- 1. Routing counterfactual, both eras ----
-  const routing = el(`<div class="card built"><p class="eyebrow">01 · Built from the data</p><h2>If requests had been routed by intent</h2>
-    <p class="so">Four policies applied to the actual intent volumes of each window where several models served the same population. "Other" (probe traffic) is excluded from routing; a model is eligible for an intent only with at least ${fmtInt.format(rc.min_cell_for_choice)} conversations on it. Policies are chosen on the share of conversations that end after one turn, which validation showed is depth rather than failure; the two validated friction signals, repeats and corrections, move the same way under every policy.</p>
-    <p class="note prior">Routers that do this already exist (OpenRouter Auto, Martian, Not Diamond). What they don't publish is what one would have been worth on real traffic, by intent, measured on what users did next. That is the number here.</p>
-    <div class="era-tabs" role="tablist"><button type="button" class="chip" data-era="B" aria-pressed="true">${ERA_LABEL.B}</button><button type="button" class="chip" data-era="A" aria-pressed="false">${ERA_LABEL.A}</button></div>
-    <p class="so era-so"></p><div class="era-table"></div>
-    <details class="def"><summary>Assumptions and limits</summary><p>Observational: users chose their model, so cells carry selection bias; heavier, more deliberate users likely picked the reasoning models. The one-and-done proxy (one turn, reply under 200 characters) is unvalidated against hand labels. Cost uses published list prices as of ${esc(rc.price_assumptions.as_of)} on an assumed conversation of ${fmtInt.format(rc.price_assumptions.assumed_tokens_per_conversation.prompt)} prompt and ${fmtInt.format(rc.price_assumptions.assumed_tokens_per_conversation.completion)} completion tokens, because gpt-4o conversations in these logs carry no token counts; reasoning models also bill hidden tokens, so their true cost is higher than shown. Prices live in <code>loupe/model_prices.json</code>.</p></details>
-    <div class="exp"><h3>The experiment that would settle it</h3><ul>
-      <li><b>Split.</b> Pseudo-user, 50/50 on first visit. Control: the default model. Treatment: the cost-aware rule, decided by the classifier on the first message.</li>
-      <li><b>Primary metric.</b> Repeated-request rate among non-"other" requests, the validated friction signal; share ending after one turn as the depth check, measured exactly as this dashboard measures them.</li>
-      <li><b>Guardrails.</b> Refusal rate, cost per 1k conversations against the estimate, week-over-week return.</li>
-      <li><b>Decision rule, written before the run.</b> Ship if repeated requests fall by at least a third and one-turn share by at least 6 points, with cost within +15%. Revisit routes if neither moves. Kill if corrections rise without a repeat gain.</li></ul></div></div>`);
-  view.append(routing);
-  const showEra = (k) => {
-    const e = rc.eras[k];
-    const p = e.policies;
-    routing.querySelector(".era-so").innerHTML = k === "B"
-      ? `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. The cost-aware rule: <b>${fmtPct(p.baseline_actual_mix.one_and_done_rate)} → ${fmtPct(p.cost_aware.one_and_done_rate)}</b> ending in one turn, repeats <b>${fmtPct(p.baseline_actual_mix.repeat_rate, 2)} → ${fmtPct(p.cost_aware.repeat_rate, 2)}</b>, for <b>${p.cost_aware.cost_change_pct >= 0 ? "+" : ""}${Math.round(100 * p.cost_aware.cost_change_pct)}%</b> cost.`
-      : `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. A null result worth stating: the best policy gains only ${fmtPts(-p.best_friction.one_and_done_change_pts).replace("+", "")} for +${Math.round(100 * p.best_friction.cost_change_pct)}% cost. Routing pays when models differ by intent, not as a rule in itself.`;
-    routing.querySelector(".era-table").innerHTML = policyTable(e);
-    routing.querySelectorAll(".era-tabs .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === k)));
-  };
-  routing.querySelector(".era-tabs").addEventListener("click", (ev) => { const b = ev.target.closest("[data-era]"); if (b) showEra(b.dataset.era); });
-  showEra("B");
+  insight(view, FILTER.model ? `What should the team do next on ${esc(FILTER.model)}?` : "What should the team do next?", [
+    fixes.length ? `<b>Fix ${esc(fixes[0].intent)} first.</b> It accounts for ${fmtPct0(fixes[0].flagged / totalFlagged)} of the conversations where people had to repeat or correct themselves${fixes[1] ? `, ahead of ${esc(fixes[1].intent)} at ${fmtPct0(fixes[1].flagged / totalFlagged)}` : ""}. The fix list below downloads as a backlog.` : "",
+    mini.length ? `<b>Don't switch models on a dashboard gap.</b> gpt-4o-mini looked ${mini.map((p) => `${Math.round(100 * p.naive_gap)} points worse on ${esc(p.intent)}`).join(" and ")}; for the same people on both models the gap is under one point.` : "",
+    mix ? `<b>Weight your eval by real usage.</b> People bring ${esc(Object.keys(mix.weights)[0])} ${fmtPct0(Object.values(mix.weights)[0])} of the time and ${esc(Object.keys(mix.weights)[1])} ${fmtPct0(Object.values(mix.weights)[1])}; score your assistant on that mix, not the one your test set happens to have.` : "",
+  ].filter(Boolean), { href: "../try/", text: "Run the same checks on your own logs, plus the change check and failure export" });
 
-  // ---- 2. Usage-weighted eval: live scorer ----
-  const intents = Object.keys(mix.weights);
-  // Starter scores: an assistant good at the rare things and weak at the common ones, so the gap between the two means is visible.
-  const defaults = { questions: 0.55, coding: 0.60, writing_and_business: 0.80, creative_roleplay: 0.95, translation: 0.90, image_prompting: "", other: "" };
-  const evalCard = el(`<div class="card built"><p class="eyebrow">02 · Built from the data</p><h2>Judge an assistant by what people actually bring it</h2>
-    <p class="so">The observed intent mix as weights. Enter your own per-intent eval scores (any scale, leave blank for intents your set does not test) and the usage-weighted score updates. Weights come from <b>${fmtInt.format(mix.labeled_conversations)}</b> classified conversations; the classifier is ${fmtPct(mix.classifier_accuracy)} accurate against a ${fmtPct(mix.classifier_rater_agreement)} rater ceiling.</p>
-    <div class="controls"><label>Weights from <select id="mix-src"><option value="all">all conversations</option><option value="noother">all, excluding "other"</option>${Object.keys(mix.by_era).map((k) => `<option value="era:${k}">era ${k} (${mix.by_era[k].start} to ${mix.by_era[k].end})</option>`).join("")}${Object.keys(mix.by_model).map((m) => `<option value="model:${esc(m)}">${esc(m)} only</option>`).join("")}</select></label></div>
-    <div class="tablewrap"><table class="grid eval"><thead><tr><th>intent</th><th>weight</th><th>your score</th><th>weighted</th></tr></thead><tbody>
-      ${intents.map((i) => `<tr data-intent="${esc(i)}"><td>${esc(i)}</td><td class="w"></td><td><input type="number" step="0.01" min="0" placeholder="not tested" value="${defaults[i] ?? ""}" aria-label="score for ${esc(i)}"></td><td class="wx"></td></tr>`).join("")}
-    </tbody></table></div>
-    <div class="eval-out"><div class="tile"><b id="ev-weighted">–</b><span>usage-weighted score</span></div><div class="tile"><b id="ev-plain">–</b><span>unweighted mean</span></div><div class="tile"><b id="ev-cover">–</b><span>share of real usage your set covers</span><small id="ev-missing"></small></div></div>
-    <details class="def"><summary>How to use this on your own eval set</summary><p>Label each prompt with one of the seven intents, score it however you already do, and run <code>scripts/eval_weighted_score.py results.csv</code> with intent and score columns, or type per-intent means here. The scorer never hides what the set does not cover: intents with weight but no score are listed and excluded, and the weighted score is renormalised over the covered weight. <a href="${new URL("docs/11-usage-weighted-eval.html", import.meta.url).href}">Read the method →</a></p></details></div>`);
-  view.append(evalCard);
-  const weightsFor = (src) => src === "all" ? mix.weights : src === "noother" ? mix.weights_excluding_other : src.startsWith("era:") ? mix.by_era[src.slice(4)].weights : mix.by_model[src.slice(6)];
-  const recompute = () => {
-    const w = weightsFor(evalCard.querySelector("#mix-src").value);
-    let cover = 0, acc = 0, n = 0, plain = 0; const missing = [];
-    evalCard.querySelectorAll("tbody tr").forEach((tr) => {
-      const i = tr.dataset.intent, wt = w[i] ?? 0, v = tr.querySelector("input").value;
-      tr.querySelector(".w").textContent = wt ? fmtPct(wt) : "–";
-      tr.classList.toggle("muted", !wt);
-      if (v !== "" && wt) { const x = Number(v); cover += wt; acc += wt * x; plain += x; n++; tr.querySelector(".wx").textContent = (wt * x).toFixed(3); }
-      else { tr.querySelector(".wx").textContent = "–"; if (wt && v === "") missing.push(i); }
+  // ---- 01 Fix list ----
+  if (fixes.length) {
+    const fix = el(`<div class="card next"><p class="eyebrow">01 · fix list</p><h2>Where people fail, ranked by how many it hits</h2>
+      <p class="so">Conversations where people had to repeat themselves or correct the reply, ranked by how many.</p>
+      <div class="tablewrap"><table class="grid fix"><thead><tr><th>#</th><th>intent</th><th>conversations</th><th>repeated</th><th>corrected</th><th>flagged rate</th><th>share of all flagged</th></tr></thead><tbody>
+      ${fixes.map((r, i) => `<tr><td>${i + 1}</td><td><b>${esc(r.intent)}</b></td><td>${fmtInt.format(r.n)}</td><td>${fmtInt.format(Math.round(r.repeats))}</td><td>${fmtInt.format(Math.round(r.corrections))}</td><td>${fmtPct(r.rate)}</td><td><span class="sharebar"><i style="width:${(100 * r.flagged / fixes[0].flagged).toFixed(1)}%"></i></span>${fmtPct0(r.flagged / totalFlagged)}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="next-actions"><button type="button" class="chip" id="fix-csv">Download backlog.csv</button><a class="chip" href="../try/">Turn your own failures into test&nbsp;cases&nbsp;→</a></div>
+      <details class="def"><summary>How this is counted</summary><p>Repeats and corrections are the two signals that held up in validation (78% and 96% precision). Grouped by intent, not by model: in these logs most of the difference between models is who chose them (card 02). Counts are estimated from per-cell rates; a conversation with both a repeat and a correction counts once in each column. "Other" (greetings and probe traffic) is left out.</p></details></div>`);
+    view.append(fix);
+    fix.querySelector("#fix-csv").addEventListener("click", () => {
+      const lines = [["rank", "intent", "conversations", "repeated_requests", "corrections", "flagged_rate", "share_of_flagged", "title"].join(",")]
+        .concat(fixes.map((r, i) => [i + 1, r.intent, r.n, Math.round(r.repeats), Math.round(r.corrections), r.rate.toFixed(4), (r.flagged / totalFlagged).toFixed(4),
+          `Reduce repeats and corrections in ${r.intent} (${fmtPct(r.rate)} of conversations)`].map(csvCell).join(",")));
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+      a.download = "loupe-wildchat-backlog.csv"; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      window.loupeTrack?.("next_backlog_downloaded", {});
     });
-    $("#ev-weighted").textContent = cover ? (acc / cover).toFixed(2) : "–";
-    $("#ev-plain").textContent = n ? (plain / n).toFixed(2) : "–";
-    $("#ev-cover").textContent = fmtPct0(cover);
-    $("#ev-missing").textContent = missing.length ? `not tested: ${missing.join(", ")}` : "every intent with weight is covered";
-  };
-  evalCard.addEventListener("input", () => { window.loupeTrack?.("eval_scorer_used", {}); recompute(); });
-  evalCard.addEventListener("change", recompute);
-  recompute();
+  }
+
+  // ---- 02 Model or the people ----
+  if (pairs.length && !FILTER.model) {
+    view.append(el(`<div class="card next"><p class="eyebrow">02 · before you switch models</p><h2>The model, or the people who chose it?</h2>
+      <p class="so">Each gap a dashboard shows, rechecked on the people who used both models.</p>
+      <div class="tablewrap"><table class="grid mixcheck"><thead><tr><th>intent</th><th>comparison</th><th>dashboard gap</th><th>same people</th><th>95% interval</th><th>people</th><th>verdict</th></tr></thead><tbody>
+      ${pairs.map((p) => { const v = mixVerdict(p); return `<tr><td>${esc(p.intent)}</td><td>${esc(p.model_a)} vs ${esc(p.model_b)}</td><td>${fmtPts(p.naive_gap)}</td><td><b>${fmtPts(p.matched_gap)}</b></td><td>${(100 * p.matched_ci[0]).toFixed(1)} to ${(100 * p.matched_ci[1]).toFixed(1)}</td><td>${fmtInt.format(p.matched_users)}</td><td><span class="vd ${v.cls}">${v.text}</span></td></tr>`; }).join("")}
+      </tbody></table></div>
+      <details class="def"><summary>How this is checked</summary><p>${esc(reveal.window.start)} to ${esc(reveal.window.end)}. Metric: ${esc(reveal.metric)}; a positive gap means the first model ends more conversations that way. ${esc(reveal.method)} <a href="${doc("10-routing-counterfactual.html")}">Method&nbsp;→</a></p></details></div>`));
+  }
+
+  // ---- 03 Usage-weighted eval: live scorer ----
+  if (mix) {
+    const intents = Object.keys(mix.weights);
+    // Starter scores: an assistant good at the rare things and weak at the common ones, so the gap between the two means is visible.
+    const defaults = { questions: 0.55, coding: 0.60, writing_and_business: 0.80, creative_roleplay: 0.95, translation: 0.90, image_prompting: "", other: "" };
+    const evalCard = el(`<div class="card next"><p class="eyebrow">03 · score your eval on real usage</p><h2>Judge an assistant by what people actually bring it</h2>
+      <p class="so">Type your eval scores per intent; the score reweights them by what people actually ask for.</p>
+      <div class="controls"><label>Weights from <select id="mix-src"><option value="all">all conversations</option><option value="noother">all, excluding "other"</option>${Object.keys(mix.by_era).map((k) => `<option value="era:${k}">era ${k} (${mix.by_era[k].start} to ${mix.by_era[k].end})</option>`).join("")}${Object.keys(mix.by_model).map((m) => `<option value="model:${esc(m)}">${esc(m)} only</option>`).join("")}</select></label></div>
+      <div class="tablewrap"><table class="grid eval"><thead><tr><th>intent</th><th>weight</th><th>your score</th><th>weighted</th></tr></thead><tbody>
+        ${intents.map((i) => `<tr data-intent="${esc(i)}"><td>${esc(i)}</td><td class="w"></td><td><input type="number" step="0.01" min="0" placeholder="not tested" value="${defaults[i] ?? ""}" aria-label="score for ${esc(i)}"></td><td class="wx"></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="eval-out"><div class="tile"><b id="ev-weighted">–</b><span>usage-weighted score</span></div><div class="tile"><b id="ev-plain">–</b><span>unweighted mean</span></div><div class="tile"><b id="ev-cover">–</b><span>share of real usage your set covers</span><small id="ev-missing"></small></div></div>
+      <details class="def"><summary>How to use this on your own eval set</summary><p>Weights come from ${fmtInt.format(mix.labeled_conversations)} classified conversations; the classifier is ${fmtPct(mix.classifier_accuracy)} accurate against a ${fmtPct(mix.classifier_rater_agreement)} rater ceiling. Scores can be on any scale; leave an intent blank if your set does not test it. Label each prompt with one of the seven intents, score it however you already do, and run <code>scripts/eval_weighted_score.py results.csv</code> with intent and score columns, or type per-intent means here. The scorer never hides what the set does not cover: intents with weight but no score are listed and excluded, and the weighted score is renormalised over the covered weight. <a href="${doc("11-usage-weighted-eval.html")}">Read the method&nbsp;→</a></p></details></div>`);
+    view.append(evalCard);
+    const weightsFor = (src) => src === "all" ? mix.weights : src === "noother" ? mix.weights_excluding_other : src.startsWith("era:") ? mix.by_era[src.slice(4)].weights : mix.by_model[src.slice(6)];
+    const recompute = () => {
+      const w = weightsFor(evalCard.querySelector("#mix-src").value);
+      let cover = 0, acc = 0, n = 0, plain = 0; const missing = [];
+      evalCard.querySelectorAll("tbody tr").forEach((tr) => {
+        const i = tr.dataset.intent, wt = w[i] ?? 0, v = tr.querySelector("input").value;
+        tr.querySelector(".w").textContent = wt ? fmtPct(wt) : "–";
+        tr.classList.toggle("muted", !wt);
+        if (v !== "" && wt) { const x = Number(v); cover += wt; acc += wt * x; plain += x; n++; tr.querySelector(".wx").textContent = (wt * x).toFixed(3); }
+        else { tr.querySelector(".wx").textContent = "–"; if (wt && v === "") missing.push(i); }
+      });
+      $("#ev-weighted").textContent = cover ? (acc / cover).toFixed(2) : "–";
+      $("#ev-plain").textContent = n ? (plain / n).toFixed(2) : "–";
+      $("#ev-cover").textContent = fmtPct0(cover);
+      $("#ev-missing").textContent = missing.length ? `not tested: ${missing.join(", ")}` : "every intent with weight is covered";
+    };
+    evalCard.addEventListener("input", () => { window.loupeTrack?.("eval_scorer_used", {}); recompute(); });
+    evalCard.addEventListener("change", recompute);
+    recompute();
+  }
+
+  // ---- 04 The recommendation that was withdrawn, kept short and kept visible ----
+  if (rc && !FILTER.model) {
+    const B = rc.eras.B;
+    const routing = el(`<div class="card next withdrawn"><p class="eyebrow">04 · withdrawn 2026-10-07</p><h2>What this page used to recommend: route requests by intent</h2>
+      <p class="so">It promised ${fmtPct(B.policies.baseline_actual_mix.one_and_done_rate)} → ${fmtPct(B.policies.cost_aware.one_and_done_rate)} fewer one-turn exits, built on the model gaps card 02 shows were user mix.</p>
+      <details class="def"><summary>The original sizing, both eras</summary>
+        <div class="era-tabs" role="tablist"><button type="button" class="chip" data-era="B" aria-pressed="true">${ERA_LABEL.B}</button><button type="button" class="chip" data-era="A" aria-pressed="false">${ERA_LABEL.A}</button></div>
+        <p class="so era-so"></p><div class="era-table"></div></details>
+      <p class="note"><a href="${doc("10-routing-counterfactual.html")}">Read the correction and the experiment design&nbsp;→</a></p></div>`);
+    view.append(routing);
+    const showEra = (k) => {
+      const e = rc.eras[k], p = e.policies;
+      routing.querySelector(".era-so").innerHTML = k === "B"
+        ? `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations, compared across everyone on each model (the comparison card 02 shows to be misleading).`
+        : `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. A null result even before the correction: the best policy gains only ${fmtPts(-p.best_friction.one_and_done_change_pts).replace("+", "")} for +${Math.round(100 * p.best_friction.cost_change_pct)}% cost.`;
+      routing.querySelector(".era-table").innerHTML = policyTable(e);
+      routing.querySelectorAll(".era-tabs .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === k)));
+    };
+    routing.querySelector(".era-tabs").addEventListener("click", (ev) => { const b = ev.target.closest("[data-era]"); if (b) showEra(b.dataset.era); });
+    showEra("B");
+  }
 }
-registerRenderer("built", renderBuilt);
+registerRenderer("next", renderNext);
 
 // ---------- Query ----------
 
@@ -1029,7 +1082,7 @@ function showView(name) {
 
 function parseHash() {
   const [view, model] = (location.hash || "#overview").slice(1).split("/");
-  return { view: view || "overview", model: model ? decodeURIComponent(model) : null };
+  return { view: view === "built" ? "next" : view || "overview", model: model ? decodeURIComponent(model) : null };
 }
 
 // The model picker under the tabs. Changing it re-renders every view for that model only.

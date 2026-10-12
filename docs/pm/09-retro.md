@@ -56,6 +56,10 @@ What changed the same day: refusal left the dashboard; one-and-done was renamed 
 
 The lesson is the one the intent gate taught a week earlier, in a different form. A proxy that has not been measured against outcomes is a guess, and the more prominent a guess is on a page, the more it costs when it turns out wrong. The framework's rule was right; what was wrong was shipping the number above the fold before the rule had been applied. Next time the validation runs before the number gets a headline, not after.
 
+## The routing result was selection bias
+
+After a review with a professor who called the project descriptive, I compared the same people across models instead of comparing models across people. The 23 to 27 point gaps between gpt-4o-mini and gpt-4o fell to under half a point. The routing doc had shipped a 12-point gain that a randomized test would almost certainly not have found. It is now corrected in place, and the landing page leads with the finding, because it is the result most likely to change a real team's decision: most of what looks like model quality in usage logs is user mix.
+
 ## What the numbers said
 
 The most surprising finding was the pseudo-user persistence collapse at the 2024 Q3 to Q4 boundary (F1): the share of pseudo-users seen in more than one week fell tenfold, from 8.5% to 0.8%, almost certainly a logging change, meaning the north-star metric cannot be trusted across that boundary. The claim that did not survive review was an early draft line describing "clean model handoffs" between eras; the data showed a 28-week stretch where gpt-3.5-turbo and gpt-4 both held at least 20% of weekly volume, so the line was rewritten to describe overlap instead. Both were caught by re-deriving numbers against the aggregates, not by reading the prose.

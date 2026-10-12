@@ -107,9 +107,14 @@ async function drawWorld(s) {
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"><title>${esc(d.country)}: ${fmtInt.format(d.n)} conversations</title></circle>`;
   }).join("");
   mapEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${land ? `<path class="land" d="${path(land)}"/>` : ""}${circles}</svg>`;
+  // The grey copy the world drains into (beats 3-5), cross-faded with opacity so the GPU does the work.
+  const gray = mapEl.cloneNode(true);
+  gray.removeAttribute("id"); gray.classList.add("map-gray");
+  mapEl.after(gray);
   // Zoom out from the busiest country: the first dot is the largest.
   if (dots.length) {
     const [x, y] = projection(dots[0].lonlat);
+    gray.style.setProperty("--focus", `${(100 * x / W).toFixed(1)}% ${(100 * y / H).toFixed(1)}%`);
     mapEl.style.setProperty("--focus", `${(100 * x / W).toFixed(1)}% ${(100 * y / H).toFixed(1)}%`);
   }
   return [...mapEl.querySelectorAll("circle")];
@@ -147,50 +152,267 @@ const CAPTIONS = [
   "fig. 2 — one dot per country, sized by conversations",
   "fig. 3 — the dashboard a product owner has today",
   "fig. 4 — the same logs, read through the glass",
+  "fig. 5 — real WildChat numbers: every coding conversation on each model",
+  "fig. 6 — the people who used both models. heavier users, so both rates are lower; the gap is what matters",
+  "fig. 7 — your logs, read in the browser",
+  "fig. 8 — one conversation, labelled · words illustrative",
+  "fig. 9 — outputs from the sample log on the try page",
 ];
+// One pin carries the whole sequence, in three acts measured in % of the viewport:
+//   the WildChat story (beats 1-4), the finding a dashboard gets wrong (beats 5-6), and, after the loupe dives into
+//   its own glass, the same lens on your logs (beats 7-9).
+const PIN = { story: 340, wow: 160, how: 170 };  // about 6.7 screens in all; longer felt like a chore
+const PIN_LENGTH = PIN.story + PIN.wow + PIN.how;
+const AT_WOW = PIN.story / PIN_LENGTH, AT_HOW = (PIN.story + PIN.wow) / PIN_LENGTH, DIVE = 0.3;  // the dive gets a real share of its step
+const ease = (t) => t * t * (3 - 2 * t);
 
 function finalFrame() {
   const stage = $("#stage");
   if (!stage) return;
-  stage.dataset.beat = "4"; stage.classList.add("typed", "to-chat"); typeInto(1);
+  stage.dataset.beat = "5"; stage.classList.add("typed", "to-chat"); typeInto(1);
   stage.style.setProperty("--zoom", "1"); stage.style.setProperty("--gray", "0.6"); stage.style.setProperty("--lens", "1");
   document.querySelectorAll("#story-map circle").forEach((c) => c.classList.add("on"));
   document.querySelectorAll(".qtile").forEach((t) => t.classList.add("answered"));
-  document.querySelectorAll(".caption").forEach((b) => b.classList.toggle("is-active", b.dataset.beat === "4"));
-  $("#story")?.setAttribute("data-beat", "4");
-  const cap = $("#frame-caption"); if (cap) cap.textContent = CAPTIONS[3];
 }
 
-function bindStory(circles) {
-  const pin = $("#story"), stage = $("#stage"), caption = $("#frame-caption");
-  const panels = [...document.querySelectorAll(".caption")];
+function setBeat(beat) {
+  const pin = $("#story"), cap = $("#frame-caption");
+  if (pin.dataset.beat === String(beat)) return;
+  pin.dataset.beat = String(beat);
+  if (cap) cap.textContent = CAPTIONS[beat - 1];
+  document.querySelectorAll("#captions .caption").forEach((c) => c.classList.toggle("is-active", c.dataset.beat === String(beat)));
+}
+
+// The pin is created at once, before any data arrives: a reader who starts scrolling while the map is still
+// downloading must not have the page jump when the pin appears. Data fills `ctx` later and the frame catches up.
+function bindStory(ctx) {
+  const pin = $("#story"), stage = $("#stage");
   const tiles = [...document.querySelectorAll(".qtile")];
-  const render = (p) => {
+  // The loupe's entrance: one straight, unhurried glide in from the right on its own clock, and the four answers
+  // fade in one after another as it settles. Time-based, so a pause never leaves it parked at the edge of the frame.
+  const lens = $(".lens");
+  let lastStoryBeat = 1, lastStoryP = 0, sweeping = null, sweepTimers = [];
+  const answer = (n) => tiles.forEach((t, i) => t.classList.toggle("answered", i < n));
+  const stopSweep = () => { sweeping?.cancel(); sweeping = null; sweepTimers.forEach(clearTimeout); sweepTimers = []; };
+  const settleSweep = () => { stopSweep(); answer(tiles.length); };
+  const unsweep = () => { stopSweep(); answer(0); };
+  const sweep = () => {
+    unsweep();
+    if (!lens?.animate) { answer(tiles.length); return; }
+    const D = 1100;
+    sweeping = lens.animate([
+      { transform: `translateX(${Math.round(stage.clientWidth * 0.32)}px)`, opacity: 0 },
+      { transform: "translateX(0px)", opacity: 1 },
+    ], { duration: D, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" });
+    sweepTimers = tiles.map((_, i) => setTimeout(() => answer(i + 1), 450 + i * 140));
+    // hand the lens back to CSS at rest (the same position), so later beats can move it with their own variables
+    const mine = sweeping;
+    mine.finished.then(() => { if (sweeping === mine) { mine.cancel(); sweeping = null; } }).catch(() => {});
+  };
+  const story = (p) => {
     const beat = p < 0.26 ? 1 : p < 0.54 ? 2 : p < 0.74 ? 3 : 4;
-    if (stage.dataset.beat !== String(beat)) { stage.dataset.beat = String(beat); pin.dataset.beat = String(beat); if (caption) caption.textContent = CAPTIONS[beat - 1]; }
     typeInto(p);
     // beat 2: zoom out, then bloom the dots largest-first
     stage.style.setProperty("--zoom", String(3.2 - 2.2 * seg(p, 0.26, 0.37)));
-    const bloom = Math.round(seg(p, 0.35, 0.52) * circles.length);
-    circles.forEach((c, i) => c.classList.toggle("on", i < bloom));
+    const bloom = Math.round(seg(p, 0.35, 0.52) * ctx.circles.length);
+    ctx.circles.forEach((c, i) => c.classList.toggle("on", i < bloom));
     // beat 3: the world drains; beat 4: colour returns as the lens arrives
     stage.style.setProperty("--gray", String(beat === 3 ? seg(p, 0.54, 0.62) : beat === 4 ? 1 - 0.4 * seg(p, 0.74, 0.84) : 0));
-    stage.style.setProperty("--lens", String(seg(p, 0.74, 0.86)));
-    tiles.forEach((t, i) => t.classList.toggle("answered", p > 0.85 + i * 0.03));
-    panels.forEach((c) => c.classList.toggle("is-active", c.dataset.beat === String(beat)));
+    // beat 4: the lens is either fully in (and the tiles answered) or not there at all; its entrance is the sweep
+    stage.style.setProperty("--lens", beat >= 4 ? "1" : "0");
+    if (beat >= 4 && lastStoryBeat <= 3) {
+      // arriving at beat 4 by scrolling forward plays the sweep; a jump (reload, link, fast drag) lands finished
+      if (Math.abs(p - lastStoryP) < 0.25) sweep(); else settleSweep();
+    } else if (beat <= 3 && lastStoryBeat >= 4) unsweep();
+    lastStoryBeat = beat; lastStoryP = p;
+    return beat;
   };
-  if (reduced()) { finalFrame(); return; }
+  const render = (p) => {
+    let beat = story(Math.min(1, p / AT_WOW));
+    if (p > AT_WOW) {
+      const w = seg(p, AT_WOW, AT_HOW);
+      // the lens steps aside for the finding and comes back for the dive
+      // out at the start (slides away as before); back at the end by fading and growing in place, not by travelling
+      const back = seg(w, 0.84, 1);
+      stage.style.setProperty("--lens", w > 0.5 ? "1" : String(1 - seg(w, 0, 0.07)));
+      stage.style.setProperty("--lens-in", back.toFixed(3));
+      stage.classList.toggle("lens-return", w > 0.5);
+      ctx.wow?.(w);
+      // the lens clears out first (w < 0.07), then the finding and its caption arrive together
+      beat = w < 0.07 ? 4 : w < 0.66 ? 5 : 6;  // the caption turns to 6 only once the gap has finished collapsing
+    } else { ctx.wow?.(0); stage.classList.remove("lens-return"); }
+    const stageBeat = p > AT_WOW && beat >= 5 ? "5" : String(Math.min(beat, 4));
+    if (stage.dataset.beat !== stageBeat) stage.dataset.beat = stageBeat;
+    const hp = seg(p, AT_HOW, 1);
+    const step = ctx.how ? ctx.how(hp) : 0;
+    setBeat(hp > 0 && ctx.how ? 6 + step : beat);
+  };
+  if (reduced()) { ctx.render = () => { finalFrame(); ctx.wow?.(1); ctx.how?.(1); setBeat(9); }; ctx.render(); return; }
 
   gsap.registerPlugin(ScrollTrigger);
-  const lenis = new Lenis({ lerp: 0.16, smoothWheel: true, wheelMultiplier: 0.9 });  // light smoothing, no glide-and-settle
+  const lenis = new Lenis({ lerp: 0.16, smoothWheel: true, wheelMultiplier: 0.9 });
   lenis.on("scroll", ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
-  ScrollTrigger.create({
-    trigger: pin, start: "top top", end: "+=520%", pin: true, scrub: true,  // no anticipatePin: it jumps the page when the pin engages
+  const st = ScrollTrigger.create({
+    trigger: pin, start: "top top", end: `+=${PIN_LENGTH}%`, pin: true, scrub: true,  // no anticipatePin: it jumps the page when the pin engages
     onUpdate: (self) => render(self.progress),
+    onToggle: (self) => document.body.classList.toggle("in-story", self.isActive),  // the top bar steps aside
   });
-  render(0);
+  ctx.render = () => render(st.progress);
+
+  // Full screen: as the section reaches the top, the frame opens from a card to the whole viewport and the
+  // captions fade in over it.
+  const frame = $("#frame");
+  const expand = (e) => {
+    const k = 1 - ease(e);
+    frame.style.setProperty("--fy", `${(k * 12).toFixed(2)}vh`);
+    frame.style.setProperty("--fx", `${(k * 24).toFixed(1)}px`);
+    frame.style.setProperty("--fb", `${(k * 4).toFixed(2)}vh`);
+    frame.style.setProperty("--fr", `${(k * 18).toFixed(1)}px`);
+    pin.style.setProperty("--cap-o", seg(e, 0.55, 1).toFixed(3));
+  };
+  // ...and on the way out it eases back into that rounded card as the page carries it off, mirroring the entrance.
+  let enterE = 0, exitE = 0;
+  const shape = () => expand(Math.min(enterE, 1 - exitE));
+  ScrollTrigger.create({ trigger: pin, start: "top 80%", end: "top top", scrub: true, onUpdate: (self) => { enterE = self.progress; shape(); } });
+  ScrollTrigger.create({ start: () => st.end, end: () => st.end + innerHeight * 0.6, scrub: true, onUpdate: (self) => { exitE = self.progress; shape(); } });
+  shape();
+  // Room for the captions above the scenes: the tallest caption, so nothing moves between parts.
+  const fitCaptions = () => {
+    // Part 9's buttons may reach into the top of its scene, which is empty there; the others set the line.
+    const caps = [...document.querySelectorAll("#captions .caption")].filter((c) => c.dataset.beat !== "9");
+    const tallest = Math.max(...caps.map((c) => c.offsetHeight));
+    const top = parseFloat(getComputedStyle($("#captions")).paddingTop) || 0;
+    pin.style.setProperty("--cap-h", `${Math.round(top + tallest + 14)}px`);
+  };
+  fitCaptions(); addEventListener("resize", fitCaptions); document.fonts?.ready.then(fitCaptions);
+
+  // One scroll, one scene. A scroll gesture (a wheel flick, a trackpad swipe, a touch swipe, an arrow key) moves
+  // exactly one scene, however long or hard it is, starting the moment it begins and always at the same pace.
+  // A new scroll while a scene plays waits and plays next. At the first and last scene a gesture outward leaves the
+  // story as normal.
+  const STOPS = [0, 0.1, 0.25, 0.52, 0.7, 1].map((x) => x * AT_WOW)
+    .concat([0.38, 0.8].map((x) => AT_WOW + x * (AT_HOW - AT_WOW)))
+    .concat([0.5, 0.76, 0.995].map((x) => AT_HOW + x * (1 - AT_HOW)));  // just short of the end, where the pin is still active
+  const pace = (t) => -(Math.cos(Math.PI * t) - 1) / 2;  // ease-in-out sine
+  const inside = () => scrollY >= st.start - 2 && scrollY <= st.end + 2;
+  let current = -1, busy = false, queued = null;
+  const nearest = () => STOPS.reduce((best, x, i) => (Math.abs(x - st.progress) < Math.abs(STOPS[best] - st.progress) ? i : best), 0);
+  // the scene after the one playing (or the one the reader is on), in a direction; -1 past either end
+  const following = (d) => {
+    const from = busy ? current : (() => { const p = st.progress; const i = nearest(); return Math.abs(STOPS[i] - p) < 0.004 ? i : (d > 0 ? STOPS.findIndex((x) => x > p) - 1 : STOPS.findLastIndex((x) => x < p) + 1); })();
+    const i = from + d;
+    return i >= 0 && i < STOPS.length ? i : -1;
+  };
+  const DIVE_STOP = STOPS.findIndex((x) => x > AT_HOW);  // the first scene of "your logs"
+  const SCENE_SECONDS = 1.4;  // every scene plays at this pace, however the reader scrolled
+  const go = (i) => {
+    const prev = current;
+    const diveStep = (i === DIVE_STOP && prev === DIVE_STOP - 1) || (i === DIVE_STOP - 1 && prev === DIVE_STOP);
+    current = i; busy = true;
+    pin.dataset.stop = String(i);
+    lenis.scrollTo(st.start + STOPS[i] * (st.end - st.start), {
+      // the step into "your logs" carries two moves (the loupe returning, then the dive), so it gets more time
+      duration: diveStep ? 2.4 : SCENE_SECONDS, easing: pace, lock: true, force: true,
+      onComplete: () => { busy = false; if (queued != null) { const q = queued; queued = null; go(q); } },
+    });
+  };
+  // A new scroll during a scene is never lost: it plays its one scene as soon as the current one finishes, at the
+  // same pace (at most one waits; it is one scroll, one scene, never two from one scroll).
+  const request = (d) => {  // returns false when the gesture should leave the story instead
+    if (busy) {
+      if (queued == null) { const i = current + d; if (i >= 0 && i < STOPS.length) queued = i; }
+      return true;
+    }
+    const i = following(d);
+    if (i < 0) return false;  // past an end: leave the story
+    go(i);
+    return true;
+  };
+  // Wheel: one gesture is one scroll and moves one scene, however long or hard it is, momentum included. A gesture
+  // starts after a pause of 240 ms, or when the scroll speed jumps sharply:
+  // a trackpad's momentum only ever slows down, so a sharp rise is a new swipe even while the last one's momentum is
+  // still arriving (it lasts longer than a scene). A steady scroll or one long swipe never jumps like that.
+  let lastWheel = 0, gestureDir = 0, gestureIsPage = false;  // a gesture that leaves the story belongs to the page, all of it
+  let speeds = [], peak = 0, slowed = false;
+  const avg = (xs) => xs.reduce((a, x) => a + x, 0) / xs.length;
+  // A new swipe needs the shape of one: the current scroll has visibly slowed (fallen under 40% of its peak) and then
+  // the speed jumps past 2.2x. A swipe's own ramp-up, however long it takes, never slows first, so it never qualifies.
+  const swipeStarts = () => {
+    if (!slowed || speeds.length < 4) return false;
+    const recent = avg(speeds.slice(-3)), before = avg(speeds.slice(-11, -3));
+    return recent >= 6 && recent > 2.2 * before;
+  };
+  addEventListener("wheel", (e) => {
+    if (e.ctrlKey || Math.abs(e.deltaY) < 1) return;
+    const now = performance.now(), d = Math.sign(e.deltaY), mag = Math.abs(e.deltaY);
+    const paused = now - lastWheel > 240;
+    lastWheel = now;
+    if (paused) speeds = [];
+    speeds.push(mag); if (speeds.length > 12) speeds.shift();
+    const fresh = paused || d !== gestureDir || swipeStarts();
+    if (fresh) { speeds = [mag]; peak = mag; slowed = false; }
+    else { peak = Math.max(peak, mag); if (mag < 0.4 * peak) slowed = true; }
+    if (!inside()) { gestureDir = d; if (fresh) gestureIsPage = false; return; }  // the gesture is tracked before it arrives
+    if (!fresh && !busy && current < 0) { go(d > 0 ? 1 : STOPS.length - 1); e.preventDefault(); e.stopImmediatePropagation(); return; }  // arrived mid-gesture
+    if (fresh) {
+      gestureDir = d;
+      gestureIsPage = !request(d);
+    }
+    if (gestureIsPage) return;  // leaving the story: the whole gesture scrolls the page, not just its first event
+    e.preventDefault(); e.stopImmediatePropagation();
+  }, { passive: false, capture: true });
+  // Touch: one swipe, one scene, taken as soon as the finger has clearly moved.
+  let touchY = null, taken = false;
+  addEventListener("touchstart", (e) => { touchY = e.touches[0].clientY; taken = false; }, { passive: true });
+  addEventListener("touchmove", (e) => {
+    if (touchY == null || !inside()) return;
+    const dy = touchY - e.touches[0].clientY;
+    if (!taken) {
+      if (Math.abs(dy) < 12) { e.preventDefault(); return; }
+      taken = request(Math.sign(dy)) ? "story" : "page";
+    }
+    if (taken === "story") e.preventDefault();
+  }, { passive: false });
+  addEventListener("touchend", () => { touchY = null; }, { passive: true });
+  addEventListener("keydown", (e) => {
+    const d = { ArrowDown: 1, PageDown: 1, " ": e.shiftKey ? -1 : 1, ArrowUp: -1, PageUp: -1 }[e.key];
+    if (!d || !inside() || e.target.closest?.("input, textarea, select, button, a")) return;
+    if (request(d)) e.preventDefault();
+  });
+  // Arriving with the page already moving (smooth-scroll inertia from above or below): settle on a scene.
+  // Arriving from above always lands on the first scene, from below on the last, however much momentum carried
+  // the reader in.
+  let wasInside = inside();
+  lenis.on("scroll", () => {
+    const now = inside(), entered = now && !wasInside;
+    wasInside = now;
+    if (!now && !busy) current = -1;
+    if (busy || !now) return;
+    { const i = nearest(); if (Math.abs(STOPS[i] - st.progress) < 0.004) { current = i; pin.dataset.stop = String(i); } }  // keep "where we are" true after any scroll
+    const drift = lenis.targetScroll - scrollY;
+    if (entered) {
+      if (Math.abs(drift) > 4) go(drift > 0 ? 1 : STOPS.length - 1);  // carried in by momentum
+      else { const i = nearest(); if (Math.abs(STOPS[i] - st.progress) > 0.004) go(i); else { current = i; pin.dataset.stop = String(i); } }  // a jump: stay, on a scene
+      return;
+    }
+    if (Math.abs(drift) > 4) { const i = following(Math.sign(drift)); if (i >= 0) go(i); }
+  });
+
+  // A reader who stops mid-story is told there is more; it goes away the moment they scroll.
+  const more = $("#scroll-more");
+  let idle = null;
+  const nudge = () => {
+    more?.classList.remove("show");
+    clearTimeout(idle);
+    idle = setTimeout(() => { if (st.isActive && st.progress < 0.985) more?.classList.add("show"); }, 1600);
+  };
+  lenis.on("scroll", nudge);
+  nudge();
+  render(st.progress);
+  // Web fonts can change the masthead's height after the pin measured where it starts.
+  document.fonts?.ready.then(() => ScrollTrigger.refresh());
   // in-page links scroll smoothly through Lenis
   document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
     const target = document.querySelector(a.getAttribute("href"));
@@ -198,25 +420,116 @@ function bindStory(circles) {
   }));
 }
 
-async function fillBuilt() {
-  try {
-    const rc = await (await fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url))).json();
-    const p = rc.eras.B.policies;
-    const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-    set("#b-base", pct(p.baseline_actual_mix.one_and_done_rate)); set("#b-ca", pct(p.cost_aware.one_and_done_rate));
-    set("#b-cost", `${p.cost_aware.cost_change_pct >= 0 ? "+" : ""}${Math.round(100 * p.cost_aware.cost_change_pct)}%`);
-  } catch { /* strip keeps its build-time text */ }
+// ---------- the finding: a dashboard's model gap, then the same people ----------
+// Scroll scrubs the change: the bars slide from everyone on each model to the people who used both, and the gap
+// counts down with them. Numbers are the real coding pair from aggregates/user_mix_reveal.json.
+async function prepareWow() {
+  let pair = null;
+  try { const d = await (await fetch(new URL("aggregates/user_mix_reveal.json", import.meta.url))).json(); pair = d.pairs.find((x) => x.model_a === "gpt-4o-mini" && x.intent === "coding") || null; } catch { /* the static labels stay */ }
+  if (!pair) return null;
+  const card = $(".wow-card"), stage = $("#stage");
+  $("#w-naive").textContent = `${Math.round(pair.naive_gap * 100)} points`;
+  $("#w-people").textContent = fmtInt.format(pair.matched_users);
+  $("#w-matched").textContent = `${Math.abs(pair.matched_gap * 100).toFixed(1)} points`;
+  const max = Math.max(pair.naive_a, pair.naive_b) * 1.08;
+  const A = $("#how-a"), B = $("#how-b"), va = $("#how-va"), vb = $("#how-vb"), gv = $("#how-gapv"), mode = $("#how-mode");
+  let last = -1;
+  return (w) => {
+    const t = ease(seg(w, 0.42, 0.66));
+    if (t === last) return;
+    last = t;
+    const a = pair.naive_a + (pair.matched_a - pair.naive_a) * t, b = pair.naive_b + (pair.matched_b - pair.naive_b) * t;
+    const g = pair.naive_gap + (pair.matched_gap - pair.naive_gap) * t;
+    A.style.width = `${(100 * a / max).toFixed(2)}%`; B.style.width = `${(100 * b / max).toFixed(2)}%`;
+    va.textContent = pct(a); vb.textContent = pct(b);
+    gv.textContent = `${g >= 0.0005 ? "+" : g <= -0.0005 ? "−" : ""}${Math.abs(100 * g).toFixed(t >= 1 ? 1 : 0)}`;
+    mode.textContent = t > 0.5 ? `the same ${fmtInt.format(pair.matched_users)} people on both` : "everyone on each model";
+    card.style.setProperty("--settle", t.toFixed(3));
+    stage.classList.toggle("k-same", t >= 1);
+  };
+}
+
+// ---------- your logs: the loupe dives into its own glass ----------
+// The glass shows a miniature of the next scene, the chart in it dissolves, the scene comes into focus, then the lens
+// rushes toward the reader and the glass becomes the frame. Then read, label, act; step 3 shows the try page's
+// outputs for its sample chat log.
+function prepareHow() {
+  const howStage = $("#how-stage"), stage = $("#stage"), frame = $("#frame"), lens = $(".lens");
+  if (!howStage || !frame || !lens) return null;
+  let lastIris = -1, glass = null;
+  const measure = () => {
+    // From layout, not from the screen: the lens may still be sliding in (a CSS transition) when a reader jumps here,
+    // and at rest its transform is the identity, so the layout box is where the glass ends up.
+    const f = frame.getBoundingClientRect(), lw = lens.offsetWidth;
+    const x = lens.offsetLeft + lw * 0.4167, y = lens.offsetTop + lw * 0.4167, r = lw * 0.633 / 2 * 0.96;
+    const parts = [...howStage.querySelectorAll(".hs-read > *")].map((el) => el.getBoundingClientRect());
+    const cw = Math.max(...parts.map((b) => b.right)) - Math.min(...parts.map((b) => b.left));
+    const ch = Math.max(...parts.map((b) => b.bottom)) - Math.min(...parts.map((b) => b.top));
+    glass = { x, y, r, cx: f.width / 2, cy: f.height / 2, s0: Math.min(1, (2 * r * 0.88) / Math.hypot(cw, ch)), far: Math.hypot(Math.max(x, f.width - x), Math.max(y, f.height - y)) + 4 };
+  };
+  addEventListener("resize", () => { glass = null; });
+  const iris = (t) => {
+    if (t === lastIris) return;
+    lastIris = t;
+    if (t <= 0) {
+      stage.style.setProperty("--dive-k", "1"); stage.style.setProperty("--dive-o", "1");
+      howStage.style.clipPath = "circle(0px at 50% 50%)"; howStage.style.visibility = "hidden"; howStage.style.opacity = "0";
+      $("#lens-chart").style.opacity = ""; stage.classList.remove("diving", "rushing", "lens-gone"); howStage.classList.remove("diving");
+      return;
+    }
+    howStage.style.visibility = "visible";
+    if (!glass) { howStage.classList.remove("diving"); measure(); }
+    stage.classList.add("diving");
+    const e = t < 0.3 ? 0 : ((t - 0.3) / 0.7) ** 2.2;
+    // Inside the glass the chart dissolves into the next scene (opacity only: a live blur costs a full repaint per frame).
+    const fe = ease(seg(t, 0, 0.32));
+    howStage.style.opacity = fe.toFixed(3);
+    $("#lens-chart").style.opacity = (1 - fe).toFixed(3);
+    const r = glass.r + (glass.far - glass.r) * e;
+    // The rim grows with the opening but is gone before it gets huge: a drop-shadowed lens at 10x is a
+    // multi-thousand-pixel filter every frame, which is where this transition used to stutter.
+    const lensO = 1 - seg(e, 0.18, 0.42);
+    stage.style.setProperty("--dive-k", Math.min(r / glass.r, 4.5).toFixed(3));
+    stage.style.setProperty("--dive-o", lensO.toFixed(3));
+    stage.classList.toggle("rushing", e > 0);
+    stage.classList.toggle("lens-gone", lensO <= 0);
+    howStage.style.clipPath = t >= 1 ? "none" : `circle(${r.toFixed(1)}px at ${glass.x.toFixed(1)}px ${glass.y.toFixed(1)}px)`;
+    howStage.classList.toggle("diving", t < 1);
+    howStage.style.setProperty("--vx", `${((glass.x - glass.cx) * (1 - e)).toFixed(1)}px`);
+    howStage.style.setProperty("--vy", `${((glass.y - glass.cy) * (1 - e)).toFixed(1)}px`);
+    howStage.style.setProperty("--vs", (glass.s0 + (1 - glass.s0) * e).toFixed(3));
+  };
+  return (p) => {
+    if (p <= 0) glass = null;  // re-measure on the way back in: the lens may have moved with a resize
+    iris(seg(p, 0, DIVE));
+    const step = p < 0.55 ? 1 : p < 0.8 ? 2 : 3;
+    if (howStage.dataset.step !== String(step)) howStage.dataset.step = String(step);
+    howStage.style.setProperty("--drop", String(seg(p, DIVE * 0.6, DIVE + 0.1)));
+    howStage.style.setProperty("--flow", String(seg(p, DIVE + 0.06, 0.48)));
+    howStage.style.setProperty("--k-intent", p > 0.6 ? "1" : "0");
+    howStage.classList.toggle("k-flag", p > 0.65);
+    howStage.classList.toggle("k-charge", p > 0.7);
+    howStage.style.setProperty("--fan", String(seg(p, 0.83, 0.93)));
+    return step;
+  };
 }
 
 // A reload must land on the headline, not on a scroll offset the browser remembered from an older layout.
 try { history.scrollRestoration = "manual"; } catch { /* unsupported */ }
 if (!location.hash) scrollTo(0, 0);
 
+// The fixed readout belongs to the top of the page; it steps aside once the reader scrolls past the masthead.
+(() => { const r = $("#readout"); if (!r) return;
+  const tick = () => r.classList.toggle("is-hidden", scrollY > 260);
+  addEventListener("scroll", tick, { passive: true }); tick(); })();
+
 (async () => {
+  const ctx = { circles: [], wow: null, how: prepareHow(), render: () => {} };
+  bindStory(ctx);
   const story = await loadStory();
-  fillBuilt();
   fill(story);
   readout(story);
-  const circles = await drawWorld(story);
-  bindStory(circles);
+  const [circles, wow] = await Promise.all([drawWorld(story), prepareWow()]);
+  Object.assign(ctx, { circles, wow });
+  ctx.render();
 })();

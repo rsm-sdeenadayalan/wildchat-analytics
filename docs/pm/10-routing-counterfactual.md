@@ -1,4 +1,4 @@
-# Built from the data, part 1: intent-aware model routing
+# What it says to do, part 1: intent-aware model routing
 
 **What this is for:** Take the sharpest thing the dashboard exposes and turn it into a change a routing team could ship, sized from the data, with the experiment that would prove or kill it.
 **Date:** 2026-10-03
@@ -71,7 +71,7 @@ expect: 0.343
 tolerance: 0.0005
 -->
 
-The cost-aware rule is the recommendation. On the data as it stands it would have cut single-turn exits among real requests from one in five to one in twelve, for nine percent more spend. Sending everything to the cheapest model saves 94% and loses a third of real requests after one turn; sending everything to the best model for friction costs 2.6 times as much for half a point of extra benefit over the cost-aware rule.
+The cost-aware rule was the recommendation until the correction below withdrew it. On the data as it stands it would have cut single-turn exits among real requests from one in five to one in twelve, for nine percent more spend. Sending everything to the cheapest model saves 94% and loses a third of real requests after one turn; sending everything to the best model for friction costs 2.6 times as much for half a point of extra benefit over the cost-aware rule.
 
 Routing by request is an existing market: OpenRouter's Auto, Martian, Not Diamond and the RouteLLM paper all do versions of it. The data arrived at the same conclusion on its own. What none of them publish is the size of the prize on real traffic by intent, or an outcome measured from what users did next. That is what this page adds, and what a team would need to decide whether to turn a router on.
 
@@ -87,6 +87,39 @@ sql: SELECT round(eras.A.policies.best_friction.cost_change_pct, 2) FROM read_js
 expect: 1.84
 tolerance: 0.005
 -->
+
+## Correction, 2026-10-07: most of this gain was user mix
+
+The tables above compare models across everyone who used them. Users chose their model, and the people who chose each one differ. Holding the person fixed removes that: among pseudo-users seen on both models with the same intent in this window, each user weighted equally, the model gaps nearly vanish (`scripts/user_mix_reveal.py`, `aggregates/user_mix_reveal.json`, 95% bootstrap intervals over users).
+
+| comparison, one-turn share | across all users | same users | 95% interval | users |
+|---|---|---|---|---|
+| coding, gpt-4o-mini vs gpt-4o | +23.2 pts | **-0.1 pts** | -1.1 to +0.9 | 622 |
+| questions, gpt-4o-mini vs gpt-4o | +26.9 pts | **-0.3 pts** | -1.7 to +1.1 | 1,051 |
+| coding, o1-mini vs gpt-4o | -16.4 pts | **+1.2 pts** | +0.4 to +2.1 | 792 |
+| questions, o1-mini vs gpt-4o | -7.3 pts | **+2.8 pts** | +1.0 to +4.5 | 968 |
+
+<!-- loupe-check id=reveal-coding-naive
+sql: SELECT round(pairs[1].naive_gap, 3) FROM read_json_auto('aggregates/user_mix_reveal.json')
+expect: 0.232
+tolerance: 0.0005
+-->
+<!-- loupe-check id=reveal-coding-matched
+sql: SELECT round(pairs[1].matched_gap, 3) FROM read_json_auto('aggregates/user_mix_reveal.json')
+expect: -0.001
+tolerance: 0.0005
+-->
+<!-- loupe-check id=reveal-questions-matched
+sql: SELECT round(pairs[2].matched_gap, 3) FROM read_json_auto('aggregates/user_mix_reveal.json')
+expect: -0.003
+tolerance: 0.0005
+-->
+
+A coding request from the same person ends after one short reply about as often on gpt-4o-mini as on gpt-4o, and slightly more often on o1-mini. The routing rule's 20.6% to 8.2% was therefore almost entirely a difference between the people who picked each model, not between the models. People who used both models are more engaged than average, so their rates are low on both; the result concerns the gap, and it generalizes only as far as such users resemble everyone else.
+
+What this changes: the cost-aware routing rule is withdrawn as a recommendation. Routing by intent may still be worth testing, but only as an experiment that randomizes the model, which is the design below; usage logs alone cannot size its benefit. The general lesson, and the reason the landing page now opens with it, is that most of what looks like model quality in usage logs is user mix.
+
+A second design was tried and is reported for completeness: the 2024-08-07 switch from gpt-3.5-turbo to gpt-4o-mini, with gpt-4o users as a control, is a natural experiment, but only 164 switched users were seen on both sides; the difference-in-differences for one-turn share was +4.5 points with an interval of -0.1 to +8.9, and the treated group was already trending up beforehand. Suggestive, not conclusive.
 
 ## What this is and is not
 

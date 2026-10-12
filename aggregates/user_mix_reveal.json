@@ -1,0 +1,82 @@
+{
+  "window": {
+    "start": "2024-09-12",
+    "end": "2025-01-05"
+  },
+  "metric": "share of conversations that end after one turn with a short reply",
+  "method": "Naive: all conversations on each model, as a dashboard compares them. Matched: only pseudo-users seen on both models with the same intent in the window; each user's rate on each model, averaged with users weighted equally; 95% bootstrap interval over users.",
+  "pairs": [
+    {
+      "intent": "coding",
+      "model_a": "gpt-4o-mini",
+      "model_b": "gpt-4o",
+      "naive_a": 0.42735280283918414,
+      "naive_b": 0.19532411183379772,
+      "naive_gap": 0.23202869100538642,
+      "conversations_a": 46774,
+      "conversations_b": 241537,
+      "matched_users": 622,
+      "matched_a": 0.021531910048340194,
+      "matched_b": 0.02253917732074054,
+      "matched_gap": -0.0010072672724003482,
+      "matched_ci": [
+        -0.011211583960159711,
+        0.009141292702289831
+      ]
+    },
+    {
+      "intent": "questions",
+      "model_a": "gpt-4o-mini",
+      "model_b": "gpt-4o",
+      "naive_a": 0.44179556881329834,
+      "naive_b": 0.172340340018488,
+      "naive_gap": 0.2694552287948103,
+      "conversations_a": 83138,
+      "conversations_b": 124405,
+      "matched_users": 1051,
+      "matched_a": 0.05533390733959647,
+      "matched_b": 0.05839632795078844,
+      "matched_gap": -0.003062420611191972,
+      "matched_ci": [
+        -0.017476417857865946,
+        0.01146589239206613
+      ]
+    },
+    {
+      "intent": "coding",
+      "model_a": "o1-mini",
+      "model_b": "gpt-4o",
+      "naive_a": 0.03151073652111304,
+      "naive_b": 0.19532411183379772,
+      "naive_gap": -0.1638133753126847,
+      "conversations_a": 23611,
+      "conversations_b": 241537,
+      "matched_users": 792,
+      "matched_a": 0.023020478262894193,
+      "matched_b": 0.01072529957211668,
+      "matched_gap": 0.012295178690777514,
+      "matched_ci": [
+        0.004142807270530161,
+        0.021197712587366527
+      ]
+    },
+    {
+      "intent": "questions",
+      "model_a": "o1-mini",
+      "model_b": "gpt-4o",
+      "naive_a": 0.09911141490088858,
+      "naive_b": 0.172340340018488,
+      "naive_gap": -0.07322892511759942,
+      "conversations_a": 20482,
+      "conversations_b": 124405,
+      "matched_users": 968,
+      "matched_a": 0.09006551234307544,
+      "matched_b": 0.062340114079445175,
+      "matched_gap": 0.027725398263630283,
+      "matched_ci": [
+        0.00993694478567274,
+        0.045343953494597716
+      ]
+    }
+  ]
+}
