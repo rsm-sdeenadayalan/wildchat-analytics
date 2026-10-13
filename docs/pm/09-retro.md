@@ -58,7 +58,7 @@ The lesson is the one the intent gate taught a week earlier, in a different form
 
 ## The routing result was selection bias
 
-After a review with a professor who called the project descriptive, I compared the same people across models instead of comparing models across people. The 23 to 27 point gaps between gpt-4o-mini and gpt-4o fell to under half a point. The routing doc had shipped a 12-point gain that a randomized test would almost certainly not have found. It is now corrected in place, and the landing page leads with the finding, because it is the result most likely to change a real team's decision: most of what looks like model quality in usage logs is user mix.
+After a review with a professor who called the project descriptive, I compared the same people across models instead of comparing models across people. The 23 to 27 point gaps between gpt-4o-mini and gpt-4o fell to under half a point. The routing doc had shipped a 12-point gain that a randomized test would almost certainly not have found. It is now corrected in place, and the landing page leads with the finding, because it is the result most likely to change a real team's decision: most of what looks like model quality in usage logs is user mix. A second review caught that the finding was measured on the one-turn measure, the same proxy demoted for failing validation; rerun on the validated signals (repeats and corrections, 2026-10-13), it holds: people correct gpt-4o-mini 3.2 times as often on the dashboard view, and the same 622 people do so at 11.65% and 11.56%. The landing page now uses that version.
 
 ## What the numbers said
 

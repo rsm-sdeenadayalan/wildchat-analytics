@@ -266,6 +266,27 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 moved = await stops_at() - s0
                 if moved != expect:
                     problems.append(f"story: {label} should move {expect} scene(s), moved {moved}")
+            # Reversing mid-scene takes effect at once: scroll down, then up a moment later, and the page must not
+            # keep travelling down to finish the downward scene; it returns to where it started.
+            await story.evaluate(f"window.scrollTo(0, {top})")
+            await story.wait_for_timeout(1500)
+            await play(swipe()[:6])
+            await story.wait_for_timeout(300)
+            await story.evaluate("window.__lowest = scrollY; (function f(){ window.__lowest = Math.max(window.__lowest, scrollY); if (!window.__stopLow) requestAnimationFrame(f); })()")
+            y_at_up = await story.evaluate("scrollY")
+            await play([-d for d in swipe()])
+            await story.wait_for_timeout(2500)
+            lowest, back = await story.evaluate("window.__stopLow = true; [window.__lowest, scrollY]")
+            if lowest - y_at_up > 80 or abs(back - top) > 4:
+                problems.append(f"story: after reversing mid-scene the page went {lowest - y_at_up:.0f}px further down and ended {back - top:.0f}px from the start")
+            # "Skip the story" jumps straight past it to the finale, with the top bar back.
+            await story.evaluate(f"window.scrollTo(0, {top})")
+            await story.wait_for_timeout(1500)
+            await story.click("#skip-story")
+            await story.wait_for_timeout(1000)
+            fin_top, in_story = await story.evaluate("[Math.round(document.querySelector('#finale').getBoundingClientRect().top), document.body.classList.contains('in-story')]")
+            if abs(fin_top) > 4 or in_story:
+                problems.append(f"story: skip link should land on the finale (top {fin_top}px) with the story released (in story: {in_story})")
             # Past the last scene, a whole trackpad scroll (which starts with tiny deltas) must move the page, not just its first event.
             span = await story.evaluate("document.querySelector('#story').closest('.pin-spacer').offsetHeight - innerHeight")
             await story.evaluate(f"window.scrollTo(0, {top} + 0.9963 * {span})")

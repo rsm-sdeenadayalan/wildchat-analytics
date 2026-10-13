@@ -4,6 +4,11 @@
     "end": "2025-01-05"
   },
   "metric": "share of conversations that end after one turn with a short reply",
+  "friction_metric": "share of conversations with a repeated request or a correction (the two friction signals that passed validation: 78% and 96% precision)",
+  "caveats": [
+    "Pseudo-users are a hash of IP address and browser headers. Merging two people into one key mixes people who chose different models, which keeps a gap rather than erasing it, so a collapsed gap is conservative; splitting one person across keys only shrinks the sample.",
+    "Holding the person and the intent fixed removes who chose each model, but not which task a person brought to which model; only a randomized test removes that."
+  ],
   "method": "Naive: all conversations on each model, as a dashboard compares them. Matched: only pseudo-users seen on both models with the same intent in the window; each user's rate on each model, averaged with users weighted equally; 95% bootstrap interval over users.",
   "pairs": [
     {
@@ -16,13 +21,28 @@
       "conversations_a": 46774,
       "conversations_b": 241537,
       "matched_users": 622,
-      "matched_a": 0.021531910048340194,
+      "matched_a": 0.02153191004834019,
       "matched_b": 0.02253917732074054,
-      "matched_gap": -0.0010072672724003482,
+      "matched_gap": -0.0010072672724003476,
       "matched_ci": [
-        -0.011211583960159711,
-        0.009141292702289831
-      ]
+        -0.011270641500404261,
+        0.009297139909418871
+      ],
+      "friction": {
+        "measurable": true,
+        "multi_turn_a": 0.15252063111985292,
+        "multi_turn_b": 0.054322940170657086,
+        "naive_a": 0.029952537734638903,
+        "naive_b": 0.00923253994212067,
+        "naive_gap": 0.020719997792518235,
+        "matched_a": 0.11649499778403478,
+        "matched_b": 0.11556064884629992,
+        "matched_gap": 0.0009343489377348441,
+        "matched_ci": [
+          -0.0237681927831618,
+          0.026159003335676563
+        ]
+      }
     },
     {
       "intent": "questions",
@@ -35,12 +55,27 @@
       "conversations_b": 124405,
       "matched_users": 1051,
       "matched_a": 0.05533390733959647,
-      "matched_b": 0.05839632795078844,
-      "matched_gap": -0.003062420611191972,
+      "matched_b": 0.058396327950788446,
+      "matched_gap": -0.003062420611191973,
       "matched_ci": [
-        -0.017476417857865946,
-        0.01146589239206613
-      ]
+        -0.017246983370368143,
+        0.011030775399489613
+      ],
+      "friction": {
+        "measurable": true,
+        "multi_turn_a": 0.16477423079698814,
+        "multi_turn_b": 0.2089063944375226,
+        "naive_a": 0.029769780365175972,
+        "naive_b": 0.03560950122583498,
+        "naive_gap": -0.0058397208606590055,
+        "matched_a": 0.09254146539371866,
+        "matched_b": 0.09407832025800895,
+        "matched_gap": -0.0015368548642902902,
+        "matched_ci": [
+          -0.01882003953437023,
+          0.016270079884739667
+        ]
+      }
     },
     {
       "intent": "coding",
@@ -56,9 +91,24 @@
       "matched_b": 0.01072529957211668,
       "matched_gap": 0.012295178690777514,
       "matched_ci": [
-        0.004142807270530161,
-        0.021197712587366527
-      ]
+        0.0036951411988678973,
+        0.021113108251009618
+      ],
+      "friction": {
+        "measurable": false,
+        "multi_turn_a": 0.0,
+        "multi_turn_b": 0.054322940170657086,
+        "naive_a": 8.470628097073398e-05,
+        "naive_b": 0.00923253994212067,
+        "naive_gap": -0.009147833661149936,
+        "matched_a": 0.0,
+        "matched_b": 0.07866595293323515,
+        "matched_gap": -0.07866595293323515,
+        "matched_ci": [
+          -0.09403104922479041,
+          -0.06443119035067249
+        ]
+      }
     },
     {
       "intent": "questions",
@@ -70,13 +120,28 @@
       "conversations_a": 20482,
       "conversations_b": 124405,
       "matched_users": 968,
-      "matched_a": 0.09006551234307544,
-      "matched_b": 0.062340114079445175,
+      "matched_a": 0.09006551234307547,
+      "matched_b": 0.06234011407944518,
       "matched_gap": 0.027725398263630283,
       "matched_ci": [
-        0.00993694478567274,
-        0.045343953494597716
-      ]
+        0.010365427527017218,
+        0.04539202785348303
+      ],
+      "friction": {
+        "measurable": false,
+        "multi_turn_a": 0.0,
+        "multi_turn_b": 0.2089063944375226,
+        "naive_a": 0.00019529342837613513,
+        "naive_b": 0.03560950122583498,
+        "naive_gap": -0.035414207797458845,
+        "matched_a": 0.0,
+        "matched_b": 0.0729538983601728,
+        "matched_gap": -0.0729538983601728,
+        "matched_ci": [
+          -0.08633509699194625,
+          -0.05982589281568542
+        ]
+      }
     }
   ]
 }

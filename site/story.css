@@ -442,3 +442,8 @@ body.in-story .topbar { transform: translateY(-100%); }
 #story .scroll-more.show { transform: none; }
 #story .frame-caption { max-width: min(62%, 720px); }
 @media (max-width: 900px) { #story .frame-caption { max-width: 46%; } #story .scroll-more { right: 12px; font-size: 10px; } }
+/* a way out for readers who would rather not watch: top-right, only while the story holds the screen */
+#story .skip-story { position: absolute; top: 14px; right: 18px; z-index: 9; font: 400 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 250, 240, 0.82); padding: 8px 10px; border: 1px solid rgba(255, 250, 240, 0.35); border-radius: 999px; transition: opacity 0.3s ease, background 0.15s ease; }
+#story .skip-story:hover, #story .skip-story:focus-visible { background: rgba(255, 250, 240, 0.12); color: var(--cream); outline: none; }
+body:not(.in-story) #story .skip-story { opacity: 0; pointer-events: none; }
+@media (max-width: 900px) { #story .skip-story { top: 10px; right: 10px; padding: 6px 8px; font-size: 10px; } }

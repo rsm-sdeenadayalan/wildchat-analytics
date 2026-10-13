@@ -152,8 +152,8 @@ const CAPTIONS = [
   "fig. 2 — one dot per country, sized by conversations",
   "fig. 3 — the dashboard a product owner has today",
   "fig. 4 — the same logs, read through the glass",
-  "fig. 5 — real WildChat numbers: every coding conversation on each model",
-  "fig. 6 — the people who used both models. heavier users, so both rates are lower; the gap is what matters",
+  "fig. 5 — real WildChat numbers: coding conversations with a repeated request or a correction, on each model",
+  "fig. 6 — the people who used both models. heavier users, so both rates are higher; what matters is that they match",
   "fig. 7 — your logs, read in the browser",
   "fig. 8 — one conversation, labelled · words illustrative",
   "fig. 9 — outputs from the sample log on the try page",
@@ -297,7 +297,7 @@ function bindStory(ctx) {
     .concat([0.5, 0.76, 0.995].map((x) => AT_HOW + x * (1 - AT_HOW)));  // just short of the end, where the pin is still active
   const pace = (t) => -(Math.cos(Math.PI * t) - 1) / 2;  // ease-in-out sine
   const inside = () => scrollY >= st.start - 2 && scrollY <= st.end + 2;
-  let current = -1, busy = false, queued = null;
+  let current = -1, busy = false, queued = null, moving = 0;  // moving: direction of the scene playing (+1 down, -1 up)
   const nearest = () => STOPS.reduce((best, x, i) => (Math.abs(x - st.progress) < Math.abs(STOPS[best] - st.progress) ? i : best), 0);
   // the scene after the one playing (or the one the reader is on), in a direction; -1 past either end
   const following = (d) => {
@@ -309,6 +309,7 @@ function bindStory(ctx) {
   const SCENE_SECONDS = 1.4;  // every scene plays at this pace, however the reader scrolled
   const go = (i) => {
     const prev = current;
+    moving = Math.sign(STOPS[i] - st.progress) || moving;
     const diveStep = (i === DIVE_STOP && prev === DIVE_STOP - 1) || (i === DIVE_STOP - 1 && prev === DIVE_STOP);
     current = i; busy = true;
     pin.dataset.stop = String(i);
@@ -321,6 +322,14 @@ function bindStory(ctx) {
   // A new scroll during a scene is never lost: it plays its one scene as soon as the current one finishes, at the
   // same pace (at most one waits; it is one scroll, one scene, never two from one scroll).
   const request = (d) => {  // returns false when the gesture should leave the story instead
+    if (busy && d !== moving) {
+      // Reversing mid-scene takes effect at once: the glide turns around and goes back to the scene it left,
+      // instead of finishing the way the reader no longer wants to go.
+      queued = null;
+      const i = current + d;
+      if (i >= 0 && i < STOPS.length) go(i);
+      return true;
+    }
     if (busy) {
       if (queued == null) { const i = current + d; if (i >= 0 && i < STOPS.length) queued = i; }
       return true;
@@ -413,8 +422,14 @@ function bindStory(ctx) {
   render(st.progress);
   // Web fonts can change the masthead's height after the pin measured where it starts.
   document.fonts?.ready.then(() => ScrollTrigger.refresh());
+  // Skipping the story jumps straight past it: a smooth scroll would travel through the pin and play scenes on the way.
+  $("#skip-story")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    window.loupeTrack?.("story_skipped", { from: Number(pin.dataset.beat) || 1 });
+    lenis.scrollTo("#finale", { immediate: true, force: true });
+  });
   // in-page links scroll smoothly through Lenis
-  document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
+  document.querySelectorAll('a[href^="#"]:not(#skip-story)').forEach((a) => a.addEventListener("click", (e) => {
     const target = document.querySelector(a.getAttribute("href"));
     if (target) { e.preventDefault(); lenis.scrollTo(target, { offset: 0 }); }
   }));
@@ -424,25 +439,28 @@ function bindStory(ctx) {
 // Scroll scrubs the change: the bars slide from everyone on each model to the people who used both, and the gap
 // counts down with them. Numbers are the real coding pair from aggregates/user_mix_reveal.json.
 async function prepareWow() {
+  // The validated friction signal (a repeated request or a correction), not the one-turn measure, which failed
+  // validation as a failure signal: the headline has to rest on a metric the project itself trusts.
   let pair = null;
   try { const d = await (await fetch(new URL("aggregates/user_mix_reveal.json", import.meta.url))).json(); pair = d.pairs.find((x) => x.model_a === "gpt-4o-mini" && x.intent === "coding") || null; } catch { /* the static labels stay */ }
-  if (!pair) return null;
+  const f = pair?.friction;
+  if (!f) return null;
   const card = $(".wow-card"), stage = $("#stage");
-  $("#w-naive").textContent = `${Math.round(pair.naive_gap * 100)} points`;
+  const r0 = f.naive_a / f.naive_b, r1 = f.matched_a / f.matched_b;
+  $("#w-naive").textContent = `${Math.round(r0)}×`;
   $("#w-people").textContent = fmtInt.format(pair.matched_users);
-  $("#w-matched").textContent = `${Math.abs(pair.matched_gap * 100).toFixed(1)} points`;
-  const max = Math.max(pair.naive_a, pair.naive_b) * 1.08;
+  $("#w-matched").textContent = `${pct(f.matched_a)} vs ${pct(f.matched_b)}`;
+  const max = Math.max(f.naive_a, f.naive_b, f.matched_a, f.matched_b) * 1.08;  // one scale for both views
   const A = $("#how-a"), B = $("#how-b"), va = $("#how-va"), vb = $("#how-vb"), gv = $("#how-gapv"), mode = $("#how-mode");
   let last = -1;
   return (w) => {
     const t = ease(seg(w, 0.42, 0.66));
     if (t === last) return;
     last = t;
-    const a = pair.naive_a + (pair.matched_a - pair.naive_a) * t, b = pair.naive_b + (pair.matched_b - pair.naive_b) * t;
-    const g = pair.naive_gap + (pair.matched_gap - pair.naive_gap) * t;
+    const a = f.naive_a + (f.matched_a - f.naive_a) * t, b = f.naive_b + (f.matched_b - f.naive_b) * t;
     A.style.width = `${(100 * a / max).toFixed(2)}%`; B.style.width = `${(100 * b / max).toFixed(2)}%`;
     va.textContent = pct(a); vb.textContent = pct(b);
-    gv.textContent = `${g >= 0.0005 ? "+" : g <= -0.0005 ? "−" : ""}${Math.abs(100 * g).toFixed(t >= 1 ? 1 : 0)}`;
+    gv.textContent = `${(r0 + (r1 - r0) * t).toFixed(1)}×`;
     mode.textContent = t > 0.5 ? `the same ${fmtInt.format(pair.matched_users)} people on both` : "everyone on each model";
     card.style.setProperty("--settle", t.toFixed(3));
     stage.classList.toggle("k-same", t >= 1);

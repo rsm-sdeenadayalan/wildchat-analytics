@@ -914,12 +914,16 @@ function policyTable(era) {
 }
 
 // A same-people comparison reads as one of three things; the interval decides which.
-function mixVerdict(p) {
+function mixVerdict(p) {  // p: one measure of one pair (naive_gap, matched_gap, matched_ci)
   const [lo, hi] = p.matched_ci;
-  if (lo <= 0 && hi >= 0) return { cls: "mix", text: "No real gap: the difference was who used each model" };
+  if (lo <= 0 && hi >= 0) return Math.abs(p.naive_gap) >= 0.01
+    ? { cls: "mix", text: "No detectable gap for the same people: the dashboard gap was who used each model" }
+    : { cls: "mix", text: "Small on the dashboard, none detectable for the same people" };
   if (Math.sign(p.matched_gap) !== Math.sign(p.naive_gap)) return { cls: "flip", text: `Reversed: small and the other way for the same people (${fmtPts(p.matched_gap)}, not ${fmtPts(p.naive_gap)})` };
   return { cls: "real", text: `Real, but ${fmtPts(p.matched_gap)}, not ${fmtPts(p.naive_gap)}` };
 }
+// "3.0% vs 0.9% → 11.6% vs 11.6%", the dashboard view then the same people
+const mixCell = (m) => `${fmtPct(m.naive_a)} vs ${fmtPct(m.naive_b)} → <b>${fmtPct(m.matched_a)} vs ${fmtPct(m.matched_b)}</b><small>same people: ${fmtPts(m.matched_gap)} (${(100 * m.matched_ci[0]).toFixed(1)} to ${(100 * m.matched_ci[1]).toFixed(1)})</small>`;
 
 const csvCell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
 
@@ -945,7 +949,7 @@ export async function renderNext(conn, meta) {
 
   insight(view, FILTER.model ? `What should the team do next on ${esc(FILTER.model)}?` : "What should the team do next?", [
     fixes.length ? `<b>Fix ${esc(fixes[0].intent)} first.</b> It accounts for ${fmtPct0(fixes[0].flagged / totalFlagged)} of the conversations where people had to repeat or correct themselves${fixes[1] ? `, ahead of ${esc(fixes[1].intent)} at ${fmtPct0(fixes[1].flagged / totalFlagged)}` : ""}. The fix list below downloads as a backlog.` : "",
-    mini.length ? `<b>Don't switch models on a dashboard gap.</b> gpt-4o-mini looked ${mini.map((p) => `${Math.round(100 * p.naive_gap)} points worse on ${esc(p.intent)}`).join(" and ")}; for the same people on both models the gap is under one point.` : "",
+    mini.length && mini[0].friction ? `<b>Don't switch models on a dashboard gap.</b> On coding, people repeat themselves or correct gpt-4o-mini ${(mini[0].friction.naive_a / mini[0].friction.naive_b).toFixed(1)}× as often as gpt-4o; for the same ${fmtInt.format(mini[0].matched_users)} people on both models the rates match (${fmtPct(mini[0].friction.matched_a)} vs ${fmtPct(mini[0].friction.matched_b)}).` : "",
     mix ? `<b>Weight your eval by real usage.</b> People bring ${esc(Object.keys(mix.weights)[0])} ${fmtPct0(Object.values(mix.weights)[0])} of the time and ${esc(Object.keys(mix.weights)[1])} ${fmtPct0(Object.values(mix.weights)[1])}; score your assistant on that mix, not the one your test set happens to have.` : "",
   ].filter(Boolean), { href: "../try/", text: "Run the same checks on your own logs, plus the change check and failure export" });
 
@@ -975,10 +979,16 @@ export async function renderNext(conn, meta) {
   if (pairs.length && !FILTER.model) {
     view.append(el(`<div class="card next"><p class="eyebrow">02 · before you switch models</p><h2>The model, or the people who chose it?</h2>
       <p class="so">Each gap a dashboard shows, rechecked on the people who used both models.</p>
-      <div class="tablewrap"><table class="grid mixcheck"><thead><tr><th>intent</th><th>comparison</th><th>dashboard gap</th><th>same people</th><th>95% interval</th><th>people</th><th>verdict</th></tr></thead><tbody>
-      ${pairs.map((p) => { const v = mixVerdict(p); return `<tr><td>${esc(p.intent)}</td><td>${esc(p.model_a)} vs ${esc(p.model_b)}</td><td>${fmtPts(p.naive_gap)}</td><td><b>${fmtPts(p.matched_gap)}</b></td><td>${(100 * p.matched_ci[0]).toFixed(1)} to ${(100 * p.matched_ci[1]).toFixed(1)}</td><td>${fmtInt.format(p.matched_users)}</td><td><span class="vd ${v.cls}">${v.text}</span></td></tr>`; }).join("")}
+      <div class="tablewrap"><table class="grid mixcheck"><thead><tr><th>comparison</th><th>people</th><th>repeated or corrected (validated)</th><th>ended after one short reply</th><th>verdict</th></tr></thead><tbody>
+      ${pairs.map((p) => {
+        const f = p.friction, ok = f && f.measurable;
+        const v = mixVerdict(ok ? f : p);
+        const single = f && !f.measurable ? (f.multi_turn_a < f.multi_turn_b ? p.model_a : p.model_b) : null;
+        return `<tr><td>${esc(p.intent)}<small>${esc(p.model_a)} vs ${esc(p.model_b)}</small></td><td>${fmtInt.format(p.matched_users)}</td>
+          <td>${ok ? mixCell(f) : `<span class="muted-cell">not measurable: ${esc(single)} conversations are almost always one turn, so nobody can repeat themselves</span>`}</td>
+          <td>${mixCell(p)}</td><td><span class="vd ${v.cls}">${v.text}</span>${ok ? "" : "<small>on the one-turn measure</small>"}</td></tr>`; }).join("")}
       </tbody></table></div>
-      <details class="def"><summary>How this is checked</summary><p>${esc(reveal.window.start)} to ${esc(reveal.window.end)}. Metric: ${esc(reveal.metric)}; a positive gap means the first model ends more conversations that way. ${esc(reveal.method)} <a href="${doc("10-routing-counterfactual.html")}">Method&nbsp;→</a></p></details></div>`));
+      <details class="def"><summary>How this is checked, and what it cannot rule out</summary><p>${esc(reveal.window.start)} to ${esc(reveal.window.end)}. Each cell reads: the rates across everyone on each model, as a dashboard compares them, then the rates for the same people, with the same-people gap and its 95% interval. The verdict uses the validated signal where it can be measured: the ${esc(reveal.friction_metric)}. ${esc(reveal.method)}</p>${(reveal.caveats || []).map((c) => `<p>${esc(c)}</p>`).join("")}<p><a href="${doc("10-routing-counterfactual.html")}">Method and the correction&nbsp;→</a></p></details></div>`));
   }
 
   // ---- 03 Usage-weighted eval: live scorer ----

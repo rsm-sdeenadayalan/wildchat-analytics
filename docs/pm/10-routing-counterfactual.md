@@ -115,6 +115,39 @@ expect: -0.003
 tolerance: 0.0005
 -->
 
+### The same check on the validated signals (added 2026-10-13)
+
+The table above uses the one-turn measure, which validation later showed is mostly engagement depth rather than failure (41% precise as a failure signal). So the check was rerun on the two signals that passed validation: a repeated request (78% precise) or a correction (96% precise), counted together.
+
+| comparison, repeat or correction | across all users | same users | same-users gap | 95% interval | users |
+|---|---|---|---|---|---|
+| coding, gpt-4o-mini vs gpt-4o | 3.0% vs 0.9% (3.2x) | 11.65% vs 11.56% | **+0.1 pts** | -2.4 to +2.6 | 622 |
+| questions, gpt-4o-mini vs gpt-4o | 3.0% vs 3.6% | 9.25% vs 9.41% | **-0.2 pts** | -1.9 to +1.6 | 1,051 |
+| o1-mini vs gpt-4o (both intents) | not measurable | | | | |
+
+<!-- loupe-check id=reveal-friction-coding-naive-ratio
+sql: SELECT round(pairs[1].friction.naive_a / pairs[1].friction.naive_b, 1) FROM read_json_auto('aggregates/user_mix_reveal.json')
+expect: 3.2
+tolerance: 0.05
+-->
+<!-- loupe-check id=reveal-friction-coding-matched
+sql: SELECT round(pairs[1].friction.matched_gap, 3) FROM read_json_auto('aggregates/user_mix_reveal.json')
+expect: 0.001
+tolerance: 0.0005
+-->
+<!-- loupe-check id=reveal-friction-questions-matched
+sql: SELECT round(pairs[2].friction.matched_gap, 3) FROM read_json_auto('aggregates/user_mix_reveal.json')
+expect: -0.002
+tolerance: 0.0005
+-->
+
+On the dashboard view, people repeat themselves or correct the reply on gpt-4o-mini 3.2 times as often as on gpt-4o for coding; for the same 622 people the two rates are 11.65% and 11.56%, with no detectable difference. The finding does not depend on the one-turn measure. The o1-mini comparisons cannot be made on these signals: o1-mini conversations are almost always a single turn, and nobody can repeat themselves or correct a reply in a conversation that ends after one turn. People who used both models are heavier users, so their rates are higher on both; what matters is that they match.
+
+### What this check cannot rule out
+
+- **The pseudo-user key is not a person.** It is a hash of IP address and browser headers, so it can merge people behind a shared network and split one person across devices. Merging mixes people who chose different models into one "person", which keeps a gap rather than erasing it, so a collapsed gap is conservative; splitting only shrinks the sample.
+- **The same person still chose.** Holding the person and the intent fixed removes who chose each model, but not which task a person brought to which model; someone may send their harder coding questions to the larger model. Only a randomized test removes that, which is why the recommendation below is an experiment, not a rule.
+
 A coding request from the same person ends after one short reply about as often on gpt-4o-mini as on gpt-4o, and slightly more often on o1-mini. The routing rule's 20.6% to 8.2% was therefore almost entirely a difference between the people who picked each model, not between the models. People who used both models are more engaged than average, so their rates are low on both; the result concerns the gap, and it generalizes only as far as such users resemble everyone else.
 
 What this changes: the cost-aware routing rule is withdrawn as a recommendation. Routing by intent may still be worth testing, but only as an experiment that randomizes the model, which is the design below; usage logs alone cannot size its benefit. The general lesson, and the reason the landing page now opens with it, is that most of what looks like model quality in usage logs is user mix.
