@@ -447,3 +447,17 @@ body.in-story .topbar { transform: translateY(-100%); }
 #story .skip-story:hover, #story .skip-story:focus-visible { background: rgba(255, 250, 240, 0.12); color: var(--cream); outline: none; }
 body:not(.in-story) #story .skip-story { opacity: 0; pointer-events: none; }
 @media (max-width: 900px) { #story .skip-story { top: 10px; right: 10px; padding: 6px 8px; font-size: 10px; } }
+@media (max-width: 900px) { .canvas[data-beat="4"] .scene-tiles { transform: none; } }  /* phones: the loupe rests below the tiles, no room needed beside them */
+/* phones: the scenes start just under the caption and use the width, instead of floating small in the leftover space */
+@media (max-width: 900px) {
+  #story .scene, #story .hscene { padding-bottom: 7vh; }  /* centred in the room between the caption and the figure note */
+  #story .scene-tiles { grid-template-columns: repeat(2, 43vw); gap: 10px; }
+  #story .qtile { aspect-ratio: 1.12; }
+  #story .qtile .qmark { font-size: 34px; }
+  #story .qtile .qlabel { font-size: 15px; }
+  #story .qtile .qanswer { font-size: 13.5px; }
+  #story .qtile .qanswer b { font-size: 30px; }
+  #story .scene-map > .map-wrap { width: 150%; }
+  #story .chatwin { width: 94%; }
+  #story .wow-card { width: 100%; }
+}

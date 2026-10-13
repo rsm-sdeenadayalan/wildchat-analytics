@@ -70,7 +70,7 @@ function fill(s) {
     ["04", "Where does it fail them?", "app/#friction", s.worst_repeat_rate != null ? `In <b>${esc(s.worst_repeat_intent)}</b>, ${pct(s.worst_repeat_rate)} of conversations repeat the same request, the highest of any intent; repeats and corrections are the two signals that survived validation, tracked per intent and model` : "friction proxies not yet computed"],
   ];
   const ledger = $("#ledger");
-  if (ledger) ledger.innerHTML = rows.map(([n, q, href, a]) => `<li><a href="${href}"><span class="n">${n}</span><span class="q">${q}</span><span class="a">${a}</span><span class="arr" aria-hidden="true">↗</span></a></li>`).join("");
+  if (ledger) ledger.innerHTML = rows.map(([n, q, href, a]) => `<li><a href="${href}"><span class="n">${n}</span><span class="q">${q}</span><span class="a">${a}</span><span class="arr" aria-hidden="true">→</span></a></li>`).join("");
   drawSparkline(s.weekly || []);
 }
 
@@ -247,6 +247,31 @@ function bindStory(ctx) {
     const step = ctx.how ? ctx.how(hp) : 0;
     setBeat(hp > 0 && ctx.how ? 6 + step : beat);
   };
+  // The loupe rests beside the tiles, never on an answer: off the bottom-right corner where there is room to the
+  // right (desktop), just below the tiles where there is not (phone). Placed from the tiles' own layout, so it holds
+  // at every screen size; the dive later opens from wherever the glass is.
+  const placeLens = () => {
+    const lens = $(".lens"), t = [...document.querySelectorAll(".qtile")];
+    if (!lens || t.length < 4) return;
+    const w = lens.offsetWidth, r = w * 0.633 / 2, o = w * 0.4167;  // glass radius, glass centre within the lens box
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    // the bottom-right corner of the last tile, in scene 4's layout: the tile grid there is shifted (-9%, -5%) and
+    // scaled 0.92 about its centre (story.css, .canvas[data-beat="4"] .scene-tiles)
+    const scene = t[3].offsetParent, W = scene.offsetWidth, H = scene.offsetHeight;
+    const px = t[3].offsetLeft + t[3].offsetWidth, py = t[3].offsetTop + t[3].offsetHeight;
+    const shift = matchMedia("(min-width: 901px)").matches;  // the shift is desktop-only (story.css)
+    const k = shift ? 0.92 : 1, dx = shift ? -0.09 * W : 0, dy = shift ? -0.05 * H : 0;
+    const right = scene.offsetLeft + W / 2 + (px - W / 2) * k + dx;
+    const bottom = scene.offsetTop + H / 2 + (py - H / 2) * k + dy;
+    let cx, cy;
+    if (sw - right >= 1.15 * r) { cx = right + 0.4 * r; cy = bottom - 0.7 * r; }
+    else { cx = right - 1.1 * r; cy = bottom + 0.8 * r; }
+    cx = Math.max(r + 8, Math.min(cx, sw - r - 8));
+    cy = Math.max(r + 8, Math.min(cy, sh - r - 44));  // keep the glass clear of the figure caption
+    lens.style.left = `${Math.round(cx - o)}px`;
+    lens.style.top = `${Math.round(cy - o)}px`;
+  };
+  placeLens(); addEventListener("resize", placeLens); document.fonts?.ready.then(placeLens);
   if (reduced()) { ctx.render = () => { finalFrame(); ctx.wow?.(1); ctx.how?.(1); setBeat(9); }; ctx.render(); return; }
 
   gsap.registerPlugin(ScrollTrigger);
@@ -285,6 +310,7 @@ function bindStory(ctx) {
     const tallest = Math.max(...caps.map((c) => c.offsetHeight));
     const top = parseFloat(getComputedStyle($("#captions")).paddingTop) || 0;
     pin.style.setProperty("--cap-h", `${Math.round(top + tallest + 14)}px`);
+    placeLens();  // the scene area starts below the captions, so the tiles move with it
   };
   fitCaptions(); addEventListener("resize", fitCaptions); document.fonts?.ready.then(fitCaptions);
 

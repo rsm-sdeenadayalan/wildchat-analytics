@@ -45,52 +45,52 @@
     <div class="viewport">
       <div class="captions" id="captions">
         <div class="caption is-active" data-beat="1">
-          <p class="kicker"><span class="num">①</span> one log line</p>
+          <p class="kicker"><span class="num">1</span> one log line</p>
           <h2>This is all a team ever sees.</h2>
           <p class="body">A timestamp, a model, a hashed address, a country, a turn count, a reply length. No words. Every team has millions of these. Loupe reads them.</p>
         </div>
         <div class="caption" data-beat="2">
-          <p class="kicker"><span class="num">②</span> <b id="s-users">…</b> of them, in one week</p>
+          <p class="kicker"><span class="num">2</span> <b id="s-users">…</b> of them, in one week</p>
           <h2>The world lights up.</h2>
           <p class="body">Pseudo-users from <b id="s-countries">…</b> countries, on whichever model the assistant was running that week. Each dot is a real count from the logs.</p>
         </div>
         <div class="caption" data-beat="3">
-          <p class="kicker"><span class="num">③</span> the product owner's view</p>
+          <p class="kicker"><span class="num">3</span> the product owner's view</p>
           <h2>Four blank tiles.</h2>
           <p class="body">Who uses it. How often they come back. What they ask for. Where it fails them. Today each answer means asking an engineer for a one-off script.</p>
         </div>
         <div class="caption" data-beat="4">
-          <p class="kicker"><span class="num">④</span> the loupe</p>
+          <p class="kicker"><span class="num">4</span> the loupe</p>
           <h2>Answers, from the logs alone.</h2>
           <p class="body">Loupe reads the structure of <b id="s-total">…</b> conversations and never the content. Four questions, four numbers, one page.</p>
         </div>
         <div class="caption" data-beat="5">
-          <p class="kicker"><span class="num">⑤</span> what a dashboard would tell you</p>
+          <p class="kicker"><span class="num">5</span> what a dashboard would tell you</p>
           <h2>People correct the cheap model <span class="hl-o" id="w-naive">3×</span> as often.</h2>
           <p class="body">On coding, gpt-4o-mini draws a repeated request or a correction three times as often as gpt-4o. The dashboard verdict: <b>drop the cheap model</b>.</p>
         </div>
         <div class="caption" data-beat="6">
-          <p class="kicker"><span class="num">⑥</span> what Loupe checks</p>
+          <p class="kicker"><span class="num">6</span> what Loupe checks</p>
           <h2>Same people, and the gap is gone.</h2>
           <p class="body">For the <b id="w-people">622</b> people who used both models, it is <b id="w-matched">11.6% vs 11.6%</b>: no detectable difference. The gap came from who chose each model, not from the model.</p>
         </div>
         <div class="caption" data-beat="7">
-          <p class="kicker"><span class="num">⑦</span> your turn</p>
+          <p class="kicker"><span class="num">7</span> your turn</p>
           <h2>Now point it at your logs.</h2>
           <p class="body">Chat logs, agent traces, even your own ChatGPT or Claude export. Loupe reads them in your browser; <b>nothing is uploaded</b>.</p>
         </div>
         <div class="caption" data-beat="8">
-          <p class="kicker"><span class="num">⑧</span> it reads each one</p>
+          <p class="kicker"><span class="num">8</span> it reads each one</p>
           <h2>Every conversation, labelled.</h2>
           <p class="body">What it was for. Whether the person had to correct or repeat themselves. <b>Which model or sub-agent</b> they were reacting to.</p>
         </div>
         <div class="caption" data-beat="9">
-          <p class="kicker"><span class="num">⑨</span> it hands you the work</p>
+          <p class="kicker"><span class="num">9</span> it hands you the work</p>
           <h2>Then, the next step.</h2>
           <p class="body">A verdict on your last change, your real failures as a test suite, a backlog your team can import.</p>
           <div class="panel-actions">
             <a class="cta" href="app/#next" data-track="how_open_dashboard"><i class="lensdot" aria-hidden="true"></i>See the next steps on WildChat</a>
-            <a class="btn-outline" href="try/" data-track="how_try">Try it on your logs <span class="arr" aria-hidden="true">↗</span></a>
+            <a class="btn-outline" href="try/" data-track="how_try">Try it on your logs <span class="arr" aria-hidden="true">→</span></a>
           </div>
         </div>
       </div>
@@ -202,8 +202,8 @@
       </div>
       <div class="finale-cta">
         <a class="cta big" href="app/" data-track="finale_open_dashboard"><i class="lensdot" aria-hidden="true"></i>Open the dashboard</a>
-        <a class="btn-outline" href="try/" data-track="finale_try">Try it on your own logs <span class="arr" aria-hidden="true">↗</span></a>
-        <a class="btn-outline" href="docs/" data-track="finale_read_docs">Read the case study <span class="arr" aria-hidden="true">↗</span></a>
+        <a class="btn-outline" href="try/" data-track="finale_try">Try it on your own logs <span class="arr" aria-hidden="true">→</span></a>
+        <a class="btn-outline" href="docs/" data-track="finale_read_docs">Read the case study <span class="arr" aria-hidden="true">→</span></a>
       </div>
       <p class="fine">Data: <a href="https://huggingface.co/datasets/allenai/WildChat-4.8M">WildChat-4.8M</a> (Zhao et al., ICLR 2024; Deng et al., EMNLP 2024 Demos), licensed <a href="https://opendatacommons.org/licenses/by/1-0/">ODC-By 1.0</a>. Aggregates only; no transcript content is served. The chatbot behind these logs was run by researchers, not ChatGPT itself.</p>
       <p class="fine">A product case study by <a href="https://shankard.com">Shankar Deenadayalan</a> · <a href="https://shankard.com/resume.pdf">resume</a> · <a href="https://github.com/rsm-sdeenadayalan/wildchat-analytics">source</a>. This site uses <a href="https://posthog.com">PostHog</a> to understand how it is used; the WildChat data itself is never tracked at row level.</p>
