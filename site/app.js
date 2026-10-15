@@ -33,7 +33,7 @@ const by = (rows, keyFn, valFn) => {
 };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-// The WildChat collection changed how pseudo-user keys persist around this date; return rates
+// The WildChat collection changed how person keys persist around this date; return rates
 // before and after are not comparable (trends report, F1).
 export const COLLECTION_BREAK = new Date("2024-10-01T00:00:00Z");
 const finding = (n) => new URL(`docs/07-trends-report.html#f${n}`, import.meta.url).href;
@@ -118,8 +118,15 @@ function splitLead(html) {
   }
   return [html, ""];
 }
+// Label names read as words in sentences: "writing_and_business" becomes "writing and business"; "other" is quoted.
+function niceKind(k, capital = false) {
+  if (k === "other") return capital ? '"Other"' : '"other"';
+  const t = String(k).replace(/_/g, " ");
+  return capital ? t[0].toUpperCase() + t.slice(1) : t;
+}
+const plainLabels = (html) => html.replace(/(^|[^\w"'=-])([a-z]+(?:_[a-z]+)+)(?=[^\w"']|$)/g, (m, pre, w) => pre + w.replace(/_/g, " "));
 function insight(view, question, items, link) {
-  const parts = items.map(splitLead);
+  const parts = items.map((i) => splitLead(plainLabels(i)));
   const more = parts.some(([, rest]) => rest);
   const card = el(`<div class="card insight"><p class="eyebrow">The question</p><h2>${question}</h2>
     <ul class="facts">${parts.map(([lead, rest]) => `<li>${lead}${rest ? `<span class="rest"> ${rest}</span>` : ""}</li>`).join("")}</ul>
@@ -137,7 +144,7 @@ function insight(view, question, items, link) {
 // re-renders the figure whenever the viewer isolates, compares, or hovers a series.
 function chart(view, { title, so, note, series, draw, scope, caption }) {
   const tag = scope === "all" && FILTER.model ? `<span class="scope" title="This chart has no per-model cut">All models</span>` : "";
-  const [lead, rest] = so ? splitLead(so) : ["", ""];
+  const [lead, rest] = so ? splitLead(plainLabels(so)) : ["", ""];
   const card = el(`<div class="card chart"><div class="card-head"><h2>${title}${tag}</h2>${lead ? `<p class="so">${lead}</p>` : ""}</div>
     <div class="legend" role="group" aria-label="Series"></div><figure></figure>
     ${note || caption || rest ? `<details class="def"><summary>What this measures</summary>${rest ? `<p>${rest}</p>` : ""}${note ? `<p>${note}</p>` : ""}${caption ? `<p class="keys">${caption}</p>` : ""}</details>` : ""}</div>`);
@@ -333,7 +340,7 @@ export async function renderOverview(conn, meta) {
     ${tile("conversations", fmtInt.format(tot.convs))}
     ${tile("turns", fmtInt.format(tot.turns))}
     ${tile("complete weeks with data", fmtInt.format(totals.length))}
-    ${tile("peak weekly pseudo-users", fmtInt.format(users.peak_users ?? 0))}
+    ${tile("peak weekly people", fmtInt.format(users.peak_users ?? 0))}
     ${tile(FILTER.model ? "week-over-week return (same model)" : "week-over-week return", fmtPct(lastRet?.return_rate), lastRet ? fmtWeek(lastRet.week) : "no measurable week")}
     ${tile("intent coverage", meta.intent_coverage)}
   </div>`;
@@ -341,10 +348,10 @@ export async function renderOverview(conn, meta) {
   const win = FILTER.model ? DATA.windows.get(FILTER.model) : null;
   const retired = win && win.w1 < DATA.through ? `<b>${esc(FILTER.model)}</b> left the logs after the ${fmtWeek(win.w1)}. ` : "";
   // The dashboard's point is what to do next; say so before the charts.
-  view.append(el(`<div class="card start"><p><b>Start with what to do.</b> A ranked fix list with a backlog to download, which model gaps are real, and an eval scorer weighted by real usage.</p><a class="chip" href="#next">Open Next steps&nbsp;→</a></div>`));
+  view.append(el(`<div class="card start"><p><b>Start with what to do.</b> What to fix first (with a backlog to download), which differences between models are real, and a way to score your tests by what people actually ask.</p><a class="chip" href="#next">Open Next steps&nbsp;→</a></div>`));
   insight(view, FILTER.model ? `Is ${esc(FILTER.model)} usage growing, or is it the same power users?` : "Is usage growing, or is it the same power users?", [
     `${retired}<b>${fmtInt.format(sum(recent, (r) => r.conversations))}</b> conversations in the last 12 complete weeks, ${prior.length ? describeChange(change) + " versus the 12 weeks before" : "with no earlier 12-week window to compare against"}.`,
-    last.week ? `In the ${fmtWeek(last.week)}, the top 10% of ${FILTER.model ? "its " : ""}pseudo-users produced <b>${fmtPct(last.top10_share)}</b> of conversations; the median pseudo-user had ${(last.convs_per_user_p50 ?? 0).toFixed(1)} conversation${last.convs_per_user_p50 === 1 ? "" : "s"}.` : `No complete week has enough ${esc(FILTER.model)} pseudo-users to report intensity.`,
+    last.week ? `In the ${fmtWeek(last.week)}, the top 10% of ${FILTER.model ? "its " : ""}people produced <b>${fmtPct(last.top10_share)}</b> of conversations; the median person had ${(last.convs_per_user_p50 ?? 0).toFixed(1)} conversation${last.convs_per_user_p50 === 1 ? "" : "s"}.` : `No complete week has enough ${esc(FILTER.model)} people to report intensity.`,
     FILTER.model
       ? (topModel === FILTER.model
           ? `<b>${esc(FILTER.model)}</b> was the largest model in its last 12 complete weeks, at ${fmtPct0(thisModelRecent / Math.max(1, recentAll))} of all traffic.`
@@ -415,7 +422,7 @@ export async function renderIntensity(conn, meta) {
   const preMedian = median(preBreak.map((r) => r.return_rate));
   const postMedian = median(postBreak.map((r) => r.return_rate));
   const c1 = css("--c1"), c7 = css("--c7");
-  const retNote = FILTER.model ? " Return here is model retention: a pseudo-user counts as returned only if they used this model again the following week." : "";
+  const retNote = FILTER.model ? " Return here is model retention: a person counts as returned only if they used this model again the following week." : "";
 
   const depth = await q(conn, `SELECT model, depth_bucket, conversations FROM depth_by_model WHERE true${modelWhere()}`);
   const order = ["1", "2", "3-5", "6-10", "11+"];
@@ -428,30 +435,30 @@ export async function renderIntensity(conn, meta) {
   const modelOrder = singleByModel.map(([m]) => m);
 
   view.innerHTML = `<div class="tiles">
-    ${tile("pseudo-users", fmtInt.format(last.pseudo_users ?? 0), fmtWeek(last.week))}
+    ${tile("people", fmtInt.format(last.pseudo_users ?? 0), fmtWeek(last.week))}
     ${tile(FILTER.model ? "week-over-week return (same model)" : "week-over-week return", fmtPct(lastRet?.return_rate), lastRet ? fmtWeek(lastRet.week) : "no measurable week")}
     ${tile("top-10% share of conversations", fmtPct(last.top10_share), fmtWeek(last.week))}
-    ${tile("conversations / pseudo-user (p50)", (last.convs_per_user_p50 ?? 0).toFixed(1), fmtWeek(last.week))}
+    ${tile("conversations / person (p50)", (last.convs_per_user_p50 ?? 0).toFixed(1), fmtWeek(last.week))}
   </div>`;
 
   const retLine = preMedian != null
-    ? `In the comparable era, April 2023 to September 2024, week-over-week return${FILTER.model ? ` to ${esc(FILTER.model)}` : ""} held at a median of <b>${fmtPct(preMedian)}</b>${postMedian != null ? `; since the collection break it reads ${fmtPct(postMedian)}` : ""}.`
+    ? `Before October 2024 (April 2023 to September 2024), week-over-week return${FILTER.model ? ` to ${esc(FILTER.model)}` : ""} held at a median of <b>${fmtPct(preMedian)}</b>${postMedian != null ? `; since a change in how the data was collected (October 2024) it reads ${fmtPct(postMedian)}` : ""}.`
     : postMedian != null
-      ? `${esc(FILTER.model)} only has weeks after the collection break, where pseudo-user keys do not persist, so its return rate (median <b>${fmtPct(postMedian)}</b>) understates real return and cannot be compared with earlier models.`
-      : `No week has enough ${esc(FILTER.model)} pseudo-users to measure return.`;
+      ? `${esc(FILTER.model)} only has weeks after the October 2024 change in data collection, after which returning people can no longer be recognised, so its return rate (median <b>${fmtPct(postMedian)}</b>) understates real return and cannot be compared with earlier models.`
+      : `No week has enough ${esc(FILTER.model)} people to measure return.`;
   const depthLine = FILTER.model
     ? `<b>${fmtPct0(singleShare)}</b> of ${esc(FILTER.model)} conversations end after one turn; ${fmtPct0(multiByModel[0]?.[1] ?? 0)} run three or more turns.`
     : `<b>${fmtPct0(singleShare)}</b> of all conversations end after one turn. ${esc(multiByModel[0]?.[0] ?? "–")} carries the most multi-turn work (${fmtPct0(multiByModel[0]?.[1])} run three or more turns); ${esc(singleByModel[0]?.[0] ?? "–")} the least (${fmtPct0(singleByModel[0]?.[1])} single-turn).`;
   insight(view, FILTER.model ? `Are ${esc(FILTER.model)} users coming back?` : "Are people coming back?", [
     retLine,
-    `From ${fmtMonth(COLLECTION_BREAK)} pseudo-user keys stop persisting in the collection, so return reads near zero afterwards. Treat that as a collection change, not churn.${retNote}`,
+    `From ${fmtMonth(COLLECTION_BREAK)} the data stops recognising returning people, so return reads near zero afterwards. That is a change in data collection, not people leaving.${retNote}`,
     depthLine,
   ], { href: finding(1), text: "Read findings F1, F2 and F4 in the trends report" });
 
   chart(view, {
     title: "Week-over-week return rate",
-    so: lastRet ? `${fmtPct(lastRet.return_rate)} in the ${fmtWeek(lastRet.week)}${preMedian != null ? `, against a pre-break median of ${fmtPct(preMedian)}` : ""}.` : "No week has a measurable return rate.",
-    note: `Share of pseudo-users active in a week who are active again the following week. Weeks whose following week is not in the data are drawn as gaps, not zeros.${retNote}`,
+    so: lastRet ? `${fmtPct(lastRet.return_rate)} in the ${fmtWeek(lastRet.week)}${preMedian != null ? `, against a median of ${fmtPct(preMedian)} before October 2024` : ""}.` : "No week has a measurable return rate.",
+    note: `Share of people active in a week who are active again the following week. Weeks whose following week is not in the data are drawn as gaps, not zeros.${retNote}`,
     series: [{ key: "return rate", color: c1 }],
     caption: CAPTION_RATES,
     draw: ({ w }) => {
@@ -465,23 +472,23 @@ export async function renderIntensity(conn, meta) {
   });
 
   chart(view, {
-    title: "Weekly pseudo-users and concentration",
-    so: `${fmtInt.format(last.pseudo_users ?? 0)} pseudo-users in the ${fmtWeek(last.week)}; the top 10% of them produced ${fmtPct(last.top10_share)} of that week's conversations.`,
-    note: "Top panel: pseudo-users active each week. Bottom panel: share of the week's conversations that came from its 10% most active pseudo-users. A rising share with a falling user count means the remaining usage is concentrated in fewer hands.",
-    series: [{ key: "pseudo-users", color: c1 }, { key: "top-10% share", color: c7 }],
+    title: "People per week, and how concentrated their use is",
+    so: `${fmtInt.format(last.pseudo_users ?? 0)} people in the ${fmtWeek(last.week)}; the top 10% of them produced ${fmtPct(last.top10_share)} of that week's conversations.`,
+    note: "Top panel: people active each week. Bottom panel: share of the week's conversations that came from its 10% most active people. A rising share with a falling user count means the remaining usage is concentrated in fewer hands.",
+    series: [{ key: "people", color: c1 }, { key: "top-10% share", color: c7 }],
     caption: CAPTION_RATES,
     draw: ({ isOn, hover, w }) => {
       const box = document.createElement("div");
       box.className = "panels";
-      const both = isOn("pseudo-users") && isOn("top-10% share");
+      const both = isOn("people") && isOn("top-10% share");
       const users = fillZeros(weekly, { value: "pseudo_users" });
       const share = bridged(weekly, { value: "top10_share" });
-      if (isOn("pseudo-users")) box.append(Plot.plot({
+      if (isOn("people")) box.append(Plot.plot({
         width: w, height: both ? 200 : 260, marginLeft: 60, marginBottom: both ? 10 : 30,
-        x: { label: null, axis: both ? null : "bottom" }, y: { label: "pseudo-users / week", grid: true, insetBottom: 8 },
+        x: { label: null, axis: both ? null : "bottom" }, y: { label: "people / week", grid: true, insetBottom: 8 },
         marks: [...timeMarks(),
-          Plot.areaY(users, { x: "week", y: "pseudo_users", fill: c1, fillOpacity: 0.12 * dim(hover, "pseudo-users") }),
-          Plot.lineY(users, { x: "week", y: "pseudo_users", stroke: c1, strokeWidth: 1.75, strokeOpacity: dim(hover, "pseudo-users"), tip: TIP })],
+          Plot.areaY(users, { x: "week", y: "pseudo_users", fill: c1, fillOpacity: 0.12 * dim(hover, "people") }),
+          Plot.lineY(users, { x: "week", y: "pseudo_users", stroke: c1, strokeWidth: 1.75, strokeOpacity: dim(hover, "people"), tip: TIP })],
       }));
       if (isOn("top-10% share")) box.append(Plot.plot({
         width: w, height: both ? 190 : 260, marginLeft: 60, marginTop: 24,
@@ -497,9 +504,9 @@ export async function renderIntensity(conn, meta) {
 
   const perUser = weekly.flatMap((r) => [{ week: r.week, stat: "median", value: r.convs_per_user_p50 }, { week: r.week, stat: "90th percentile", value: r.convs_per_user_p90 }]);
   chart(view, {
-    title: "Conversations per pseudo-user per week",
-    so: `A typical pseudo-user has ${(last.convs_per_user_p50 ?? 0).toFixed(1)} conversations a week; the heaviest tenth have ${(last.convs_per_user_p90 ?? 0).toFixed(1)} or more.`,
-    note: "Median (solid) and 90th percentile (dashed) conversations per active pseudo-user per week.",
+    title: "Conversations per person per week",
+    so: `A typical person has ${(last.convs_per_user_p50 ?? 0).toFixed(1)} conversations a week; the heaviest tenth have ${(last.convs_per_user_p90 ?? 0).toFixed(1)} or more.`,
+    note: "Median (solid) and 90th percentile (dashed) conversations per active person per week.",
     series: [{ key: "median", color: c1 }, { key: "90th percentile", color: c7, dash: true }],
     caption: CAPTION_RATES,
     draw: ({ isOn, hover, w }) => {
@@ -519,9 +526,9 @@ export async function renderIntensity(conn, meta) {
   persistence.forEach((r) => (r.quarter_label = quarterLabel(r.quarter)));
   const pre = persistence.filter((r) => r.quarter < COLLECTION_BREAK), post = persistence.filter((r) => r.quarter >= COLLECTION_BREAK);
   chart(view, {
-    title: "How long pseudo-users persist",
-    so: `Before 2024 Q4, about ${fmtPct0(median(pre.map((r) => r.share_multi_week)))} of a quarter's pseudo-users were active in more than one week; since then, about ${fmtPct(median(post.map((r) => r.share_multi_week)))}.`,
-    note: "Share of a quarter's pseudo-users active in more than one week. The drop after 2024 Q3 is a property of the collection (pseudo-user keys stopped persisting), not of user behavior; return rates are not comparable across that boundary.",
+    title: "How long people keep coming back",
+    so: `Before 2024 Q4, about ${fmtPct0(median(pre.map((r) => r.share_multi_week)))} of a quarter's people were active in more than one week; since then, about ${fmtPct(median(post.map((r) => r.share_multi_week)))}.`,
+    note: "Share of a quarter's people active in more than one week. The drop after 2024 Q3 is a property of the collection (person keys stopped persisting), not of user behavior; return rates are not comparable across that boundary.",
     series: [{ key: "share active in more than one week", color: c1 }],
     scope: "all",
     draw: ({ w }) => Plot.plot({
@@ -577,15 +584,15 @@ export async function renderQuality(conn, meta) {
   const c1 = css("--c1"), c2 = css("--c2"), c3 = css("--c3");
 
   insight(view, "What in these numbers can I trust?", [
-    `Intent labels cover <b>${fmtPct(meta.intent_share)}</b> of ${FILTER.model ? "all " : ""}conversations. The classifier is ${fmtPct(meta.classifier_accuracy)} accurate against a ${fmtPct(meta.classifier_rater_agreement)} ceiling set by two labeling models disagreeing with each other.`,
-    `<b>${fmtPct(notRecordedC)}</b> of ${FILTER.model ? "all " : ""}conversations have no country recorded and another ${fmtPct(smallC)} sit in cells under the ${meta.min_cell}-conversation floor, so geography is directional. Language is nearly complete, but one top-10 label is probably a detector artifact.`,
+    `Intent labels cover <b>${fmtPct(meta.intent_share)}</b> of ${FILTER.model ? "all " : ""}conversations. The classifier is ${fmtPct(meta.classifier_accuracy)} accurate; the most it could be is about ${fmtPct(meta.classifier_rater_agreement)}, because two AI labelers agree with each other only that often.`,
+    `<b>${fmtPct(notRecordedC)}</b> of ${FILTER.model ? "all " : ""}conversations have no country recorded and another ${fmtPct(smallC)} fall in groups too small to show (under ${meta.min_cell} conversations), so treat geography as a rough guide. Language is nearly complete, but one top-10 language is probably a mistake by the language detector.`,
     `Token counts exist only from ${meta.token_coverage_first_week} and cover ${fmtPct(lastDq.token_usage_coverage)} of ${scopeLabel() === "all models" ? "" : esc(FILTER.model) + " "}conversations in the latest complete week, so token metrics are not reported.`,
   ], { href: finding(6), text: "Read findings F6 and F7 in the trends report" });
 
   const pii = dq.flatMap((r) => [{ week: r.week, signal: "redacted for PII", rate: r.redacted_rate }, { week: r.week, signal: "empty user input", rate: r.empty_input_rate }]);
   chart(view, {
-    title: "PII redaction and empty inputs",
-    so: `Latest complete week: ${fmtPct(lastDq.redacted_rate)} of conversations redacted for PII, ${fmtPct(lastDq.empty_input_rate)} with an empty user message.`,
+    title: "Personal details removed, and empty messages",
+    so: `Latest complete week: ${fmtPct(lastDq.redacted_rate)} of conversations had personal details removed, ${fmtPct(lastDq.empty_input_rate)} with an empty user message.`,
     note: "Share of conversations the dataset authors redacted for PII, and share with an empty user message (a quirk of the collection chatbot).",
     series: [{ key: "redacted for PII", color: c2 }, { key: "empty user input", color: c1 }],
     caption: CAPTION_RATES,
@@ -600,7 +607,7 @@ export async function renderQuality(conn, meta) {
     },
   });
   chart(view, {
-    title: "Token usage field coverage",
+    title: "How many conversations record token counts",
     so: `Zero before ${meta.token_coverage_first_week}; ${fmtPct(lastDq.token_usage_coverage)} in the latest complete week.`,
     note: "Share of conversations whose logs include token counts. The field did not exist before 2024-09-09 and is spotty afterwards; token metrics are only valid where this is high.",
     series: [{ key: "coverage", color: c1 }],
@@ -618,7 +625,7 @@ export async function renderQuality(conn, meta) {
   });
   chart(view, {
     title: "Top countries",
-    so: `${esc(countries.find((r) => !isResidual(r.country))?.country ?? "–")} leads. ${fmtPct(notRecordedC)} of conversations have no country recorded and ${fmtPct(smallC)} sit in cells under the floor; both are kept as their own muted bars.`,
+    so: `${esc(countries.find((r) => !isResidual(r.country))?.country ?? "–")} leads. ${fmtPct(notRecordedC)} of conversations have no country recorded and ${fmtPct(smallC)} fall in groups too small to show; both are kept as their own muted bars.`,
     note: `Conversations whose logs carry no country are published as a "not recorded" row, and week × country cells with fewer than ${meta.min_cell} conversations are folded into a "small cells" row, so the bars always sum to the total. Nothing is dropped and no individual country is hidden.`,
     series: [{ key: "conversations", color: c1 }],
     scope: "all",
@@ -629,7 +636,7 @@ export async function renderQuality(conn, meta) {
   });
   chart(view, {
     title: "Top languages",
-    so: `${esc(topLang?.language ?? "–")} is ${fmtPct0((topLang?.conversations ?? 0) / total_l)} of conversations. "Yoruba" in the top ten is most likely a language-detector artifact.`,
+    so: `${esc(topLang?.language ?? "–")} is ${fmtPct0((topLang?.conversations ?? 0) / total_l)} of conversations. "Yoruba" in the top ten is most likely a mistake by the language detector.`,
     note: `Most frequently detected language per conversation. Week × language cells under the ${meta.min_cell}-conversation floor are folded into a "small cells" row, kept as its own muted bar (under 1% of conversations); a "not recorded" row would appear if any conversation lacked a detected language.`,
     series: [{ key: "conversations", color: c3 }],
     scope: "all",
@@ -655,7 +662,7 @@ function reliabilityCard(meta) {
   const gate = agree != null
     ? `Two independent labeling models agree ${fmtPct(agree)} of the time on this taxonomy (n=${meta.classifier_rater_study_n}); the release gate is ${meta.classifier_threshold_rule}, i.e. ${fmtPct(meta.classifier_threshold)}.`
     : `Release gate: ${fmtPct(meta.classifier_threshold)} held-out accuracy.`;
-  return el(`<details class="card reliability"><summary><h2>How reliable are these labels?</h2><span class="so">Held-out accuracy ${fmtPct(acc)}, against a ${fmtPct(agree)} inter-rater ceiling. Read a 5-point gap as real; a 2-point gap as noise.</span></summary>
+  return el(`<details class="card reliability"><summary><h2>How reliable are these labels?</h2><span class="so">Right ${fmtPct(acc)} of the time on conversations held back for testing; two AI labelers agree with each other only ${fmtPct(agree)} of the time, so that is the ceiling. Treat a 5-point difference as real and a 2-point one as noise.</span></summary>
     <p class="note">Every conversation's intent is predicted by a classifier trained on model-labeled examples (taxonomy ${meta.classifier_taxonomy_version}).
     Held-out accuracy: <b>${fmtPct(acc)}</b> on ${fmtInt.format(meta.classifier_n_test || 0)} conversations. ${gate}${meta.classifier_forced ? " The gate was overridden for this build." : ""}</p>
     <p class="note">Per-class reliability (F1): ${rows}</p></details>`);
@@ -689,12 +696,12 @@ export async function renderIntent(conn, meta) {
   const riser = deltas[0], faller = deltas.at(-1);
   const ranked = [...overall].sort((a, b) => b[1] - a[1]).map(([i]) => i);
   const shiftLine = enough
-    ? `Over the last 12 complete weeks, <b>${esc(riser.intent)}</b> rose most (${fmtPts(riser.delta)}, to ${fmtPct0(riser.now)}) and <b>${esc(faller.intent)}</b> fell most (${fmtPts(faller.delta)}, to ${fmtPct0(faller.now)}) versus the 12 weeks before.`
+    ? `Over the last 12 complete weeks, <b>${esc(niceKind(riser.intent))}</b> rose most (${fmtPts(riser.delta)}, to ${fmtPct0(riser.now)}) and <b>${esc(niceKind(faller.intent))}</b> fell most (${fmtPts(faller.delta)}, to ${fmtPct0(faller.now)}) versus the 12 weeks before.`
     : `${esc(FILTER.model)} has fewer than 24 complete weeks, so there is no earlier 12-week window to measure a shift against; the largest class in its last 12 weeks is <b>${esc(deltas.sort((a, b) => b.now - a.now)[0]?.intent ?? "–")}</b>.`;
 
   const rel = reliabilityCard(meta);
   insight(view, FILTER.model ? `What are people using ${esc(FILTER.model)} for, and what is shifting?` : "What are people using it for, and what is shifting?", [
-    `<b>${esc(ranked[0])}</b> is the largest use at ${fmtPct0(overall.get(ranked[0]) / overallN)} of classified ${FILTER.model ? esc(FILTER.model) + " " : ""}conversations, then ${esc(ranked[1])} at ${fmtPct0(overall.get(ranked[1]) / overallN)}.`,
+    `<b>${esc(niceKind(ranked[0], true))}</b> ${ranked[0] === "questions" ? "are" : "is"} the largest use at ${fmtPct0(overall.get(ranked[0]) / overallN)} of classified ${FILTER.model ? esc(FILTER.model) + " " : ""}conversations, then ${esc(niceKind(ranked[1]))} at ${fmtPct0(overall.get(ranked[1]) / overallN)}.`,
     shiftLine,
     `"other" is greetings, tests and gibberish; at ${fmtPct0(recent.other ?? 0)} of recent traffic it is the clearest sign of people probing the assistant rather than working with it.`,
   ], { href: finding(8), text: "Read findings F8 to F10 in the trends report" });
@@ -747,7 +754,7 @@ export async function renderIntent(conn, meta) {
   const langOrder = [...langTotals].sort((a, b) => b[1] - a[1]).map(([l]) => l);
   chart(view, {
     title: "Intent mix by language",
-    so: `Top ${langOrder.length} languages by volume. Cells under ${meta.min_cell} conversations are suppressed.`,
+    so: `Top ${langOrder.length} languages by volume. Groups under ${meta.min_cell} conversations are hidden for privacy.`,
     note: "Share of each language's classified conversations by intent, for the most common detected languages.",
     series,
     scope: "all",
@@ -794,7 +801,7 @@ export async function renderFriction(conn, meta) {
   const mostCorrected = [...realWork].sort((a, b) => b.correction_rate - a.correction_rate)[0];
 
   insight(view, FILTER.model ? `Where does ${esc(FILTER.model)} fail people most?` : "Where does the assistant fail people most?", [
-    worstRepeat ? `People repeat themselves most in <b>${esc(worstRepeat.intent)}${FILTER.model ? "" : ` on ${esc(worstRepeat.model)}`}</b>: ${fmtPct(worstRepeat.repeat_rate)} of those conversations re-ask the same thing (cells with at least 1,000 conversations).` : byIntent.length ? "No intent × model cell reaches 1,000 conversations, so peaks are not ranked." : "Friction by intent needs intent labels; this build has none.",
+    worstRepeat ? `People repeat themselves most in <b>${esc(worstRepeat.intent)}${FILTER.model ? "" : ` on ${esc(worstRepeat.model)}`}</b>: ${fmtPct(worstRepeat.repeat_rate)} of those conversations re-ask the same thing (counting only combinations with at least 1,000 conversations).` : byIntent.length ? "No combination of request type and model reaches 1,000 conversations, so none is ranked." : "Friction by intent needs intent labels; this build has none.",
     rep12.recent != null ? `Repeated requests averaged <b>${fmtPct(rep12.recent)}</b> of conversations over the last 12 complete weeks${rep12.enough ? `, ${describeChange(pctChange(rep12.recent, rep12.prior))} versus the 12 weeks before` : ""}. Corrections are rarer, ${fmtPct(last.correction_rate, 2)} in the latest week, and almost always real when flagged.` : "",
     mostRepeated ? `Among real requests, <b>${esc(mostRepeated.intent)}</b> draws the most repeats (${fmtPct(mostRepeated.repeat_rate)})${mostCorrected && mostCorrected.intent !== mostRepeated.intent ? ` and <b>${esc(mostCorrected.intent)}</b> the most corrections (${fmtPct(mostCorrected.correction_rate, 2)})` : ""}. Two signals were dropped as failure measures after validation: refusal patterns fired on disclaimers 55% of the time, and 59% of one-turn conversations got what they came for.` : "",
   ].filter(Boolean), { href: finding(11), text: "Read findings F5 and F11, and the validation in the metrics framework" });
@@ -852,7 +859,7 @@ export async function renderFriction(conn, meta) {
   const rowOrder = [...byIntent].sort((a, b) => a.intent.localeCompare(b.intent) || b.conversations - a.conversations).map(rowKey);
   chart(view, {
     title: FILTER.model ? `Friction and depth by intent, ${FILTER.model}` : "Friction and depth by intent and model",
-    so: FILTER.model ? "Darker is more. Isolate one signal to rank intents on it." : "Darker is more. Isolate one signal to rank every intent × model pair on it.",
+    so: FILTER.model ? "Darker means more. Click one signal to rank the kinds of request by it." : "Darker means more. Click one signal to rank every kind of request on every model by it.",
     note: `Repeated-request and correction rates (validated friction) and the share ending after one turn (depth, not failure) for intent × model pairs with at least ${meta.min_cell} conversations${FILTER.model ? "" : `, the ${TOP_PER_INTENT} busiest models for each intent`}. Rows are grouped by intent and ordered by volume. Differences between models here mix model quality with who chose each model; Next steps checks them on the same people.`,
     series: heatSignals.map((s) => ({ key: labels[s], color: color[labels[s]] })),
     draw: ({ isOn, w, active }) => {
@@ -881,7 +888,7 @@ export async function renderFriction(conn, meta) {
       const order = resp.map((r) => r.responder);
       const worst = [...resp].sort((a, b) => (b.repeat_rate + b.correction_rate) - (a.repeat_rate + a.correction_rate))[0];
       chart(view, {
-        title: "Who is answerable: friction per 1,000 replies, by responder",
+        title: "Which model or sub-agent the friction lands on, per 1,000 replies",
         so: `${esc(worst.responder)} draws the most friction per reply: ${(1000 * worst.repeat_rate).toFixed(1)} repeats and ${(1000 * worst.correction_rate).toFixed(1)} corrections per 1,000 of its replies. In these logs one model answers a whole conversation, so this equals the by-model view; the point is the unit.`,
         note: "Loupe charges a repeated request or a correction to the responder that produced the reply the user reacted to, turn by turn (loupe/attribution.py), not to the conversation as a whole. The first user turn reacts to nothing and is charged to no one. For an assistant built from several sub-assistants, the team logs one field per assistant message, `responder`, and this chart splits by sub-assistant with no further code. When that field is absent, every reply is charged to the conversation's model and Loupe says so rather than guess which sub-assistant was at fault.",
         series: [{ key: "repeated request", color: colors[0] }, { key: "correction follow-up", color: colors[1] }],
@@ -950,7 +957,7 @@ export async function renderNext(conn, meta) {
   insight(view, FILTER.model ? `What should the team do next on ${esc(FILTER.model)}?` : "What should the team do next?", [
     fixes.length ? `<b>Fix ${esc(fixes[0].intent)} first.</b> It accounts for ${fmtPct0(fixes[0].flagged / totalFlagged)} of the conversations where people had to repeat or correct themselves${fixes[1] ? `, ahead of ${esc(fixes[1].intent)} at ${fmtPct0(fixes[1].flagged / totalFlagged)}` : ""}. The fix list below downloads as a backlog.` : "",
     mini.length && mini[0].friction ? `<b>Don't switch models on a dashboard gap.</b> On coding, people repeat themselves or correct gpt-4o-mini ${(mini[0].friction.naive_a / mini[0].friction.naive_b).toFixed(1)}× as often as gpt-4o; for the same ${fmtInt.format(mini[0].matched_users)} people on both models the rates match (${fmtPct(mini[0].friction.matched_a)} vs ${fmtPct(mini[0].friction.matched_b)}).` : "",
-    mix ? `<b>Weight your eval by real usage.</b> People bring ${esc(Object.keys(mix.weights)[0])} ${fmtPct0(Object.values(mix.weights)[0])} of the time and ${esc(Object.keys(mix.weights)[1])} ${fmtPct0(Object.values(mix.weights)[1])}; score your assistant on that mix, not the one your test set happens to have.` : "",
+    mix ? `<b>Weight your tests by real usage.</b> People bring ${esc(Object.keys(mix.weights)[0])} ${fmtPct0(Object.values(mix.weights)[0])} of the time and ${esc(Object.keys(mix.weights)[1])} ${fmtPct0(Object.values(mix.weights)[1])}; score your assistant on that mix, not the one your test set happens to have.` : "",
   ].filter(Boolean), { href: "../try/", text: "Run the same checks on your own logs, plus the change check and failure export" });
 
   // ---- 01 Fix list ----
@@ -997,7 +1004,7 @@ export async function renderNext(conn, meta) {
     // Starter scores: an assistant good at the rare things and weak at the common ones, so the gap between the two means is visible.
     const defaults = { questions: 0.55, coding: 0.60, writing_and_business: 0.80, creative_roleplay: 0.95, translation: 0.90, image_prompting: "", other: "" };
     const evalCard = el(`<div class="card next"><p class="eyebrow">03 · score your eval on real usage</p><h2>Judge an assistant by what people actually bring it</h2>
-      <p class="so">Type your eval scores per intent; the score reweights them by what people actually ask for.</p>
+      <p class="so">Enter your test scores for each kind of request; the total is reweighted by how often people actually ask for each.</p>
       <div class="controls"><label>Weights from <select id="mix-src"><option value="all">all conversations</option><option value="noother">all, excluding "other"</option>${Object.keys(mix.by_era).map((k) => `<option value="era:${k}">era ${k} (${mix.by_era[k].start} to ${mix.by_era[k].end})</option>`).join("")}${Object.keys(mix.by_model).map((m) => `<option value="model:${esc(m)}">${esc(m)} only</option>`).join("")}</select></label></div>
       <div class="tablewrap"><table class="grid eval"><thead><tr><th>intent</th><th>weight</th><th>your score</th><th>weighted</th></tr></thead><tbody>
         ${intents.map((i) => `<tr data-intent="${esc(i)}"><td>${esc(i)}</td><td class="w"></td><td><input type="number" step="0.01" min="0" placeholder="not tested" value="${defaults[i] ?? ""}" aria-label="score for ${esc(i)}"></td><td class="wx"></td></tr>`).join("")}
@@ -1030,7 +1037,7 @@ export async function renderNext(conn, meta) {
   if (rc && !FILTER.model) {
     const B = rc.eras.B;
     const routing = el(`<div class="card next withdrawn"><p class="eyebrow">04 · withdrawn 2026-10-07</p><h2>What this page used to recommend: route requests by intent</h2>
-      <p class="so">It promised ${fmtPct(B.policies.baseline_actual_mix.one_and_done_rate)} → ${fmtPct(B.policies.cost_aware.one_and_done_rate)} fewer one-turn exits, built on the model gaps card 02 shows were user mix.</p>
+      <p class="so">It said sending each kind of request to a different model would cut conversations that end after one short reply from ${fmtPct(B.policies.baseline_actual_mix.one_and_done_rate)} to ${fmtPct(B.policies.cost_aware.one_and_done_rate)}. Card 02 shows the model differences it relied on came from who chose each model.</p>
       <details class="def"><summary>The original sizing, both eras</summary>
         <div class="era-tabs" role="tablist"><button type="button" class="chip" data-era="B" aria-pressed="true">${ERA_LABEL.B}</button><button type="button" class="chip" data-era="A" aria-pressed="false">${ERA_LABEL.A}</button></div>
         <p class="so era-so"></p><div class="era-table"></div></details>
@@ -1039,8 +1046,8 @@ export async function renderNext(conn, meta) {
     const showEra = (k) => {
       const e = rc.eras[k], p = e.policies;
       routing.querySelector(".era-so").innerHTML = k === "B"
-        ? `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations, compared across everyone on each model (the comparison card 02 shows to be misleading).`
-        : `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} routable conversations. A null result even before the correction: the best policy gains only ${fmtPts(-p.best_friction.one_and_done_change_pts).replace("+", "")} for +${Math.round(100 * p.best_friction.cost_change_pct)}% cost.`;
+        ? `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} conversations that could have been sent to another model, compared across everyone on each model (the comparison card 02 shows to be misleading).`
+        : `${e.start} to ${e.end}, ${fmtInt.format(p.baseline_actual_mix.conversations)} conversations that could have been sent to another model. A null result even before the correction: the best policy gains only ${fmtPts(-p.best_friction.one_and_done_change_pts).replace("+", "")} for +${Math.round(100 * p.best_friction.cost_change_pct)}% cost.`;
       routing.querySelector(".era-table").innerHTML = policyTable(e);
       routing.querySelectorAll(".era-tabs .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.era === k)));
     };
@@ -1132,7 +1139,7 @@ async function main() {
     $("#status").hidden = true;
     window.loupeTrack?.("dashboard_loaded", { ms: Math.round(performance.now() - t0) });
     $("#caveat-population").textContent = meta.population_caveat;
-    $("#caveat-users").textContent = meta.pseudo_user_caveat;
+    $("#caveat-users").textContent = `"People" on this dashboard are estimates. ${meta.pseudo_user_caveat}`;
     $("#generated").textContent = `Aggregates generated ${meta.generated_at} from ${fmtInt.format(meta.conversations)} conversations (${meta.date_min} to ${meta.date_max}).`;
     if (meta.intent_coverage !== "full") {
       const b = $("#coverage-banner");

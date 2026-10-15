@@ -52,7 +52,7 @@ def expected_tiles(dist: Path) -> dict[str, str]:
         "conversations": f"{convs:,}",
         "turns": f"{turns:,}",
         "complete weeks with data": f"{weeks:,}",
-        "peak weekly pseudo-users": f"{peak:,}",
+        "peak weekly people": f"{peak:,}",
         "week-over-week return": f"{100 * ret:.1f}%",
         "intent coverage": meta["intent_coverage"],
     }
@@ -198,107 +198,62 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                     "[...document.querySelectorAll('.tile b')].filter(b => b.scrollWidth > b.clientWidth + 1 || b.getClientRects().length > 1).map(b => b.textContent)")
                 if clipped:
                     problems.append(f"KPI numbers wrap or clip at {width}px: {clipped[:3]}")
-            # The story page: paints beat 1 without the database, carries the live numbers, pins and scrolls to beat 4
-            # with all four tiles answered, and hands off to the dashboard.
+            # The story page: the hero headline and its loupe, the ledger, and the film, which plays on its own when it
+            # comes into view, can be paused, jumped and replayed, and ends with the gap collapsed. The page scrolls natively.
             story = await browser.new_page()
             story.on("pageerror", lambda e: problems.append(f"story pageerror: {e}"))
             story.on("console", lambda m: problems.append(f"story console.error: {m.text[:200]}") if m.type == "error" else None)
             await story.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded")
-            if await story.evaluate("document.querySelector('#stage')?.dataset.beat") != "1":
-                problems.append("story: first paint should show beat 1")
+            if "See who your" not in (await story.evaluate("document.querySelector('.masthead h1')?.textContent || ''")):
+                problems.append("story: the hero headline is missing")
             try:
-                await story.wait_for_function("document.querySelectorAll('#story-map circle').length > 20 && document.querySelectorAll('#ledger a').length === 4", timeout=timeout_s * 1000)
+                await story.wait_for_function("document.querySelectorAll('#ledger a').length === 4 && document.querySelectorAll('#mag-view .mast-content').length === 1", timeout=timeout_s * 1000)
             except Exception:
-                problems.append("story: map dots or ledger did not render")
-            if not await story.evaluate("/\\d/.test(document.querySelector('#s-users')?.textContent || '')"):
-                problems.append("story: live numbers did not fill in")
-            if not await story.evaluate("!!document.querySelector('#lens-chart svg path')"):
-                problems.append("story: loupe sparkline did not render")
+                problems.append("story: ledger or hero loupe did not render")
             # Analytics: the tracker helper exists on every page type and never throws (localhost = no-op, elsewhere PostHog).
             if not await story.evaluate("typeof window.loupeTrack === 'function'"):
                 problems.append("analytics: window.loupeTrack missing on the story page")
             if not await page.evaluate("typeof window.loupeTrack === 'function'"):
                 problems.append("analytics: window.loupeTrack missing on the dashboard")
-            await story.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await story.wait_for_timeout(1500)
-            beat, answered = await story.evaluate("[document.querySelector('#stage').dataset.beat, document.querySelectorAll('.qtile.answered').length]")
-            if beat != "5" or answered != 4:
-                problems.append(f"story: at the end expected the WildChat canvas on the finding (beat 5) with 4 answered tiles, got beat {beat} with {answered}")
-            # The finding settles on the same-people numbers, and the sequence ends on its last step with the next-steps link.
-            pin_beat, step, va, gap = await story.evaluate("[document.querySelector('#story').dataset.beat, document.querySelector('#how-stage')?.dataset.step, document.querySelector('#how-va')?.textContent || '', document.querySelector('#how-gapv')?.textContent || '']")
-            if pin_beat != "9" or step != "3" or not va.endswith("%") or "23" in gap:
-                problems.append(f"story: expected to end on beat 9 / step 3 with the gap collapsed, got beat {pin_beat!r}, step {step!r}, value {va!r}, gap {gap!r}")
-            # One gesture, one step: a trackpad-like flick (a burst of wheel events) moves exactly one stop, momentum included.
-            top = await story.evaluate("document.querySelector('#story').closest('.pin-spacer').getBoundingClientRect().top + scrollY")
-            await story.evaluate(f"window.scrollTo(0, {top})")
-            await story.wait_for_timeout(800)
-            await story.mouse.move(400, 400)
-            for _ in range(2):
-                for d in (60, 45, 30, 18, 10, 5):
-                    await story.mouse.wheel(0, d)
-                    await story.wait_for_timeout(16)
-                await story.wait_for_timeout(2000)
-            stop, in_story = await story.evaluate("[document.querySelector('#story').dataset.stop, document.body.classList.contains('in-story')]")
-            if stop != "2" or not in_story:
-                problems.append(f"story: two flicks should land on stop 2 with the frame full screen, got stop {stop!r}, full screen {in_story}")
-            # Real trackpad input: swipes ramp up, then momentum decays for ~1.8 s, longer than a scene. Each swipe must play
-            # exactly one scene, even when it starts while the last one's momentum is still arriving; one hard swipe and one
-            # long steady scroll must each play one scene.
-            def swipe(peak=40):
-                n = int(1.8 / 0.016)
-                return [max(1, round(peak * (i + 1) / 5)) for i in range(5)] + [max(1, round(peak * math.exp(-4.0 * i / n))) for i in range(n)]
-            async def play(deltas):
-                for d in deltas:
-                    await story.mouse.wheel(0, d)
-                    await story.wait_for_timeout(16)
-            stops_at = lambda: story.evaluate("+document.querySelector('#story').dataset.stop")
-            for label, expect, gesture in [
-                ("three swipes 1.6 s apart", 3, [swipe()[:100], swipe()[:100], swipe()]),
-                ("one hard swipe", 1, [swipe(120)]),
-                ("a steady 3 s scroll", 1, [[12, 7, 16, 11, 9, 14, 13, 8, 15, 10] * 19]),
-            ]:
-                await story.evaluate(f"window.scrollTo(0, {top})")
-                await story.wait_for_timeout(1500)
-                s0 = await stops_at()
-                for g in gesture:
-                    await play(g)
-                await story.wait_for_timeout(4500)
-                moved = await stops_at() - s0
-                if moved != expect:
-                    problems.append(f"story: {label} should move {expect} scene(s), moved {moved}")
-            # Reversing mid-scene takes effect at once: scroll down, then up a moment later, and the page must not
-            # keep travelling down to finish the downward scene; it returns to where it started.
-            await story.evaluate(f"window.scrollTo(0, {top})")
-            await story.wait_for_timeout(1500)
-            await play(swipe()[:6])
-            await story.wait_for_timeout(300)
-            await story.evaluate("window.__lowest = scrollY; (function f(){ window.__lowest = Math.max(window.__lowest, scrollY); if (!window.__stopLow) requestAnimationFrame(f); })()")
-            y_at_up = await story.evaluate("scrollY")
-            await play([-d for d in swipe()])
-            await story.wait_for_timeout(2500)
-            lowest, back = await story.evaluate("window.__stopLow = true; [window.__lowest, scrollY]")
-            if lowest - y_at_up > 80 or abs(back - top) > 4:
-                problems.append(f"story: after reversing mid-scene the page went {lowest - y_at_up:.0f}px further down and ended {back - top:.0f}px from the start")
-            # "Skip the story" jumps straight past it to the finale, with the top bar back.
-            await story.evaluate(f"window.scrollTo(0, {top})")
-            await story.wait_for_timeout(1500)
-            await story.click("#skip-story")
-            await story.wait_for_timeout(1000)
-            fin_top, in_story = await story.evaluate("[Math.round(document.querySelector('#finale').getBoundingClientRect().top), document.body.classList.contains('in-story')]")
-            if abs(fin_top) > 4 or in_story:
-                problems.append(f"story: skip link should land on the finale (top {fin_top}px) with the story released (in story: {in_story})")
-            # Past the last scene, a whole trackpad scroll (which starts with tiny deltas) must move the page, not just its first event.
-            span = await story.evaluate("document.querySelector('#story').closest('.pin-spacer').offsetHeight - innerHeight")
-            await story.evaluate(f"window.scrollTo(0, {top} + 0.9963 * {span})")
-            await story.wait_for_timeout(1500)
+            # The film does not move until it is on screen, then plays by itself.
+            await story.wait_for_timeout(4000)  # a reader on the hero: the film must not start, even if its top shows
+            chap = lambda: story.evaluate("document.querySelector('#film-stage').dataset.chapter")
+            if await chap() != "1" or await story.evaluate("document.querySelector('#film-play').textContent") == "Pause":
+                problems.append("story: the film should wait in chapter 1 until it is on screen")
+            await story.evaluate("document.querySelector('#story').scrollIntoView({block: 'center'})")
+            await story.wait_for_timeout(11500)
+            if await chap() != "2":
+                problems.append(f"story: after about 11 s on screen the film should be in chapter 2, got {await chap()!r}")
+            # Pause holds the frame; a chapter marker jumps to that chapter.
+            await story.click("#film-play")
+            t0 = await story.evaluate("document.querySelector('.ratio-n').textContent + document.querySelector('#film-stage').dataset.chapter")
+            await story.wait_for_timeout(3000)
+            if await story.evaluate("document.querySelector('.ratio-n').textContent + document.querySelector('#film-stage').dataset.chapter") != t0:
+                problems.append("story: pausing the film did not hold it")
+            await story.click('#film-controls .seg[data-chapter="3"]')
+            await story.wait_for_timeout(3200)
+            ratio = await story.evaluate("document.querySelector('.ratio-n').textContent")
+            if await chap() != "3" or ratio != "1.0×":
+                problems.append(f"story: chapter 3 should collapse the ratio to 1.0x, got chapter {await chap()!r}, ratio {ratio!r}")
+            # The last chapter runs to the end card, and the button offers a replay.
+            await story.click('#film-controls .seg[data-chapter="4"]')
+            await story.wait_for_timeout(8500)
+            btn, end_vis = await story.evaluate("[document.querySelector('#film-play').textContent, getComputedStyle(document.querySelector('#endcard')).visibility]")
+            if btn != "Replay" or end_vis != "visible":
+                problems.append(f"story: the film should end on its end card with a replay button, got {btn!r}, end card {end_vis!r}")
+            await story.click("#film-replay")
+            await story.wait_for_timeout(400)
+            if await chap() != "1":
+                problems.append("story: replay did not return to chapter 1")
+            # The page itself scrolls normally: a wheel scroll over the film moves the page.
             y0 = await story.evaluate("scrollY")
-            for d in (2, 4, 8, 14, 22, 30, 34, 30, 24, 18, 13, 9, 6, 4, 3, 2, 1, 1):
-                await story.mouse.wheel(0, d)
+            await story.mouse.move(600, 400)
+            for _ in range(10):
+                await story.mouse.wheel(0, 60)
                 await story.wait_for_timeout(16)
-            await story.wait_for_timeout(1200)
-            moved = await story.evaluate("scrollY") - y0
-            if moved < 100:
-                problems.append(f"story: a trackpad scroll past the last scene moved the page only {moved:.0f}px")
+            await story.wait_for_timeout(500)
+            if await story.evaluate("scrollY") - y0 < 300:
+                problems.append("story: scrolling over the film should scroll the page")
             hrefs = await story.evaluate("[...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href'))")
             if not any(h in ("app/", "./app/", "app/#next") for h in hrefs):
                 problems.append("story: no link to the dashboard at app/")

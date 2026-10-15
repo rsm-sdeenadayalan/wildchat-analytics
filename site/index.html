@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Loupe — see who your assistant serves</title>
-  <meta name="description" content="A PM who owns an AI assistant usually can't answer four questions. Loupe answers them from logs alone. A product case study on 3.2 million real conversations." />
+  <meta name="description" content="Usage dashboards can blame an AI model for a gap that really comes from who uses it. Loupe reads an assistant's chat logs and shows what is really going wrong, and what to fix first. A product case study on 3.2 million real conversations." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%3E%3Ccircle%20cx=%2710%27%20cy=%2710%27%20r=%277%27%20fill=%27none%27%20stroke=%27%231e3aa6%27%20stroke-width=%272.6%27/%3E%3Cpath%20d=%27M15.2%2015.2%20L21%2021%27%20stroke=%27%231e3aa6%27%20stroke-width=%273.2%27%20stroke-linecap=%27round%27/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,11 +14,11 @@
 <body>
   <div class="grain" aria-hidden="true"></div>
 
-  <div class="readout" id="readout"><span id="r1">3,199,860 conversations</span><span id="r2">Apr 2023 – Jul 2025 · aggregates only</span><span class="readout-by">a case study by <a href="https://shankard.com">Shankar Deenadayalan</a> · <a href="https://shankard.com/resume.pdf">resume</a></span></div>
+  <div class="readout" id="readout"><span id="r1">3,199,860 conversations</span><span id="r2">Apr 2023 – Jul 2025 · summary counts only</span><span class="readout-by">a case study by <a href="https://shankard.com">Shankar Deenadayalan</a> · <a href="https://shankard.com/resume.pdf">resume</a></span></div>
   <nav class="topbar" aria-label="Site">
     <a class="brand" href="./"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.2 15.2 L21 21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M6.4 8.6 A4.2 4.2 0 0 1 8.6 6.4" fill="none" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.4" stroke-linecap="round"/></svg>Loupe<span class="brand-sub">user analytics for GenAI assistants</span></a>
     <div class="navlinks">
-      <a href="#story">Story</a><span class="sep" aria-hidden="true">·</span>
+      <a href="#story">The film</a><span class="sep" aria-hidden="true">·</span>
       <a href="app/">Dashboard</a><span class="sep" aria-hidden="true">·</span>
       <a href="try/" data-track="nav_try">Try your logs</a><span class="sep" aria-hidden="true">·</span>
       <a href="docs/">Case study</a><span class="sep" aria-hidden="true">·</span>
@@ -28,164 +28,61 @@
   </nav>
 
   <header class="masthead" id="masthead">
+    <div class="mast-content" id="mast-content">
     <div class="mast-inner">
-      <span class="marker marker-left">for teams shipping<br />GenAI assistants</span>
-      <h1>See who your<br />assistant serves</h1>
-      <span class="marker marker-right">→ not another dashboard.<br />a loupe.</span>
+        <span class="marker marker-left">for teams shipping<br />GenAI assistants</span>
+        <h1>See who your<br />assistant serves</h1>
+        <span class="marker marker-right">→ not another dashboard.<br />a loupe.</span>
+      </div>
+      <p class="mast-lede">The dashboard said the cheap AI model failed 3× as often. For the same people, it didn't. <b>Loupe shows what's really going wrong.</b></p>
+      <div class="plain">
+        <div><b>The problem</b>AI teams pick models and judge changes from dashboards that blame the model for who uses it.</div>
+        <div><b>What Loupe does</b>Reads your chat logs, separates real model gaps from who-uses-what, and hands you a fix list.</div>
+        <div><b>What's real</b>3.2 million real conversations. Summary counts only, every number re-checked on each update.</div>
+      </div>
     </div>
-    <div class="plain">
-      <div><b>What it is</b>A user-analytics product for teams shipping an AI assistant. It reads the logs and answers four questions: who, how often, for what, where it fails.</div>
-      <div><b>Why I built it</b>Every team has the logs. Almost none can read them without an engineer. This is the product a PM would build to fix that, end to end.</div>
-      <div><b>What's real</b>3.2 million real conversations from a public dataset. Aggregates only, never transcripts. Every number is checked on every build.</div>
-    </div>
-    <p class="scroll-cue" aria-hidden="true">scroll ↓</p>
+    <div class="mag" id="mag" aria-hidden="true"><div class="mag-view" id="mag-view"></div></div>
+    <p class="scroll-cue" aria-hidden="true">watch the short film ↓</p>
   </header>
 
-  <section class="pin" id="story" aria-label="The story">
+  <section class="film" id="story" aria-label="The film: the model, or the people who chose it?">
+    <p class="sr-only">A short animation. On a usage dashboard, people correct the cheaper model 3.2 times as often as the bigger one, so the dashboard says drop it. But the two models weren't used by the same kind of people, so the gap mixes the model with who picked it. For the 622 people who used both, the rates are about the same, 11.6% and 11.6%. Loupe runs this check on your own logs and hands you the results: a verdict on your last change, your failures as tests, and a backlog.</p>
     <div class="viewport">
-      <div class="captions" id="captions">
-        <div class="caption is-active" data-beat="1">
-          <p class="kicker"><span class="num">1</span> one log line</p>
-          <h2>This is all a team ever sees.</h2>
-          <p class="body">A timestamp, a model, a hashed address, a country, a turn count, a reply length. No words. Every team has millions of these. Loupe reads them.</p>
+      <figure class="frame" id="frame">
+        <div class="film-stage" id="film-stage" data-chapter="1" aria-hidden="true">
+          <i class="glow g1"></i><i class="glow g2"></i>
+          <div class="cam" id="cam"></div>
+          <i class="vignette"></i>
+          <div class="flens" id="flens"><i class="flens-glass"></i><i class="flens-handle"></i></div>
+          <div class="logs" id="logs">
+            <div class="files">
+              <span class="file"><i>{ }</i>chat-logs.jsonl</span>
+              <span class="file"><i>⟡</i>agent-traces.otlp.json</span>
+              <span class="file"><i>✱</i>conversations.json</span>
+            </div>
+            <div class="arts">
+              <div class="artifact art-verdict"><span class="art-k">did my last change help?</span><span class="badge">improved</span><b>−8.4 pts</b><span>fewer corrections, for the same 380 people</span></div>
+              <div class="artifact art-file"><span class="art-k">promptfooconfig.yaml</span><b>305</b><span>test cases built from real failures, ready to run</span></div>
+              <div class="artifact art-ticket"><span class="art-k">backlog.csv · fix first</span><b>coding</b><span>94 failures · 16.8% of coding conversations</span><span class="ticket-tag">imports into Jira or Linear</span></div>
+            </div>
+          </div>
         </div>
-        <div class="caption" data-beat="2">
-          <p class="kicker"><span class="num">2</span> <b id="s-users">…</b> of them, in one week</p>
-          <h2>The world lights up.</h2>
-          <p class="body">Pseudo-users from <b id="s-countries">…</b> countries, on whichever model the assistant was running that week. Each dot is a real count from the logs.</p>
-        </div>
-        <div class="caption" data-beat="3">
-          <p class="kicker"><span class="num">3</span> the product owner's view</p>
-          <h2>Four blank tiles.</h2>
-          <p class="body">Who uses it. How often they come back. What they ask for. Where it fails them. Today each answer means asking an engineer for a one-off script.</p>
-        </div>
-        <div class="caption" data-beat="4">
-          <p class="kicker"><span class="num">4</span> the loupe</p>
-          <h2>Answers, from the logs alone.</h2>
-          <p class="body">Loupe reads the structure of <b id="s-total">…</b> conversations and never the content. Four questions, four numbers, one page.</p>
-        </div>
-        <div class="caption" data-beat="5">
-          <p class="kicker"><span class="num">5</span> what a dashboard would tell you</p>
-          <h2>People correct the cheap model <span class="hl-o" id="w-naive">3×</span> as often.</h2>
-          <p class="body">On coding, gpt-4o-mini draws a repeated request or a correction three times as often as gpt-4o. The dashboard verdict: <b>drop the cheap model</b>.</p>
-        </div>
-        <div class="caption" data-beat="6">
-          <p class="kicker"><span class="num">6</span> what Loupe checks</p>
-          <h2>Same people, and the gap is gone.</h2>
-          <p class="body">For the <b id="w-people">622</b> people who used both models, it is <b id="w-matched">11.6% vs 11.6%</b>: no detectable difference. The gap came from who chose each model, not from the model.</p>
-        </div>
-        <div class="caption" data-beat="7">
-          <p class="kicker"><span class="num">7</span> your turn</p>
-          <h2>Now point it at your logs.</h2>
-          <p class="body">Chat logs, agent traces, even your own ChatGPT or Claude export. Loupe reads them in your browser; <b>nothing is uploaded</b>.</p>
-        </div>
-        <div class="caption" data-beat="8">
-          <p class="kicker"><span class="num">8</span> it reads each one</p>
-          <h2>Every conversation, labelled.</h2>
-          <p class="body">What it was for. Whether the person had to correct or repeat themselves. <b>Which model or sub-agent</b> they were reacting to.</p>
-        </div>
-        <div class="caption" data-beat="9">
-          <p class="kicker"><span class="num">9</span> it hands you the work</p>
-          <h2>Then, the next step.</h2>
-          <p class="body">A verdict on your last change, your real failures as a test suite, a backlog your team can import.</p>
+        <div class="endcard" id="endcard">
+          <p class="end-brand"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.2 15.2 L21 21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>Loupe</p>
+          <h2 class="end-title">See who your assistant serves.</h2>
+          <p class="end-sum">On the dashboard, people corrected the cheap model <b>3.2×</b> as often. Among the <b id="end-people">622</b> people who used both models, they corrected both <b>about equally often</b>.</p>
           <div class="panel-actions">
-            <a class="cta" href="app/#next" data-track="how_open_dashboard"><i class="lensdot" aria-hidden="true"></i>See the next steps on WildChat</a>
+            <a class="cta" href="app/#next" data-track="how_open_dashboard"><i class="lensdot" aria-hidden="true"></i>Open the live dashboard</a>
             <a class="btn-outline" href="try/" data-track="how_try">Try it on your logs <span class="arr" aria-hidden="true">→</span></a>
           </div>
         </div>
-      </div>
-
-      <figure class="frame" id="frame">
-        <div class="canvas" id="stage" data-beat="1">
-          <div class="light" aria-hidden="true"></div>
-          <div class="scene scene-log" aria-hidden="true">
-            <div class="logrow" id="logrow">
-              <span class="lf" data-f="ts">2024-11-18 14:02</span><span class="lsep">·</span>
-              <span class="lf" data-f="model">gpt-4o-mini</span><span class="lsep">·</span>
-              <span class="lf" data-f="ip">7a3f…c9</span><span class="lsep">·</span>
-              <span class="lf" data-f="country">Vietnam</span><span class="lsep">·</span>
-              <span class="lf" data-f="turns">1 turn</span><span class="lsep">·</span>
-              <span class="lf" data-f="len">212 chars</span>
-            </div>
-            <div class="logtags" id="logtags">
-              <span class="ltag" data-f="ts">when</span><span class="ltag" data-f="model">which model</span><span class="ltag" data-f="ip">who, hashed</span><span class="ltag" data-f="country">where</span><span class="ltag" data-f="turns">how long they stayed</span><span class="ltag" data-f="len">how much they got</span>
-            </div>
-          </div>
-          <div class="scene scene-chat" aria-hidden="true">
-            <div class="chatwin">
-              <div class="chat-head"><span class="chat-dot"></span><span class="chat-title">Assistant</span><span class="chat-meta">the shape of that log line · words illustrative</span></div>
-              <div class="chat-body">
-                <div class="msg user"><span class="msg-text" id="u-text"></span><i class="caret" id="u-caret"></i></div>
-                <div class="msg bot" id="bot-msg"><span class="typing" id="b-typing"><i></i><i></i><i></i></span><span class="msg-text" id="b-text"></span><i class="caret" id="b-caret"></i></div>
-              </div>
-              <div class="chat-compose"><span>Reply…</span><span class="compose-btn">↑</span></div>
-            </div>
-          </div>
-          <div class="scene scene-map" aria-hidden="true"><div class="map-wrap" id="story-map"></div></div>
-          <div class="scene scene-tiles" aria-hidden="true">
-            <div class="qtile" data-i="0"><span class="qmark">?</span><span class="qlabel">who</span><span class="qanswer"></span></div>
-            <div class="qtile" data-i="1"><span class="qmark">?</span><span class="qlabel">how often</span><span class="qanswer"></span></div>
-            <div class="qtile" data-i="2"><span class="qmark">?</span><span class="qlabel">for what</span><span class="qanswer"></span></div>
-            <div class="qtile" data-i="3"><span class="qmark">?</span><span class="qlabel">where it fails</span><span class="qanswer"></span></div>
-          </div>
-          <div class="scene scene-wow" aria-hidden="true">
-            <div class="wow-card">
-              <div class="sep-legend"><span><i class="sw a"></i>gpt-4o-mini</span><span><i class="sw b"></i>gpt-4o</span><span class="sep-what">coding · repeated or corrected</span></div>
-              <div class="wow-body">
-                <div class="wow-bars">
-                  <div class="sep-row"><div class="sep-track"><div class="sep-bar a" id="how-a" style="width:23.8%"></div></div><b id="how-va">3.0%</b></div>
-                  <div class="sep-row"><div class="sep-track"><div class="sep-bar b" id="how-b" style="width:7.3%"></div></div><b id="how-vb">0.9%</b></div>
-                  <span class="sep-mode" id="how-mode">everyone on each model</span>
-                </div>
-                <div class="wow-gap"><span class="wow-k">cheap model</span><b id="how-gapv">3.2×</b><span class="wow-u">as often</span></div>
-              </div>
-              <span class="stamp" id="how-stamp">same people</span>
-            </div>
-          </div>
-          <div class="lens" aria-hidden="true">
-            <svg class="lens-svg" viewBox="0 0 120 120"><defs><radialGradient id="glassg" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#fffdf7"/><stop offset="0.7" stop-color="#f3ebd9"/><stop offset="1" stop-color="#e3d8c0"/></radialGradient></defs>
-              <line x1="86" y1="86" x2="112" y2="112" stroke="#1c1c1e" stroke-width="11" stroke-linecap="round"/>
-              <circle cx="50" cy="50" r="46" fill="url(#glassg)" stroke="#1c1c1e" stroke-width="4"/>
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#1c1c1e" stroke-opacity="0.18" stroke-width="1"/>
-              <path d="M22 36 A32 32 0 0 1 40 19" fill="none" stroke="#fff" stroke-opacity="0.8" stroke-width="3" stroke-linecap="round"/>
-            </svg>
-            <div class="glass" id="lens-chart"></div>
-          </div>
+        <p class="film-tag" id="film-tag">dots stand for people · the WildChat numbers are real</p>
+        <div class="film-controls" id="film-controls">
+          <button type="button" class="film-btn" id="film-play" aria-label="Pause">Pause</button>
+          <div class="segs" role="group" aria-label="Chapters"><button type="button" class="seg" data-chapter="1" aria-label="The dashboard"><i></i></button><button type="button" class="seg" data-chapter="2" aria-label="But"><i></i></button><button type="button" class="seg" data-chapter="3" aria-label="Same people"><i></i></button><button type="button" class="seg" data-chapter="4" aria-label="Your logs"><i></i></button></div>
+          <button type="button" class="film-btn" id="film-replay" aria-label="Replay from the start">Replay</button>
         </div>
-        <div class="canvas how-canvas" id="how-stage" data-step="1">
-          <div class="light" aria-hidden="true"></div>
-
-          <div class="hscene hs-read" aria-hidden="true">
-            <div class="files">
-              <span class="file" style="--i:0"><i>{ }</i>chat-logs.jsonl</span>
-              <span class="file" style="--i:1"><i>⟡</i>agent-traces.otlp.json</span>
-              <span class="file" style="--i:2"><i>✱</i>conversations.json</span>
-            </div>
-            <div class="tray"><span class="tray-label">your browser</span><span class="tray-lock">nothing leaves this page</span>
-              <div class="stream"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-            </div>
-          </div>
-
-          <div class="hscene hs-label" aria-hidden="true">
-            <div class="convo">
-              <div class="convo-head"><span class="intent-chip">coding</span><span class="convo-meta">conversation 48,212</span></div>
-              <div class="cm user">Why does my SQL query return duplicate rows?</div>
-              <div class="cm bot"><span class="resp">sql-agent</span>Add DISTINCT to the SELECT.</div>
-              <div class="cm user corr">No, that's wrong. I need the join fixed.<span class="flag">correction</span></div>
-              <div class="charge">charged to <b>sql-agent</b>, the reply they reacted to</div>
-            </div>
-          </div>
-
-          <div class="hscene hs-act" aria-hidden="true">
-            <div class="artifact art-verdict" style="--i:0"><span class="art-k">did my change help?</span><span class="badge">improved</span><b>−8.4 pts</b><span>corrections, for the same 380 people</span></div>
-            <div class="artifact art-file" style="--i:1"><span class="art-k">promptfooconfig.yaml</span><b>305</b><span>regression cases from real failures</span><code>npx promptfoo eval</code></div>
-            <div class="artifact art-ticket" style="--i:2"><span class="art-k">backlog.csv</span><b>coding</b><span>94 failures · 16.8% of coding conversations</span><span class="ticket-tag">→ Linear / Jira</span></div>
-          </div>
-        </div>
-        <figcaption class="frame-caption" id="frame-caption">fig. 1 — one log line, which is all a team ever sees</figcaption>
       </figure>
-      <a class="skip-story" id="skip-story" href="#finale" data-track="story_skipped">Skip the story <span aria-hidden="true">↓</span></a>
-      <p class="scroll-more" id="scroll-more" aria-hidden="true">scroll for the next part <span>↓</span></p>
     </div>
   </section>
 
@@ -196,8 +93,8 @@
       <div class="built-strip">
         <p class="marker finale-marker">and what it says to do</p>
         <div class="built-cards">
-          <a class="built-card" href="docs/10-routing-counterfactual.html"><span class="built-k">01</span><b>Don't route on usage logs alone</b><span>Comparing models across all users suggested routing by intent would cut one-turn conversations from 20.6% to 8.2%. Comparing the same people on both models showed almost none of that was the model. The doc keeps both numbers and the correction.</span></a>
-          <a class="built-card" href="docs/11-usage-weighted-eval.html"><span class="built-k">02</span><b>Judge assistants by real usage</b><span>The observed intent mix, published as weights for a team's own eval set, with a scorer that says plainly which kinds of work the set never tests.</span></a>
+          <a class="built-card" href="docs/10-routing-counterfactual.html"><span class="built-k">01</span><b>Don't pick a model from usage logs alone</b><span>The logs suggested that sending each kind of request to a different model would make far fewer conversations end after one short reply. Comparing the same people on both models showed almost none of that difference came from the model. The write-up keeps both results and the correction.</span></a>
+          <a class="built-card" href="docs/11-usage-weighted-eval.html"><span class="built-k">02</span><b>Test an assistant on what people really ask</b><span>How often people ask for each kind of help, published so a team can weight its own test set the same way, with a scorer that names the kinds of requests the set never tests.</span></a>
         </div>
       </div>
       <div class="finale-cta">
@@ -213,5 +110,6 @@
   <script src="analytics.js" defer></script>
   <script src="embed.js" defer></script>
   <script type="module" src="story.js"></script>
+  <script type="module" src="film.js"></script>
 </body>
 </html>
