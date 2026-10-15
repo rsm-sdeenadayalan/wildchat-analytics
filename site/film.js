@@ -70,6 +70,10 @@ function build(N, numbers) {
     d.append(c); layers[depth[i]].append(d); return d;
   });
   const cores = dots.map((d) => d.firstChild);
+  // The opening dot is the shot's subject: full size and opacity, outside the parallax layers, and perfectly still
+  // (centred in its ring) until it bursts into the crowd, when it starts breathing like the rest.
+  cam.append(dots[0]);
+  dots[0].style.setProperty("--ds", 1.25); dots[0].style.setProperty("--do", 1); dots[0].style.setProperty("--anim", "none");
   const ring = document.createElement("i"); ring.className = "ring"; cam.append(ring);
   const mk = (cls, html = "") => { const e = document.createElement("div"); e.className = cls; e.innerHTML = html; cam.append(e); return e; };
   const labA = mk("crowd-lab", "cheap model"), labB = mk("crowd-lab", "big model");
@@ -99,7 +103,7 @@ function build(N, numbers) {
   const sampleNote = document.createElement("p"); sampleNote.className = "sample-note";
   sampleNote.textContent = "example output, from the sample log on the try page";
   hud.append(sampleNote); gsap.set(sampleNote, { autoAlpha: 0 });
-  Object.entries(L).forEach(([k, el]) => (k === "yours" || k === "work" ? hud : cam).append(el));
+  Object.entries(L).forEach(([k, el]) => (k === "yours" || k === "work" || k === "trace" ? hud : cam).append(el));  // the opening line stays out of the zoomed camera
   const words = (el) => el.querySelectorAll(".w");
 
   // ---------- where things go ----------
@@ -139,9 +143,11 @@ function build(N, numbers) {
   const textOut = (el, at) => { tl.to(words(el), { y: "-0.35em", opacity: 0, filter: "blur(6px)", duration: 0.35, stagger: 0.025, ease: "power2.in" }, at); tl.set(el, { autoAlpha: 0 }, at + 0.6); };
   // Counting numbers are derived from the timeline's position (not from callbacks), so they are right after any jump.
   const counts = [];
-  const count = (el, from, to, at, dur, fmt) => { const o = { v: from }; counts.push({ el, o, at, from, fmt }); tl.to(o, { v: to, duration: dur, ease: "power2.out" }, at); };
+  const count = (el, from, to, at, dur, fmt) => { const o = { v: from }; const tw = gsap.to(o, { v: to, duration: dur, ease: "power2.out" }); tl.add(tw, at); counts.push({ el, o, tw, from, fmt }); };
   tl.syncTexts = () => {
+    // each counter's real place on the timeline (it moves when lines get reading time or the intro is added)
     const t = tl.time(), byEl = new Map();
+    for (const c of counts) { c.at = c.tw.startTime(); }
     for (const c of counts) { const cur = byEl.get(c.el); if (!cur || (c.at <= t && (cur.at > t || c.at > cur.at)) || (cur.at > t && c.at < cur.at)) byEl.set(c.el, c); }
     for (const [el, c] of byEl) el.textContent = c.at <= t ? c.fmt(c.o.v) : c.fmt(c.from);
   };
@@ -164,11 +170,12 @@ function build(N, numbers) {
 
   // 1 · one conversation, then all of them
   tl.addLabel("c1", 0);
-  tl.to(dots[0], { scale: 2.2, opacity: 1, duration: 0.5, ease: "back.out(3)" }, 0.25);
+  tl.set(dots[0], { scale: 2.2, opacity: 1 }, 0.25);  // handed over from the chat, already full size
   tl.fromTo(ring, { scale: 0.2, opacity: 0.8 }, { scale: 6, opacity: 0, duration: 1.1, ease: "power2.out", immediateRender: false }, 0.45);
   textIn(L.trace, 0.5);
   textOut(L.trace, 1.9);
   tl.to(dots, { x: (i) => cloud[i].x, y: (i) => cloud[i].y, scale: 1, opacity: 1, duration: 1.1, ease: "expo.out", stagger: { each: 0.003, from: "start" } }, 2.0);
+  tl.set(dots[0], { "--anim": "breathe" }, 2.05);
   tl.to(cam, { scale: 1, duration: 1.6, ease: "power3.inOut" }, 1.9);  // the camera pulls back as one becomes millions
   textIn(L.count, 2.05);
   count($(".count", L.count), 0, numbers.convs, 2.1, 1.3, (v) => fmtInt.format(Math.round(v)));
@@ -267,7 +274,51 @@ function build(N, numbers) {
   // (latest first, so each threshold still refers to the original times).
   // [time after which everything moves later, seconds added]: "Now point Loupe…", "Same people…", "So Loupe compares…",
   // "But the two models…", "People have to correct…", "A dashboard splits them…"
-  [[19.85, 0.4], [16.5, 0.9], [12.55, 0.6], [10.7, 0.9], [7.8, 0.8], [4.85, 0.9]].forEach(([after, extra]) => tl.shiftChildren(extra, true, after));
+  // net seconds added after each hold: reading time for the longer lines, minus a fifth of each resting pause
+  [[21.95, -0.22], [19.85, 0.18], [16.5, 0.5], [12.55, 0.35], [10.7, 0.55], [7.8, 0.45], [4.85, 0.65], [3.55, -0.12], [1.85, -0.1]]
+    .forEach(([after, extra]) => tl.shiftChildren(extra, true, after));
+  // ---------- the opening: what a conversation is, and what a correction looks like ----------
+  // Everything above moves later by INTRO seconds. The chat plays the way a real assistant renders: the person's
+  // messages appear whole, as sent; the reply thinks, then streams in word by word. Then the chat morphs into the
+  // first dot: it shrinks, rounds and turns orange, ending exactly where the dot sits, at its size.
+  const INTRO = 4.25;
+  tl.shiftChildren(INTRO, true, 0);
+  const chat = document.createElement("div"); chat.className = "chat-intro";
+  const reply = "Sure. Wrap the handler in a try/catch.".split(" ").map((w) => `<span class="tok">${w}</span>`).join(" ");
+  chat.innerHTML = `<div class="ci-head"><i></i>AI assistant</div>
+    <p class="ci-msg user ci-1">My login page crashes on submit. Can you fix it?</p>
+    <div class="ci-msg bot ci-2"><i class="ci-avatar"></i><span class="ci-typing"><i></i><i></i><i></i></span><span class="ci-text">${reply}</span></div>
+    <p class="ci-msg user ci-3">That didn't work. It still crashes.<span class="ci-flag">correction</span></p>`;
+  hud.append(chat);
+  const ask = line("Someone asks an AI assistant for help.", "top"), wrong = line("When it gets it wrong, people have to correct it.", "top");
+  hud.append(ask, wrong);
+  const ci = (sel) => $(sel, chat), toks = chat.querySelectorAll(".tok");
+  // where the dot will be, and how big: the chat ends exactly there
+  // the dot's real on-screen size: its core (base size x depth scale) x its scale (2.2) x the camera's opening zoom (1.7)
+  const cw = chat.offsetWidth, ch = chat.offsetHeight, D = parseFloat(getComputedStyle(cores[0]).width) * 2.2 * 1.7;
+  const dy = H / 2 - parseFloat(getComputedStyle(chat).top);  // the chat is centred on its top (CSS translate -50%); the dot sits mid-frame
+  gsap.set(chat, { xPercent: -50, yPercent: -50, autoAlpha: 0, y: 24, scale: 0.97 });  // centring in GSAP's own terms (it overrides CSS translate)
+  gsap.set([ask, wrong], { autoAlpha: 0 });
+  gsap.set([ci(".ci-1"), ci(".ci-2"), ci(".ci-3")], { autoAlpha: 0, y: 10 });
+  gsap.set(toks, { opacity: 0 }); gsap.set(ci(".ci-flag"), { autoAlpha: 0, scale: 0.6 });
+  tl.to(chat, { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, 0.1);
+  textIn(ask, 0.25);
+  tl.to(ci(".ci-1"), { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out" }, 0.55);               // sent
+  tl.to(ci(".ci-2"), { autoAlpha: 1, y: 0, duration: 0.25 }, 1.0);                                   // thinking
+  tl.to(ci(".ci-typing"), { autoAlpha: 0, duration: 0.12 }, 1.45);
+  tl.to(toks, { opacity: 1, duration: 0.14, stagger: 0.06, ease: "none" }, 1.5);                     // streaming
+  textOut(ask, 1.95);
+  tl.to(ci(".ci-3"), { autoAlpha: 1, y: 0, duration: 0.3, ease: "power2.out" }, 2.3);                // sent
+  tl.to(ci(".ci-3"), { backgroundColor: "#f2a93b", color: "#1c1c1e", duration: 0.3 }, 2.75);
+  tl.to(ci(".ci-flag"), { autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(2.5)" }, 2.8);
+  textIn(wrong, 2.65);
+  textOut(wrong, 3.6);
+  // the chat morphs into the first dot
+  tl.to([ci(".ci-head"), ci(".ci-1"), ci(".ci-2"), ci(".ci-3")], { autoAlpha: 0, duration: 0.2 }, 3.7);
+  tl.to(chat, { scaleX: D / cw, scaleY: D / ch, y: dy, backgroundColor: "#f2a93b", borderColor: "rgba(0,0,0,0)", borderRadius: "50%",
+    boxShadow: "0 0 0 rgba(0,0,0,0)", duration: 0.6, ease: "power3.inOut" }, 3.85);
+  tl.set(chat, { autoAlpha: 0 }, INTRO + 0.25);
+  tl.addLabel("c1", 0);
   tl.timeScale(1.04);  // a little faster overall
   return tl;
 }

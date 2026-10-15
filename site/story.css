@@ -620,7 +620,7 @@ body:not(.in-story) #story .skip-story { opacity: 0; pointer-events: none; }
 .film-stage .layer { position: absolute; inset: 0; }
 .film-stage .p { width: 0; height: 0; margin: 0; }
 .film-stage .p .core { position: absolute; width: calc(9px * var(--ds, 1)); height: calc(9px * var(--ds, 1)); margin: calc(-4.5px * var(--ds, 1)) 0 0 calc(-4.5px * var(--ds, 1)); border-radius: 50%; opacity: var(--do, 1);
-  animation: breathe var(--fd, 3s) ease-in-out var(--fo, 0s) infinite alternate; }
+  animation: var(--anim, breathe) var(--fd, 3s) ease-in-out var(--fo, 0s) infinite alternate; }
 @keyframes breathe { from { transform: translate(0, 0); } to { transform: translate(var(--fx, 0), var(--fy, 0)); } }
 @media (max-width: 900px) { .film-stage .p .core { width: calc(7px * var(--ds, 1)); height: calc(7px * var(--ds, 1)); margin: calc(-3.5px * var(--ds, 1)) 0 0 calc(-3.5px * var(--ds, 1)); } }
 @media (hover: none) {
@@ -689,3 +689,27 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
 .mag::after { content: ""; position: absolute; width: 19%; height: 9%; left: calc(50% + 36.5% - 9.5%); top: calc(50% + 36.5%); background: var(--ink); border-radius: 3px; transform: rotate(-45deg); transform-origin: 50% 0; }
 .flens-handle { width: 13%; height: 50%; left: calc(50% + 33% - 6.5%); top: calc(50% + 33%); border-radius: 0 0 9px 9px; transform: rotate(-45deg); transform-origin: 50% 0; }
 .flens::after { content: ""; position: absolute; width: 19%; height: 9%; left: calc(50% + 36.5% - 9.5%); top: calc(50% + 36.5%); background: #1c1c1e; border-radius: 3px; transform: rotate(-45deg); transform-origin: 50% 0; }
+
+/* the film's opening chat */
+.chat-intro { position: absolute; left: 50%; top: 56%; width: min(580px, 88%); background: var(--cream); color: var(--ink); border: 1px solid var(--ink); border-radius: 18px; padding: 14px 16px 18px; box-shadow: 0 6px 0 var(--ink), 0 50px 100px -40px rgba(0, 0, 0, 0.6); display: grid; gap: 12px; visibility: hidden; }
+.ci-head { display: flex; align-items: center; gap: 8px; font: 600 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.ci-head i { width: 9px; height: 9px; border-radius: 50%; background: var(--blue); }
+.ci-msg { position: relative; margin: 0; max-width: 82%; padding: 11px 14px; border-radius: 14px; font: 400 clamp(15px, 1.35vw, 18px)/1.4 var(--body); }
+.ci-msg.user { justify-self: end; background: var(--blue-deep); color: var(--cream); border-bottom-right-radius: 4px; }
+.ci-msg.bot { justify-self: start; background: var(--paper-2); border-bottom-left-radius: 4px; display: grid; }
+.ci-msg.bot > :not(.ci-avatar) { grid-area: 1 / 1; }
+.ci-typing { display: inline-flex; gap: 4px; align-items: center; height: 1.4em; }
+.ci-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); animation: typing 1s infinite ease-in-out; }
+.ci-typing i:nth-child(2) { animation-delay: 0.15s; } .ci-typing i:nth-child(3) { animation-delay: 0.3s; }
+.ci-flag { position: absolute; right: 10px; top: -12px; font: 600 10.5px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 9px; border-radius: 999px; background: var(--ink); color: var(--cream); }
+@media (max-width: 900px) { .chat-intro { top: 54%; padding: 12px 12px 14px; } .ci-msg { font-size: 14px; max-width: 88%; } }
+@media (min-width: 901px) { .chat-intro { width: min(720px, 60vw); padding: 18px 22px 24px; gap: 16px; border-radius: 22px; } .ci-msg { font-size: clamp(17px, 1.5vw, 22px); padding: 14px 18px; } .ci-head { font-size: 13px; } .ci-flag { font-size: 12px; top: -14px; } }
+/* the reply renders like a real assistant: no bubble, a small avatar, a thinking pulse, then streamed words */
+.ci-msg.bot { background: none; padding-left: 30px; position: relative; max-width: 88%; }
+.ci-avatar { position: absolute; left: 4px; top: 0.55em; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffc46b, #f2a93b 60%, #d98a1c); }
+.ci-msg.bot .ci-typing, .ci-msg.bot .ci-text { grid-area: 1 / 1; }
+.chat-intro { transform-origin: 50% 50%; }
+.ci-msg.bot { padding: 10px 14px 10px 40px; }
+.ci-avatar { left: 12px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; }
+.chat-intro .ci-msg.bot { padding: 10px 14px 10px 42px !important; }
+.chat-intro .ci-avatar { position: absolute; left: 14px; top: 50%; translate: 0 -50%; }

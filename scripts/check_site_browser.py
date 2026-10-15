@@ -221,9 +221,9 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             if await chap() != "1" or await story.evaluate("document.querySelector('#film-play').textContent") == "Pause":
                 problems.append("story: the film should wait in chapter 1 until it is on screen")
             await story.evaluate("document.querySelector('#story').scrollIntoView({block: 'center'})")
-            await story.wait_for_timeout(11500)
+            await story.wait_for_timeout(15500)
             if await chap() != "2":
-                problems.append(f"story: after about 11 s on screen the film should be in chapter 2, got {await chap()!r}")
+                problems.append(f"story: after about 15 s on screen the film should be in chapter 2, got {await chap()!r}")
             # Pause holds the frame; a chapter marker jumps to that chapter.
             await story.click("#film-play")
             t0 = await story.evaluate("document.querySelector('.ratio-n').textContent + document.querySelector('#film-stage').dataset.chapter")
