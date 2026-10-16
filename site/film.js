@@ -323,7 +323,33 @@ function build(N, numbers) {
   return tl;
 }
 
+// The frame's shape follows the scroll: a rounded card under the hero, edge to edge once it fills the window,
+// and rounding back into a card as the page carries it away. Runs before the film loads anything, so the first
+// paint is already the card (the stylesheet draws the same card by default), never a full-width flash.
+function bindShape() {
+  const section = $("#story"), frame = $("#frame");
+  const easeIO = (t) => t * t * (3 - 2 * t);
+  let shapeQueued = false;
+  const shape = () => {
+    shapeQueued = false;
+    const top = section.getBoundingClientRect().top, vh = innerHeight;
+    const enter = Math.min(1, Math.max(0, 1 - top / (vh * 0.85)));   // 0 while below the fold, 1 when it reaches the top
+    const leave = Math.min(1, Math.max(0, -top / (vh * 0.6)));       // 0 at the top, 1 once mostly scrolled past
+    const k = 1 - easeIO(Math.min(enter, 1 - leave));               // 1: card, 0: full screen
+    const shrink = innerWidth < 700 ? 0.06 : 0.07;  // the whole film scales into the card, so buttons and text shrink with it
+    frame.style.setProperty("--fs", (1 - k * shrink).toFixed(4));
+    frame.style.setProperty("--fr", `${(k * 28).toFixed(1)}px`);
+  };
+  const queueShape = () => { if (!shapeQueued) { shapeQueued = true; requestAnimationFrame(shape); } };
+  addEventListener("scroll", queueShape, { passive: true }); addEventListener("resize", queueShape);
+  // the first measurement may differ from the stylesheet's default card by a few pixels: ease into it, don't jump
+  frame.style.transition = "transform 0.35s ease-out, border-radius 0.35s ease-out";
+  shape();
+  setTimeout(() => { frame.style.transition = ""; }, 400);
+}
+
 async function main() {
+  bindShape();
   const stage = $("#film-stage");
   if (!stage) return;
   const numbers = await loadNumbers();
@@ -389,23 +415,8 @@ async function main() {
       tl.kill(); tl = build(0, numbers); attach(); tl.seek(t); if (was) tl.play(); paint();
     }, 200);
   });
-  // The frame's shape follows the scroll: a rounded card under the hero, edge to edge once it fills the window,
-  // and rounding back into a card as the page carries it away.
-  const section = $("#story"), frame = $("#frame");
-  const easeIO = (t) => t * t * (3 - 2 * t);
-  let shapeQueued = false;
-  const shape = () => {
-    shapeQueued = false;
-    const top = section.getBoundingClientRect().top, vh = innerHeight;
-    const enter = Math.min(1, Math.max(0, 1 - top / (vh * 0.85)));   // 0 while below the fold, 1 when it reaches the top
-    const leave = Math.min(1, Math.max(0, -top / (vh * 0.6)));       // 0 at the top, 1 once mostly scrolled past
-    const k = 1 - easeIO(Math.min(enter, 1 - leave));               // 1: card, 0: full screen
-    const shrink = innerWidth < 700 ? 0.06 : 0.07;  // the whole film scales into the card, so buttons and text shrink with it
-    frame.style.setProperty("--fs", (1 - k * shrink).toFixed(4));
-    frame.style.setProperty("--fr", `${(k * 28).toFixed(1)}px`);
-  };
-  const queueShape = () => { if (!shapeQueued) { shapeQueued = true; requestAnimationFrame(shape); } };
-  addEventListener("scroll", queueShape, { passive: true }); addEventListener("resize", queueShape); shape();
+
+  const section = $("#story");
   // A gentle snap: when scrolling stops with the film within a tenth of a screen of filling the window, it settles
   // exactly into place. Further away it never pulls, so scrolling on past the film is never fought.
   let settleT = null, settling = false;

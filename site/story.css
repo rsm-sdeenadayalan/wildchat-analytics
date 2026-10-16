@@ -713,3 +713,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
 .ci-avatar { left: 12px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; }
 .chat-intro .ci-msg.bot { padding: 10px 14px 10px 42px !important; }
 .chat-intro .ci-avatar { position: absolute; left: 14px; top: 50%; translate: 0 -50%; }
+/* the film's resting card, from the first paint (film.js keeps these in step with the scroll) */
+#story .frame { --fs: 0.93; --fr: 28px; }
+@media (max-width: 699px) { #story .frame { --fs: 0.94; } }
