@@ -88,8 +88,9 @@
           <button type="button" class="chip" data-export="promptfoo">promptfoo config · YAML</button>
           <button type="button" class="chip" data-export="csv">Backlog · CSV</button>
         </div>
+        <div id="why" class="why"></div>
         <div id="fx-table"></div>
-        <details class="def"><summary>What's in the files</summary><p><b>Eval cases</b>: one line per conversation, holding the messages up to the reply that failed, that reply, and what the person said next, with its intent and responder. <b>promptfoo config</b>: the same cases as tests, each replaying the conversation and asserting with a rubric that the new reply avoids the problem the person flagged; set the provider to your assistant and run <code>npx promptfoo eval</code>. <b>Backlog</b>: failures grouped by intent and responder with example asks, for import into Linear or Jira. The files hold your users' real messages; they are built in this page and saved only to your machine.</p></details>
+        <details class="def"><summary>What's in the files</summary><p><b>Eval cases</b>: one line per conversation, holding the messages up to the reply that failed, that reply, and what the person said next, with its intent and responder. <b>promptfoo config</b>: the same cases as tests, each replaying the conversation and asserting with a rubric that the new reply avoids the problem the person flagged; set the provider to your assistant and run <code>npx promptfoo eval</code>. <b>Backlog</b>: failures grouped by intent and responder with the most common reason and example asks, for import into Linear or Jira. Each eval case also carries its <code>reason</code>. The files hold your users' real messages; they are built in this page and saved only to your machine.</p></details>
       </div>
 
       <div class="card chart"><h2 data-personal="What you use it for">What people use it for</h2><p class="so" id="intent-so"></p><figure id="intent-fig"></figure>

@@ -938,9 +938,10 @@ export async function renderNext(conn, meta) {
   const view = $("#view-next");
   view.innerHTML = "";
   const doc = (n) => new URL(`docs/${n}`, import.meta.url).href;
-  const [rc, mix, reveal] = await Promise.all([
+  const [rc, mix, why, reveal] = await Promise.all([
     fetch(new URL("aggregates/routing_counterfactual.json", import.meta.url)).then((r) => r.json()).catch(() => null),
     fetch(new URL("aggregates/eval_mix.json", import.meta.url)).then((r) => r.json()).catch(() => null),
+    fetch(new URL("aggregates/failure_reasons.json", import.meta.url)).then((r) => r.json()).catch(() => null),
     fetch(new URL("aggregates/user_mix_reveal.json", import.meta.url)).then((r) => r.json()).catch(() => null),
   ]);
   // The fix list ranks intents, not models: per-model gaps in usage logs are mostly user mix (card 02).
@@ -980,6 +981,17 @@ export async function renderNext(conn, meta) {
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       window.loupeTrack?.("next_backlog_downloaded", {});
     });
+  }
+
+  // ---- Why they fail: reasons read from what people said when they pushed back ----
+  if (why && why.reasons?.length && !FILTER.model) {
+    const max = why.reasons[0].count;
+    const rows = why.reasons.map((r) => `<details class="why-row"><summary><span class="why-label">${esc(r.label)}</span><span class="why-bar"><i style="width:${(100 * r.count / max).toFixed(1)}%"></i></span><span class="why-n">${r.share < 0.005 ? "<1%" : fmtPct0(r.share)}</span></summary><p class="why-plain">${esc(r.plain)} <b>What to try:</b> ${esc(r.fix)}</p></details>`).join("");
+    const stated = why.reasons.filter((r) => !["resent", "reworded"].includes(r.id)).reduce((s2, r) => s2 + r.share, 0);
+    view.append(el(`<div class="card next"><p class="eyebrow">why they fail</p><h2>What went wrong, in people's own words</h2>
+      <p class="so">Most people who hit a problem just asked again without saying why. Where the reason is clear, the most common is: <b>${esc(why.reasons.find((r) => !["resent", "reworded", "unclear"].includes(r.id))?.label.toLowerCase() || "")}</b>.</p>
+      <div class="why-list">${rows}</div>
+      <details class="def"><summary>How this is worked out</summary><p>${esc(why.method)} Measured on one shard of the dataset: ${fmtInt.format(why.sample.conversations)} conversations, ${fmtInt.format(why.sample.failures)} with a failure. ${fmtPct0(stated)} of failures say what was wrong; the rest are a re-sent or reworded request with no reason given. The same rules run on your own logs on the try page, where you can see the examples.</p></details></div>`));
   }
 
   // ---- 02 Model or the people ----

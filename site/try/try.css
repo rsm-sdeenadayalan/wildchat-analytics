@@ -49,3 +49,21 @@
 .def.sum pre { margin: 8px 0 0; padding: 12px 14px; background: var(--bg-alt); border: 1px solid var(--ink); border-radius: var(--radius); font: 400 12.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 @media (max-width: 640px) { .top .tag, .top .docs-link + .docs-link { display: none; } .top .wrap { flex-wrap: nowrap; } }
+
+/* why they failed */
+.why { margin: 6px 0 18px; }
+.why-h { margin: 0 0 10px; font: 600 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.why-list { display: grid; gap: 4px; }
+.why-row summary { display: grid; grid-template-columns: minmax(0, 220px) 1fr 110px; gap: 12px; align-items: center; padding: 6px 4px; cursor: pointer; list-style: none; border-radius: 6px; }
+.why-row summary::-webkit-details-marker { display: none; }
+.why-row summary:hover { background: var(--paper-2); }
+.why-label { font: 600 14.5px/1.25 var(--body); }
+.why-bar { height: 12px; background: var(--paper-2); border-radius: 4px; overflow: hidden; }
+.why-bar i { display: block; height: 100%; background: var(--orange); border-radius: 4px; }
+.why-n { text-align: right; font: 400 12.5px/1 var(--mono); color: var(--muted); }
+.why-plain { margin: 4px 4px 6px; font-size: 14.5px; color: var(--muted); line-height: 1.45; }
+.why-plain b { color: var(--fg); }
+.why-ex { margin: 0 4px 10px; padding-left: 18px; font-size: 13.5px; color: var(--fg); }
+.why-ex li { margin: 3px 0; }
+.why-note { margin: 10px 0 0; font: 400 12px/1.4 var(--mono); color: var(--muted); }
+@media (max-width: 760px) { .why-row summary { grid-template-columns: 1fr 70px; } .why-bar { grid-column: 1 / -1; grid-row: 2; } }

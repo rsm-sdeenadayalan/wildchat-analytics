@@ -1,0 +1,212 @@
+{
+  "sample": {
+    "shard": "train-00000-of-00086.parquet",
+    "conversations": 37208,
+    "failures": 3597
+  },
+  "method": "Each conversation's first repeated request or correction gets one reason from what the person said when they pushed back (and, for refusals, the reply they reacted to), using the rules in site/try/failure-reasons.json. Rule-based and transparent: no conversation text is published.",
+  "reasons": [
+    {
+      "id": "reworded",
+      "label": "Reworded the request",
+      "plain": "The person asked again in different words, as if trying to be understood.",
+      "fix": "Treat as a missed intent: add these rewordings as test cases and check the first answer's reading of the request.",
+      "count": 1746,
+      "share": 0.4854045037531276
+    },
+    {
+      "id": "resent",
+      "label": "Sent the same request again",
+      "plain": "The person asked exactly the same thing again, like pressing regenerate: the answer didn't satisfy them, and they didn't say why.",
+      "fix": "Compare the first and second answers in a few examples; the gap is usually depth, accuracy or tone.",
+      "count": 1180,
+      "share": 0.3280511537392271
+    },
+    {
+      "id": "refused",
+      "label": "Refused or dodged",
+      "plain": "The assistant declined or deflected, and the person pushed back.",
+      "fix": "Review refusal rules and system prompt for over-cautious declines.",
+      "count": 279,
+      "share": 0.07756463719766472
+    },
+    {
+      "id": "unclear",
+      "label": "Pushed back, reason unclear",
+      "plain": "The person corrected the answer, but in words these rules don't recognise.",
+      "fix": "Read a few examples to find the pattern.",
+      "count": 117,
+      "share": 0.03252710592160134
+    },
+    {
+      "id": "misunderstood",
+      "label": "Misunderstood the request",
+      "plain": "The answer addressed a different question from the one asked.",
+      "fix": "Ask a clarifying question when a request is ambiguous; add examples of the task.",
+      "count": 75,
+      "share": 0.020850708924103418
+    },
+    {
+      "id": "wrong",
+      "label": "Factually wrong",
+      "plain": "The answer stated something false or got a detail wrong.",
+      "fix": "Ground answers in sources or tools; add these cases as factual tests.",
+      "count": 74,
+      "share": 0.02057269947178204
+    },
+    {
+      "id": "incomplete",
+      "label": "Incomplete or cut off",
+      "plain": "The answer stopped early or left parts out.",
+      "fix": "Raise output limits or ask for the full answer in one reply.",
+      "count": 49,
+      "share": 0.013622463163747567
+    },
+    {
+      "id": "broken",
+      "label": "Didn't work",
+      "plain": "The person tried the answer and it failed: an error, a crash, the same problem.",
+      "fix": "Replay these cases as tests; check the code or steps actually run.",
+      "count": 35,
+      "share": 0.009730330831248262
+    },
+    {
+      "id": "language",
+      "label": "Wrong language",
+      "plain": "The answer came back in the wrong language.",
+      "fix": "Detect the user's language and answer in it by default.",
+      "count": 26,
+      "share": 0.007228245760355852
+    },
+    {
+      "id": "format",
+      "label": "Wrong length or format",
+      "plain": "Right idea, wrong shape: too long, too short, or not the format asked for.",
+      "fix": "Set length and format expectations in the system prompt; offer a format control.",
+      "count": 16,
+      "share": 0.004448151237142063
+    }
+  ],
+  "by_intent": {
+    "questions": {
+      "failures": 1838,
+      "top": [
+        {
+          "id": "reworded",
+          "label": "Reworded the request",
+          "share": 0.5038084874863983
+        },
+        {
+          "id": "resent",
+          "label": "Sent the same request again",
+          "share": 0.31392818280739937
+        },
+        {
+          "id": "refused",
+          "label": "Refused or dodged",
+          "share": 0.07562568008705114
+        }
+      ]
+    },
+    "coding": {
+      "failures": 769,
+      "top": [
+        {
+          "id": "reworded",
+          "label": "Reworded the request",
+          "share": 0.4759427828348505
+        },
+        {
+          "id": "resent",
+          "label": "Sent the same request again",
+          "share": 0.293888166449935
+        },
+        {
+          "id": "refused",
+          "label": "Refused or dodged",
+          "share": 0.09752925877763328
+        }
+      ]
+    },
+    "writing_and_business": {
+      "failures": 598,
+      "top": [
+        {
+          "id": "reworded",
+          "label": "Reworded the request",
+          "share": 0.5
+        },
+        {
+          "id": "resent",
+          "label": "Sent the same request again",
+          "share": 0.38127090301003347
+        },
+        {
+          "id": "refused",
+          "label": "Refused or dodged",
+          "share": 0.04013377926421405
+        }
+      ]
+    },
+    "creative_roleplay": {
+      "failures": 175,
+      "top": [
+        {
+          "id": "resent",
+          "label": "Sent the same request again",
+          "share": 0.41714285714285715
+        },
+        {
+          "id": "reworded",
+          "label": "Reworded the request",
+          "share": 0.32571428571428573
+        },
+        {
+          "id": "refused",
+          "label": "Refused or dodged",
+          "share": 0.10285714285714286
+        }
+      ]
+    },
+    "null": {
+      "failures": 92,
+      "top": [
+        {
+          "id": "reworded",
+          "label": "Reworded the request",
+          "share": 0.4782608695652174
+        },
+        {
+          "id": "resent",
+          "label": "Sent the same request again",
+          "share": 0.32608695652173914
+        },
+        {
+          "id": "refused",
+          "label": "Refused or dodged",
+          "share": 0.09782608695652174
+        }
+      ]
+    },
+    "other": {
+      "failures": 88,
+      "top": [
+        {
+          "id": "resent",
+          "label": "Sent the same request again",
+          "share": 0.38636363636363635
+        },
+        {
+          "id": "reworded",
+          "label": "Reworded the request",
+          "share": 0.36363636363636365
+        },
+        {
+          "id": "refused",
+          "label": "Refused or dodged",
+          "share": 0.14772727272727273
+        }
+      ]
+    }
+  }
+}

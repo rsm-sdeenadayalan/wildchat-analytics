@@ -411,13 +411,50 @@ export function failureCases(norm, a) {
       if ((r || k) && lastReply >= 0) {
         const reply = c.messages[lastReply];
         cases.push({ id: c.id, intent: row.intent, responder: reply.responder || c.model || "assistant", failure: k ? "correction" : "repeat",
-          context: c.messages.slice(0, lastReply).map((x) => ({ role: x.role, content: x.content })), bad_reply: reply.content, user_feedback: m.content, version: row.version });
+          context: c.messages.slice(0, lastReply).map((x) => ({ role: x.role, content: x.content })), bad_reply: reply.content, user_feedback: m.content, prev_request: prevUser, version: row.version });
         break;
       }
       prevUser = m.content;
     }
   });
   return cases;
+}
+
+// ---------- why it failed ----------
+// A reason for each failure, read from what the person said when they pushed back (and, for refusals, the reply
+// itself). Rules live in failure-reasons.json, shared with scripts/failure_reasons.py; the first match wins.
+const EDGE = "(?:(?<![\\p{L}\\p{N}_])|(?![\\p{L}\\p{N}_]))";  // a word edge that works for any script
+const compileRule = (src) => new RegExp(src.replaceAll("{B}", EDGE).replaceAll("{AP}", "['’]?"), "iu");
+export function compileReasons(spec) {
+  return {
+    reasons: spec.reasons.map((r) => ({ ...r, fb: (r.feedback || []).map(compileRule), rp: (r.reply || []).map(compileRule) })),
+    fallback: spec.fallback,
+  };
+}
+export function reasonOf(c, R) {
+  for (const r of R.reasons) {
+    if (r.rp.some((x) => x.test(c.bad_reply || ""))) return r;
+    // in a repeat, only words that are new count: the original task is not a complaint
+    // (a short message like "continue" is the pushback itself, so this applies only to longer requests)
+    const task = c.failure === "repeat" && c.prev_request && String(c.user_feedback).trim().length > 40;
+    if (r.fb.some((x) => x.test(c.user_feedback || "") && !(task && x.test(c.prev_request)))) return r;
+  }
+  const sim = c.failure === "repeat" && c.prev_request != null ? jaccard(c.prev_request, c.user_feedback) : 0;
+  return R.fallback.find((f) => f.when === c.failure && sim >= (f.min_similarity ?? 0)) || R.fallback.at(-1);
+}
+// Failures grouped by reason, largest first, with the person's own words as examples.
+export function failureReasons(cases, R) {
+  const g = new Map();
+  for (const c of cases) {
+    const r = reasonOf(c, R);
+    c.reason = r.id;
+    if (!g.has(r.id)) g.set(r.id, { id: r.id, label: r.label, plain: r.plain, fix: r.fix, count: 0, examples: [] });
+    const x = g.get(r.id); x.count++;
+    const ex = String(c.user_feedback).replace(/\s+/g, " ").slice(0, 140);
+    if (x.examples.length < 3 && !x.examples.includes(ex)) x.examples.push(ex);  // three different examples
+  }
+  const total = cases.length || 1;
+  return [...g.values()].map((x) => ({ ...x, share: x.count / total })).sort((p, q) => q.count - p.count);
 }
 
 // Backlog themes: failures grouped by intent (and by responder when byResponder), with the opening asks of failed

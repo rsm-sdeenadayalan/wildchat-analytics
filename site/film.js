@@ -426,6 +426,7 @@ async function main() {
     });
   }
   paint(); label();
+  window.__duration = () => tl.duration();  // for the checks and the video render
   window.__seek = (t) => { tl.pause(); playing = false; tl.seek(t); paint(); label(); };  // for the browser checks
 }
 

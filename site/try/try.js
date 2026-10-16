@@ -1,5 +1,5 @@
 import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm";
-import { normalize, analyze, compareModels, versionChanges, beforeAfter, failureCases, backlog } from "./engine.js";
+import { normalize, analyze, compareModels, versionChanges, beforeAfter, failureCases, backlog, compileReasons, failureReasons } from "./engine.js";
 import { loadIntentModel } from "./intent.js";
 
 const $ = (s) => document.querySelector(s);
@@ -13,6 +13,8 @@ let last = null;  // { norm, a, name, compare } for the copy-summary button
 
 let classifierP = null;
 const classifier = () => (classifierP ??= fetch(new URL("intent-model.json", import.meta.url)).then((r) => r.json()).then(loadIntentModel));
+let reasonsP = null;
+const reasonRules = () => (reasonsP ??= fetch(new URL("failure-reasons.json", import.meta.url)).then((r) => r.json()).then(compileReasons));
 const status = (msg, err = false) => { const s = $("#status"); s.hidden = !msg; s.textContent = msg || ""; s.classList.toggle("err", err); };
 const statusHtml = (html) => { const s = $("#status"); s.hidden = false; s.innerHTML = html; s.classList.add("err"); };
 const sizeBucket = (n) => (n < 1e3 ? "<1k" : n < 1e4 ? "1k-10k" : n < 1e5 ? "10k-100k" : "100k+");
@@ -23,11 +25,11 @@ async function run(text, name, source) {
     await new Promise((r) => setTimeout(r, 20));
     const norm = normalize(text, name);
     status(`Classifying ${fmt.format(norm.conversations.length)} conversations in your browser…`);
-    const clf = await classifier();
+    const [clf, rules] = await Promise.all([classifier(), reasonRules()]);
     await new Promise((r) => setTimeout(r, 20));
     const a = analyze(norm, clf);
     status("");
-    last = { norm, a, name, compare: null, change: null, cases: [], themes: [] };
+    last = { norm, a, name, rules, compare: null, change: null, cases: [], themes: [], reasons: [] };
     render(norm, a, clf);
     window.loupeTrack?.("try_analyzed", { source, format: norm.format, personal: norm.personal, conversations: sizeBucket(a.n), has_users: a.realUsers, models: a.models.length, responders: a.responders.length });
     $("#results").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -180,10 +182,18 @@ function setupFailures(norm, a, me) {
   // When responders are model names, splitting failures by them repeats the naive model comparison; group by intent only.
   const byResp = !respAreModels(a);
   const cases = failureCases(norm, a), themes = backlog(cases, a, byResp);
-  if (last) Object.assign(last, { cases, themes });
+  const reasons = last?.rules ? failureReasons(cases, last.rules) : [];
+  // the most common reason in each backlog row, for the CSV
+  const byId = Object.fromEntries(reasons.map((r) => [r.id, r.label]));
+  for (const t of themes) {
+    const n = {}; for (const c of cases) if (c.intent === t.intent && (!byResp || c.responder === t.responder)) n[c.reason] = (n[c.reason] || 0) + 1;
+    const top = Object.entries(n).sort((x, y) => y[1] - x[1])[0]; t.top_reason = top ? byId[top[0]] : "";
+  }
+  if (last) Object.assign(last, { cases, themes, reasons });
+  drawReasons(reasons, cases.length, me);
   const card = $("#fx-card");
   card.querySelector(".fx-actions").hidden = !cases.length;
-  if (!cases.length) { $("#fx-so").textContent = "No corrections or repeated requests found in this file."; $("#fx-table").innerHTML = ""; return; }
+  if (!cases.length) { $("#fx-so").textContent = "No corrections or repeated requests found in this file."; $("#fx-table").innerHTML = ""; $("#why").innerHTML = ""; return; }
   const top = themes[0];
   const multi = byResp && new Set(themes.map((x) => x.responder)).size > 1;
   $("#fx-so").textContent = me
@@ -192,6 +202,20 @@ function setupFailures(norm, a, me) {
     (byResp || me ? "" : " Failures are not split by model here: different people use each model, so check model gaps with Model or users? above.");
   $("#fx-table").innerHTML = `<div class="tablewrap"><table class="grid"><thead><tr><th>theme</th>${multi ? "<th>responder</th>" : ""}<th>failures</th><th>${multi ? "of its conversations in the theme" : "of the theme's conversations"}</th><th>a conversation that failed began with</th></tr></thead><tbody>${
     themes.slice(0, 8).map((x) => `<tr><td>${esc(x.intent)}</td>${multi ? `<td>${esc(x.responder)}</td>` : ""}<td>${fmt.format(x.failures)}</td><td>${pct(x.share)}</td><td class="fx-ex">${esc(x.examples[0] || "")}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+// Why they failed: one bar per reason, with what to try and the person's own words as examples.
+function drawReasons(reasons, total, me) {
+  const box = $("#why");
+  if (!box) return;
+  if (!reasons.length) { box.innerHTML = ""; return; }
+  const max = reasons[0].count;
+  box.innerHTML = `<h3 class="why-h">${me ? "Why your conversations failed" : "Why they failed"}</h3>
+    <div class="why-list">${reasons.map((r) => `<details class="why-row"><summary>
+        <span class="why-label">${esc(r.label)}</span><span class="why-bar"><i style="width:${(100 * r.count / max).toFixed(1)}%"></i></span><span class="why-n">${fmt.format(r.count)} · ${pct(r.share)}</span></summary>
+        <p class="why-plain">${esc(r.plain)} <b>What to try:</b> ${esc(r.fix)}</p>
+        ${r.examples.length ? `<ul class="why-ex">${r.examples.map((e) => `<li>“${esc(e)}”</li>`).join("")}</ul>` : ""}</details>`).join("")}</div>
+    <p class="why-note">Read from what ${me ? "you" : "people"} said when ${me ? "you" : "they"} pushed back, using transparent keyword rules (no AI reads your messages). Click a reason for examples.</p>`;
 }
 
 const transcript = (msgs) => msgs.map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join("\n\n").slice(-20000);
@@ -206,14 +230,14 @@ const EXPORTS = {
     "providers:", "  - openai:gpt-4.1-mini  # replace with your assistant",
     "tests:",
     ...last.cases.flatMap((c) => [
-      `  - description: ${JSON.stringify(`${c.intent} · ${c.responder} · ${c.failure} · ${c.id}`)}`,
+      `  - description: ${JSON.stringify(`${c.intent} · ${c.responder} · ${c.reason || c.failure} · ${c.id}`)}`,
       "    vars:", `      transcript: ${JSON.stringify(transcript(c.context))}`,
       "    assert:", "      - type: llm-rubric",
       `        value: ${JSON.stringify(`Answer the user's last message well, without the problem the user flagged after a previous answer. That answer was: "${c.bad_reply.slice(0, 600)}". The user then said: "${c.user_feedback.slice(0, 600)}".`)}`,
     ]),
   ].join("\n") + "\n"],
-  csv: () => ["loupe-backlog.csv", "text/csv", [["theme", "responder", "failures", "share_of_theme_conversations", "corrections", "repeats", "example_1", "example_2", "example_3"].join(","),
-    ...last.themes.map((x) => [x.intent, x.responder ?? "all", x.failures, x.share == null ? "" : x.share.toFixed(4), x.corrections, x.repeats, ...[0, 1, 2].map((i) => x.examples[i] || "")].map(csvCell).join(","))].join("\n") + "\n"],
+  csv: () => ["loupe-backlog.csv", "text/csv", [["theme", "responder", "failures", "share_of_theme_conversations", "corrections", "repeats", "most_common_reason", "example_1", "example_2", "example_3"].join(","),
+    ...last.themes.map((x) => [x.intent, x.responder ?? "all", x.failures, x.share == null ? "" : x.share.toFixed(4), x.corrections, x.repeats, x.top_reason || "", ...[0, 1, 2].map((i) => x.examples[i] || "")].map(csvCell).join(","))].join("\n") + "\n"],
 };
 document.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("click", () => {
   if (!last || !last.cases.length) return;

@@ -155,8 +155,10 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
             # Next steps: fix list with a backlog download, the same-people check, the eval scorer, the withdrawn routing card.
             await page.click('.tabs button[data-view="next"]')
             await page.wait_for_timeout(1500)
-            if await page.evaluate("document.querySelectorAll('#view-next .card.next').length") != 4:
-                problems.append("next: expected four next-step cards")
+            if await page.evaluate("document.querySelectorAll('#view-next .card.next').length") != 5:
+                problems.append("next: expected five next-step cards")
+            if await page.evaluate("document.querySelectorAll('#view-next .why-row').length") < 5:
+                problems.append("next: the why-they-fail card should list its reasons")
             if await page.evaluate("document.querySelectorAll('#view-next table.fix tbody tr').length") < 4:
                 problems.append("next: fix list has fewer than four intents")
             if await page.evaluate("document.querySelectorAll('#view-next table.mixcheck .vd').length") != 4:
@@ -282,6 +284,14 @@ async def check(dist: Path = Path("dist"), port: int = 8771, channel: str | None
                 body = Path(await (await dl.value).path()).read_text()
                 if not body.startswith(head) or body.count("\n") < lines:
                     problems.append(f"try: {kind} export looks wrong: {body[:60]!r}")
+                if kind == "csv" and "most_common_reason" not in body.splitlines()[0]:
+                    problems.append("try: backlog csv should carry each row's most common failure reason")
+                if kind == "jsonl" and '"reason"' not in body.splitlines()[0]:
+                    problems.append("try: eval cases should carry their failure reason")
+            # Why they failed: reasons with the person's own words, at least three kinds on the chat sample.
+            n_why = await tp.evaluate("document.querySelectorAll('#why .why-row').length")
+            if n_why < 3:
+                problems.append(f"try: 'why they failed' should list at least three reasons on the chat sample, got {n_why}")
             await tp.click('[data-sample="agent-traces.otlp.json"]')
             await tp.wait_for_timeout(4000)
             so = await tp.evaluate("document.querySelector('#resp-so')?.textContent || ''")

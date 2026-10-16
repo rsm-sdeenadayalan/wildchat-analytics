@@ -264,3 +264,16 @@ table.mixcheck td:last-child { white-space: normal; min-width: 220px; }
 table.mixcheck td small { display: block; margin-top: 3px; font: 400 11px/1.35 var(--mono); color: var(--muted); white-space: normal; }
 table.mixcheck td { vertical-align: top; }
 table.mixcheck .muted-cell { display: block; max-width: 260px; white-space: normal; font-size: 12.5px; color: var(--muted); }
+
+/* why they fail (Next steps) */
+.why-list { display: grid; gap: 4px; margin: 6px 0 4px; }
+.why-row summary { display: grid; grid-template-columns: minmax(0, 260px) 1fr 60px; gap: 12px; align-items: center; padding: 7px 4px; cursor: pointer; list-style: none; border-radius: 6px; }
+.why-row summary::-webkit-details-marker { display: none; }
+.why-row summary:hover { background: var(--paper-2); }
+.why-label { font: 600 15px/1.25 var(--body); }
+.why-bar { height: 12px; background: var(--paper-2); border-radius: 4px; overflow: hidden; }
+.why-bar i { display: block; height: 100%; background: var(--orange); border-radius: 4px; }
+.why-n { text-align: right; font: 400 13px/1 var(--mono); color: var(--muted); }
+.why-plain { margin: 4px 4px 8px; font-size: 14.5px; color: var(--muted); line-height: 1.45; }
+.why-plain b { color: var(--fg); }
+@media (max-width: 640px) { .why-row summary { grid-template-columns: 1fr 50px; } .why-bar { grid-column: 1 / -1; grid-row: 2; } }

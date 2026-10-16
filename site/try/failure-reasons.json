@@ -1,0 +1,116 @@
+{
+  "version": 5,
+  "about": "Why a conversation failed, read from what the person said when they pushed back (and, for refusals, the reply they were reacting to). Ordered: the first matching rule wins. Patterns are case-insensitive regular expressions; {B} is a word boundary, {AP} an optional apostrophe. Shared by site/try/engine.js and scripts/failure_reasons.py so the try page and the dashboard agree. For a repeated request, a rule counts only if its words are new: matched in the repeat but not in the request it repeats, so the original task ('translate this', 'in 150 words') is not mistaken for a complaint. Short repeats (40 characters or fewer, such as 'continue') are pushback in themselves and are read in full.",
+  "reasons": [
+    {
+      "id": "refused",
+      "label": "Refused or dodged",
+      "plain": "The assistant declined or deflected, and the person pushed back.",
+      "fix": "Review refusal rules and system prompt for over-cautious declines.",
+      "reply": [
+        "^\\s*(?:i{AP}m sorry|i am sorry|sorry,? (?:but )?i{B}|i (?:cannot|can{AP}t|can not) (?:help|assist|provide|do|comply|fulfill|fulfil|generate|create|write|continue|share|give){B}|i{AP}m unable|i am unable|as an ai{B}|i{AP}m not able|i am not able|unfortunately,? i (?:cannot|can{AP}t)|很抱歉|对不起|抱歉|извините|к сожалению,? я не могу)"
+      ]
+    },
+    {
+      "id": "broken",
+      "label": "Didn't work",
+      "plain": "The person tried the answer and it failed: an error, a crash, the same problem.",
+      "fix": "Replay these cases as tests; check the code or steps actually run.",
+      "feedback": [
+        "(?:did ?n{AP}t|does ?n{AP}t|do ?n{AP}t|does not|did not|is ?n{AP}t|not) (?:work|run|compile|help|fix|solve)",
+        "(?:still|same) (?:error|issue|problem|crash|bug|not|doesn|broken|fail|wrong)",
+        "not working",
+        "(?:get|got|getting|gives?|giving|throws?|throwing|shows?|showing|returns?|returning|raises?|raising) (?:me )?(?:an? |the |this |that |same )?(?:error|exception|warning)",
+        "{B}(?:traceback|exception:|error:|stack ?trace|null ?pointer|syntax ?error|crash(?:es|ed|ing)?){B}",
+        "报错|还是不行|运行不了|无法运行|不能用|没用|错误提示|不起作用|не работает|ошибка:|выдает ошибку|все ещ[её]|no funciona|sigue (?:sin|igual|fallando)"
+      ]
+    },
+    {
+      "id": "incomplete",
+      "label": "Incomplete or cut off",
+      "plain": "The answer stopped early or left parts out.",
+      "fix": "Raise output limits or ask for the full answer in one reply.",
+      "feedback": [
+        "^\\s*(?:continue|go on|keep going|and\\??$|next)",
+        "(?:you (?:stopped|cut off|didn{AP}t finish|did not finish|forgot|missed|left out))",
+        "{B}(?:incomplete|unfinished|cut off|the rest|rest of (?:it|the)|full (?:code|answer|version|text)|complete (?:code|answer|version)|finish (?:it|the)|missing){B}",
+        "继续|没写完|不完整|还没完|写完|продолж|допиши|не закончил|continúa|sigue{B}"
+      ]
+    },
+    {
+      "id": "ignored",
+      "label": "Ignored instructions",
+      "plain": "The person had already said what they wanted, and the answer didn't follow it.",
+      "fix": "Check instruction-following: system prompt, context length, conflicting rules.",
+      "feedback": [
+        "(?:i (?:told|asked) you|as i (?:said|asked)|i already (?:said|told|asked)|i said (?:to|not)|follow (?:the|my) instructions?|you ignored|did ?n{AP}t (?:follow|listen|read)|read (?:it |my message )?again|re-?read)",
+        "我说了|我让你|我已经说|按照我的要求|я же сказал|я просил|я же просил|ya te dije"
+      ]
+    },
+    {
+      "id": "language",
+      "label": "Wrong language",
+      "plain": "The answer came back in the wrong language.",
+      "fix": "Detect the user's language and answer in it by default.",
+      "feedback": [
+        "(?:in|into|reply in|answer in|write in|respond in|speak) (?:english|chinese|russian|spanish|french|german|arabic|japanese|korean|portuguese|italian|turkish|hindi)",
+        "{B}(?:wrong language|translate (?:it|this|that)){B}",
+        "用中文|用英文|中文回答|说中文|翻译成|по-русски|на русском|en español"
+      ]
+    },
+    {
+      "id": "format",
+      "label": "Wrong length or format",
+      "plain": "Right idea, wrong shape: too long, too short, or not the format asked for.",
+      "fix": "Set length and format expectations in the system prompt; offer a format control.",
+      "feedback": [
+        "{B}(?:too (?:long|short|wordy|brief|much|detailed)|shorter|longer|more concise|less (?:words|text)|more (?:words|detail)|in \\d+ (?:words|sentences|lines|bullet)|word count|bullet(?: point)?s|as a (?:table|list)|in a table|in (?:the|this|that) format|one (?:sentence|paragraph|line)){B}",
+        "太长|太短|简短一点|字数|分点|表格|короче|длиннее|más corto|más largo"
+      ]
+    },
+    {
+      "id": "misunderstood",
+      "label": "Misunderstood the request",
+      "plain": "The answer addressed a different question from the one asked.",
+      "fix": "Ask a clarifying question when a request is ambiguous; add examples of the task.",
+      "feedback": [
+        "(?:not what i (?:asked|meant|wanted|need)|that{AP}s not (?:it|what)|i meant{B}|i mean{B}|i (?:was )?asking (?:for|about)|i wanted{B}|i need(?:ed)? (?:you to|a|the)|you misunderstood|misunderstood|did ?n{AP}t understand|not asking|^\\s*no,? i)",
+        "我是说|我的意思|不是这个意思|不是我要的|不是我说的|я имел в виду|не то{B}|не так{B}|no es eso|eso no{B}|ce n{AP}est pas"
+      ]
+    },
+    {
+      "id": "wrong",
+      "label": "Factually wrong",
+      "plain": "The answer stated something false or got a detail wrong.",
+      "fix": "Ground answers in sources or tools; add these cases as factual tests.",
+      "feedback": [
+        "{B}(?:wrong|incorrect|not (?:right|correct|true|accurate)|inaccurate|mistake|false|that{AP}s not true|actually)",
+        "不对|错了|你错|неправильно|неверно|ты ошиб|incorrecto|{B}mal[,.!]|{B}faux{B}|c{AP}est faux"
+      ]
+    }
+  ],
+  "fallback": [
+    {
+      "id": "resent",
+      "label": "Sent the same request again",
+      "plain": "The person asked exactly the same thing again, like pressing regenerate: the answer didn't satisfy them, and they didn't say why.",
+      "fix": "Compare the first and second answers in a few examples; the gap is usually depth, accuracy or tone.",
+      "when": "repeat",
+      "min_similarity": 0.9
+    },
+    {
+      "id": "reworded",
+      "label": "Reworded the request",
+      "plain": "The person asked again in different words, as if trying to be understood.",
+      "fix": "Treat as a missed intent: add these rewordings as test cases and check the first answer's reading of the request.",
+      "when": "repeat"
+    },
+    {
+      "id": "unclear",
+      "label": "Pushed back, reason unclear",
+      "plain": "The person corrected the answer, but in words these rules don't recognise.",
+      "fix": "Read a few examples to find the pattern.",
+      "when": "correction"
+    }
+  ]
+}
