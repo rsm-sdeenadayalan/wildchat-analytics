@@ -104,7 +104,7 @@ Events, each mapped to the question it answers:
 |---|---|---|
 | `$pageview`, `$pageleave` | any page | Where visitors come from (LinkedIn, GitHub, shankard.com, direct) and how long they stay |
 | `story_beat_reached` | each of the four story beats first appears | How far the story carries a reader before they leave |
-| `link_click` | a call to action or outbound link (`nav_open_dashboard`, `beat4_open_dashboard`, `finale_open_dashboard`, `finale_read_docs`, `resume`, `github`, `personal_site`) | Whether the story converts into the dashboard, the docs, or the resume, and from which point |
+| `link_click` | a call to action or outbound link (`nav_open_dashboard`, `beat4_open_dashboard`, `finale_open_dashboard`, `finale_read_docs`, `github`, `personal_site`) | Whether the story converts into the dashboard, the docs, or the resume, and from which point |
 | `view_opened` | a dashboard tab opens, with the active model filter | Which of the seven views people use |
 | `model_filter` | the model picker changes | Whether anyone uses the cross-view filter |
 | `series_isolated` | a legend chip isolates or compares a series | Whether the interactive legends get used |
